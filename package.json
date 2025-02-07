@@ -9,8 +9,14 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@emotion/cache": "^11.14.0",
+    "@emotion/css": "^11.13.5",
+    "@emotion/styled": "^11.14.0",
+    "@mui/material": "^6.4.3",
+    "@mui/material-nextjs": "^6.4.3",
     "d3": "^7.9.0",
     "geojson": "^0.5.0",
+    "lucide-react": "^0.475.0",
     "mapbox-gl": "^3.9.4",
     "mapbox-viz": "file:./public/lib/mapbox-viz",
     "next": "^15.1.6",

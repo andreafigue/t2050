@@ -7,6 +7,8 @@ import path from 'path';
 import type { FeatureCollection } from 'geojson';
 import { csvParse } from 'd3-dsv';
 import MapWrapper from '../components/MapWrapper';
+import AirportQueue from '../components/AirportQueue';
+
 
 
 
@@ -87,7 +89,9 @@ export default async function ChoroplethPage() {
         As the Central Puget Sound Region’s population surges toward 5.8 million by 2050, airports will face unprecedented passenger volumes. This growth will directly impact TSA security wait times, with potential delays affecting both leisure and business travelers. Without infrastructure improvements, including the proposed third commercial airport, travelers could experience significantly longer security lines, especially during peak travel seasons.
       </p>
 
-      <GraySquare />
+      <div>
+      <AirportQueue />
+    </div>
 
       <p className="mt-4 mb-8">
         This visualization highlights the critical need for proactive airport planning and infrastructure investments. Efficient, future-ready airports aren’t just about convenience—they’re essential for keeping our region connected to the world.
