@@ -15,14 +15,9 @@ const MapWrapper = () => {
         if (iframeDoc) {
           iframeDoc.open();
           iframeDoc.write(`
-              <head>
-			    <meta charset="UTF-8" />
 			    <script type="module" crossorigin src="/lib/mapbox-app.js"></script>
 			    <link rel="stylesheet" crossorigin href="/lib/mapbox-app.css">
-			  </head>
-			  <body>
 			    <div id="root"></div>
-			  </body>
           `);
           iframeDoc.close();
         }
