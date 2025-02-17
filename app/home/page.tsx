@@ -9,9 +9,6 @@ import { csvParse } from 'd3-dsv';
 import MapWrapper from '../components/MapWrapper';
 import AirportQueue from '../components/AirportQueue';
 
-
-
-
 export default async function ChoroplethPage() {
   // Read and parse the GeoJSON file.
   const geojsonFilePath = path.join(process.cwd(), 'public', 'wa_counties.geojson');

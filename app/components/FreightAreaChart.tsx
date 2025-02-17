@@ -2,13 +2,19 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
-import { Select } from '@mui/material';
 
 interface CargoData {
   year: number;
   cargoType: string;
   tons: number;
   mode: string;
+}
+
+// Define an interface for the processed data used in stacking.
+// Each object has a year property and cargo types as keys.
+interface ProcessedDatum {
+  year: number;
+  [key: string]: number;
 }
 
 const FreightAreaChart: React.FC = () => {
@@ -18,8 +24,9 @@ const FreightAreaChart: React.FC = () => {
   const svgRef = useRef<SVGSVGElement | null>(null);
   const [tooltip, setTooltip] = useState<{ x: number; y: number; text: string } | null>(null);
 
+  // Load CSV data
   useEffect(() => {
-    d3.csv("/freight_data.csv", (d) => {
+    d3.csv("/freight_data_base.csv", (d) => {
       return d.Year && d.sctg2 && d.tons && d.dms_mode
         ? {
             year: +d.Year,
@@ -39,27 +46,44 @@ const FreightAreaChart: React.FC = () => {
     });
   }, []);
 
-  console.log(data);
-
   useEffect(() => {
     if (!data.length || !selectedMode) return;
 
     const filteredData = data.filter((d) => d.mode === selectedMode);
     if (!filteredData.length) return;
     
+    // Extract the unique cargo types from the filtered data.
     const cargoTypes = [...new Set(filteredData.map(d => d.cargoType))];
 
-    const stack = d3.stack()
+    // Process the data by grouping by year and summing tons for each cargo type.
+    const processedData = d3.rollup(
+      filteredData,
+      (v) =>
+        Object.fromEntries(
+          cargoTypes.map((type) => [
+            type,
+            d3.sum(v, d => (d.cargoType === type ? d.tons : 0))
+          ])
+        ),
+      (d) => d.year
+    );
+
+    // Get the sorted list of years (the keys of the rollup).
+    const processedDataKeys = Array.from(processedData.keys()).sort(d3.ascending) as number[];
+    
+    // Create a stack generator with proper generic types.
+    // This ensures each stacked point has a `data` property of type ProcessedDatum.
+    const stack = d3.stack<ProcessedDatum, string>()
       .keys(cargoTypes)
       .value((d, key) => d[key] || 0);
     
-    const processedData = d3.rollup(
-      filteredData,
-      (v) => Object.fromEntries(cargoTypes.map(type => [type, d3.sum(v, d => d.cargoType === type ? d.tons : 0)])),
-      (d) => d.year
+    // Create the array of processed data objects.
+    const stackedData = stack(
+      processedDataKeys.map(year => ({
+        year,
+        ...processedData.get(year),
+      }))
     );
-    
-    const stackedData = stack(Array.from(processedData, ([year, values]) => ({ year, ...values })));
 
     const width = 928;
     const height = 500;
@@ -67,50 +91,57 @@ const FreightAreaChart: React.FC = () => {
 
     const svg = d3.select(svgRef.current)
       .attr('width', width)
-      .attr('height', height)
-      .selectAll('*').remove();
+      .attr('height', height);
 
+    // Clear previous renderings.
+    svg.selectAll('*').remove();
+
+    // Create scales.
     const x = d3.scaleLinear()
-      .domain(d3.extent(filteredData, (d) => d.year) as [number, number])
+      .domain(d3.extent(filteredData, d => d.year) as [number, number])
       .range([margin.left, width - margin.right]);
 
     const y = d3.scaleLinear()
-      .domain([0, d3.max(stackedData, d => d3.max(d, d => d[1])) || 0])
+      .domain([0, d3.max(stackedData, series => d3.max(series, d => d[1])) || 0])
       .rangeRound([height - margin.bottom, margin.top]);
 
     const color = d3.scaleOrdinal()
       .domain(cargoTypes)
       .range(d3.schemeTableau10);
 
-    const area = d3.area()
+    // Use the generic type for the area generator so that each point is of type d3.SeriesPoint<ProcessedDatum>.
+    const area = d3.area<d3.SeriesPoint<ProcessedDatum>>()
       .x(d => x(d.data.year))
       .y0(d => y(d[0]))
       .y1(d => y(d[1]));
 
-    const svgEl = d3.select(svgRef.current);
+    const svgEl = svg;
     const chart = svgEl.append('g');
 
+    // Render the stacked areas.
     chart.selectAll('.area')
       .data(stackedData)
       .enter()
       .append('path')
-      .attr('d', area)
-      .attr('fill', d => color(d.key))
+      .attr('d', d => area(d) || "")
+      .attr('fill', d => color(d.key) as string)
       .attr('opacity', 0.7)
       .on('mouseover', (event, d) => {
         setTooltip({ x: event.pageX, y: event.pageY, text: d.key });
       })
       .on('mouseout', () => setTooltip(null));
 
+    // Add the X-axis.
     svgEl.append('g')
       .attr('transform', `translate(0,${height - margin.bottom})`)
       .call(d3.axisBottom(x).tickFormat(d3.format('d')));
 
+    // Add the Y-axis.
     svgEl.append('g')
       .attr('transform', `translate(${margin.left},0)`)
       .call(d3.axisLeft(y));
 
-    // Add vertical line for forecast start (2023)
+    // Add a vertical line for forecast start (2023).
     svgEl.append('line')
       .attr('x1', x(2023))
       .attr('x2', x(2023))
@@ -127,11 +158,12 @@ const FreightAreaChart: React.FC = () => {
       .text('Forecast Start');
   }, [data, selectedMode]);
 
-
   return (
     <div className="p-4">
       <div>
-        <h2 className="text-2xl font-semibold mb-4">Annual Freight Movement by Transportation Mode and Cargo</h2>
+        <h2 className="text-2xl font-semibold mb-4">
+          Annual Freight Movement by Transportation Mode and Cargo
+        </h2>
       </div>
 
       {modes.length > 0 && (
@@ -142,7 +174,7 @@ const FreightAreaChart: React.FC = () => {
         </select>
       )}
       <div>
-        <br/>
+        <br />
         <svg ref={svgRef} className="border rounded" />
       </div>
 
