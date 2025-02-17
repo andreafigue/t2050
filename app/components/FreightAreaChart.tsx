@@ -85,7 +85,7 @@ const FreightAreaChart: React.FC = () => {
       }))
     );
 
-    const width = 928;
+    const width = 800;
     const height = 500;
     const margin = { top: 10, right: 20, bottom: 20, left: 60 };
 
@@ -159,12 +159,8 @@ const FreightAreaChart: React.FC = () => {
   }, [data, selectedMode]);
 
   return (
-    <div className="p-4">
-      <div>
-        <h2 className="text-2xl font-semibold mb-4">
-          Annual Freight Movement by Transportation Mode and Cargo
-        </h2>
-      </div>
+    <div>
+      
 
       {modes.length > 0 && (
         <select value={selectedMode} onChange={(e) => setSelectedMode(e.target.value)}>
@@ -173,10 +169,8 @@ const FreightAreaChart: React.FC = () => {
           ))}
         </select>
       )}
-      <div>
-        <br />
-        <svg ref={svgRef} className="border rounded" />
-      </div>
+      
+      <svg ref={svgRef} className="border rounded" />
 
       {tooltip && (
         <div className="absolute bg-white p-2 shadow" style={{ top: tooltip.y, left: tooltip.x }}>

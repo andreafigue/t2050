@@ -9,6 +9,10 @@ import FreightAreaChart2 from '../components/FreightAreaChart2';
 export default function Home() {
   return (
     <div className="container mx-auto px-4 py-8" style={{ margin: '20px', width: '900px'}}>
+
+        <h2 className="text-2xl font-semibold mb-4">
+          Annual Freight Movement by Transportation Mode and Cargo
+        </h2>
       <FreightAreaChart/>
       <p className="mb-4" style={{ margin: '20px', width: '930px'}}>
         This chart visualizes the annual movement of freight across different transportation modes. 
