@@ -2,13 +2,19 @@
 import React from 'react';
 import ChoroplethMap, { CountyCsvRow } from '../components/ChoroplethMap';
 import GraySquare from '../components/GraySquare';
-import fs from 'fs/promises';
+//import fs from 'fs/promises';
+import { promises as fs } from 'fs'
 import path from 'path';
 import type { FeatureCollection } from 'geojson';
 import { csvParse } from 'd3-dsv';
 import MapWrapper from '../components/MapWrapper';
 import AirportQueue from '../components/AirportQueue';
 import FreightAreaChart from '../components/FreightAreaChart';
+import FreightFlights from "../components/animations/flights";
+import FreightShips from "../components/animations/ships";
+import FreightTrains from "../components/animations/Trains";
+import FreightCars from "../components/animations/Cars";
+
 
 export default async function ChoroplethPage() {
   // Read and parse the GeoJSON file.
@@ -30,10 +36,8 @@ export default async function ChoroplethPage() {
     }));
   } catch (err) {
     console.error('Error reading county CSV:', err);
-  }
-
-  return (
-    <div className="container mx-auto px-4 py-8" style={{ margin: '40px', width: '800px'}}>
+  } return (
+    <div className="container mx-auto px-4 py-8" style={{ margin: '40px', width: '1200px'}}>
       <h1 className="text-3xl font-bold mb-6">Challenge 2050: The Future in Motion</h1>
 
       <p className="mb-4">
@@ -75,37 +79,45 @@ export default async function ChoroplethPage() {
          mobility will be significantly impacted. 
       </p>
 
+      <FreightCars />
+
 
       <p className="mt-4 mb-8">
         How will this affect you? Use the interactive tool below to see how your daily commute might 
         change by 2050. Simply enter your origin and destination to compare current travel times with 
         projections for the future, based on different infrastructure investment scenarios.
       </p>
+      
       <MapWrapper />
+      
       <p className="mt-4 mb-8">
-
       Your commute is more than just a trip—it’s time out of your day, every day. This visualization 
       helps you understand how future growth and infrastructure decisions will directly affect the 
       time you spend getting to your destination, enabling you to see why we need to start now to 
       plan for Washington’s transportation future.
       </p>
-      
 
       <h2 className="text-2xl font-semibold mb-4">Cleared for Takeoff? The Future of TSA Wait Times at SEA-TAC Airport</h2>
+
+      
+      <FreightFlights />
+      
 
       <p className="mt-4 mb-8">
         As the central Puget Sound region’s population surges toward 5.8 million by 2050, airports will face unprecedented passenger volumes. This growth will directly impact TSA security wait times, with delays affecting leisure and business travelers and air cargo planes exporting Washington’s agriculture products to international customers. Without an increase in capacity, Washington residents will experience significantly longer security lines, especially during peak travel seasons.
       </p>
 
       <div>
-      <AirportQueue />
-    </div>
+        <AirportQueue />
+      </div>
 
       <p className="mt-4 mb-8">
         This visualization highlights the critical need for proactive airport planning and infrastructure investments. Efficient, future-ready airports aren’t just about convenience—they’re essential for keeping our state connected to the world.
       </p>
 
       <h2 className="text-2xl font-semibold mb-4">Freight on the Move: The Future of Goods Transportation</h2>
+
+      <FreightShips />
 
       <p className="mt-4 mb-8">
         As Washington’s population and economy grow, so does the demand for efficient freight movement. 
@@ -152,8 +164,6 @@ export default async function ChoroplethPage() {
       </p>
 
       <GraySquare />
-
-
 
     </div>
   );
