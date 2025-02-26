@@ -39,7 +39,6 @@ export default async function ChoroplethPage() {
   } return (
     <div className="container mx-auto px-4 py-8" style={{ margin: '40px', width: '1200px'}}>
       <h1 className="text-3xl font-bold mb-6">Challenge 2050: The Future in Motion</h1>
-
       <p className="mb-4">
         By 2050, Washington’s population is expected to grow by 1.8 million more people, 
         increasing to 10 million calling our state home. Of those new residents, 1.5 million 
@@ -50,11 +49,9 @@ export default async function ChoroplethPage() {
         already under strain, will face unprecedented challenges that demand bold, coordinated action. 
         This visualization invites you to explore the future of Washington’s mobility needs, uncovering 
         the impacts of growth, infrastructure projects, and potential solutions.
-
       </p>
 
       <h2 className="text-2xl font-semibold mb-4">A Region on the Rise: Population Growth from 1961 to 2050</h2>
-
 
       <p className="mt-4 mb-8">
         Population growth doesn’t happen overnight—it unfolds over decades. Using historical data 
@@ -69,7 +66,6 @@ export default async function ChoroplethPage() {
       <br/>
       <h2 className="text-2xl font-semibold mb-4">The Road Ahead: How Growth Impacts You</h2>
 
-
       <p className="mt-4 mb-8">
         Population growth isn’t just a statistic—it’s a reality that will reshape your daily life. 
         More people mean more cars on the road, higher demand for public transit, and increased strain 
@@ -80,7 +76,6 @@ export default async function ChoroplethPage() {
       </p>
 
       <FreightCars />
-
 
       <p className="mt-4 mb-8">
         How will this affect you? Use the interactive tool below to see how your daily commute might 
@@ -98,11 +93,9 @@ export default async function ChoroplethPage() {
       </p>
 
       <h2 className="text-2xl font-semibold mb-4">Cleared for Takeoff? The Future of TSA Wait Times at SEA-TAC Airport</h2>
-
       
       <FreightFlights />
       
-
       <p className="mt-4 mb-8">
         As the central Puget Sound region’s population surges toward 5.8 million by 2050, airports will face unprecedented passenger volumes. This growth will directly impact TSA security wait times, with delays affecting leisure and business travelers and air cargo planes exporting Washington’s agriculture products to international customers. Without an increase in capacity, Washington residents will experience significantly longer security lines, especially during peak travel seasons.
       </p>
@@ -132,7 +125,21 @@ export default async function ChoroplethPage() {
       <div>
         <FreightAreaChart/>
       </div>
-      <br/>
+      <br/> 
+
+      <h2 className="text-2xl font-semibold mb-4">
+        Ensuring Longevity: Maintenance and Preservation of Washington's Transportation Infrastructure
+      </h2>
+
+      <p className="mt-4 mb-8">
+        Lorem ipsum dolor sit amet, oporteat constituam et ius, inani primis periculis ei usu, ad mazim cotidieque mei. Ius consulatu persecuti quaerendum ad, falli constituto pri ut. Ad pro debet constituam, vim libris sapientem interpretaris ei. Clita aperiam in has, sea in discere corrumpit. Eam vivendum legendos id, ex dolores appetere quo.      
+      </p>
+
+      <GraySquare />
+
+      <p className="mt-4 mb-8">
+        Lorem ipsum dolor sit amet, oporteat constituam et ius, inani primis periculis ei usu, ad mazim cotidieque mei. Ius consulatu persecuti quaerendum ad, falli constituto pri ut. Ad pro debet constituam, vim libris sapientem interpretaris ei. Clita aperiam in has, sea in discere corrumpit. Eam vivendum legendos id, ex dolores appetere quo.      
+      </p>
 
       <h2 className="text-2xl font-semibold mb-4">
         Building a Better Tomorrow: Solutions for Mobility Challenges
