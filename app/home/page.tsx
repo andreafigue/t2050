@@ -6,7 +6,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import type { FeatureCollection } from 'geojson';
 import { csvParse } from 'd3-dsv';
-import MapWrapper from '../components/MapWrapper';
+//import MapWrapper from '../components/MapWrapper';
 import AirportQueue from '../components/AirportQueue';
 
 export default async function ChoroplethPage() {
@@ -80,7 +80,6 @@ export default async function ChoroplethPage() {
         change by 2050. Simply enter your origin and destination to compare current travel times with 
         projections for the future, based on different infrastructure investment scenarios.
       </p>
-      <MapWrapper />
       <p className="mt-4 mb-8">
 
       Your commute is more than just a trip—it’s time out of your day, every day. This visualization 

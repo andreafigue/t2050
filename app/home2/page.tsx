@@ -7,7 +7,8 @@ import { promises as fs } from 'fs'
 import path from 'path';
 import type { FeatureCollection } from 'geojson';
 import { csvParse } from 'd3-dsv';
-import MapWrapper from '../components/MapWrapper';
+//import MapWrapper from '../components/MapWrapper';
+import MapRoute from '../components/MapRoute2';
 import AirportQueue from '../components/AirportQueue';
 import FreightAreaChart from '../components/FreightAreaChart';
 import FreightFlights from "../components/animations/flights";
@@ -15,6 +16,8 @@ import FreightShips from "../components/animations/ships";
 import FreightTrains from "../components/animations/Trains";
 import FreightCars from "../components/animations/Cars";
 
+import TravelComparison from '../components/hsr';
+import BridgeNeedsMap from '../components/BridgeMap';
 
 export default async function ChoroplethPage() {
   // Read and parse the GeoJSON file.
@@ -83,7 +86,9 @@ export default async function ChoroplethPage() {
         projections for the future, based on different infrastructure investment scenarios.
       </p>
       
-      <MapWrapper />
+      <MapRoute />
+
+      <div style={{height: '84px'}}/>
       
       <p className="mt-4 mb-8">
       Your commute is more than just a trip—it’s time out of your day, every day. This visualization 
@@ -132,45 +137,56 @@ export default async function ChoroplethPage() {
       </h2>
 
       <p className="mt-4 mb-8">
-        Lorem ipsum dolor sit amet, oporteat constituam et ius, inani primis periculis ei usu, ad mazim cotidieque mei. Ius consulatu persecuti quaerendum ad, falli constituto pri ut. Ad pro debet constituam, vim libris sapientem interpretaris ei. Clita aperiam in has, sea in discere corrumpit. Eam vivendum legendos id, ex dolores appetere quo.      
+        Washington's extensive network of over 8,400 bridges serves as vital connectors for communities, commerce, and transportation. However, with approximately 5.5% of these structures classified as structurally deficient, the focus on maintenance and preservation becomes paramount. The interactive map below provides a comprehensive overview of all bridges in Washington, detailing their current conditions. This visualization underscores the critical need for targeted maintenance strategies and highlights areas where infrastructure investments are essential to ensure safety and efficiency across the state's transportation network. Failure to address these deficiencies could lead to significant traffic disruptions, increased congestion, and compromised safety for all road users.
       </p>
 
-      <GraySquare />
-
-      <p className="mt-4 mb-8">
-        Lorem ipsum dolor sit amet, oporteat constituam et ius, inani primis periculis ei usu, ad mazim cotidieque mei. Ius consulatu persecuti quaerendum ad, falli constituto pri ut. Ad pro debet constituam, vim libris sapientem interpretaris ei. Clita aperiam in has, sea in discere corrumpit. Eam vivendum legendos id, ex dolores appetere quo.      
-      </p>
+      <div style={{ padding: '1rem 1rem' }}>
+        <BridgeNeedsMap />
+      </div>
 
       <h2 className="text-2xl font-semibold mb-4">
         Building a Better Tomorrow: Solutions for Mobility Challenges
       </h2>
 
       <p className="mt-4 mb-8">
-      To meet the demands of a growing population and ensure efficient, sustainable mobility across Washington, bold, coordinated action is essential. This means investing in infrastructure projects, such as expanding public transit networks, maintaining and strategically investing in road capacity, adding capacity for passenger and cargo air travel, and building ultra-high-speed rail. 
+      To meet the demands of a growing population and ensure efficient, sustainable mobility across Washington, bold, coordinated action is essential. This involves investing in infrastructure projects such as expanding public transit networks, maintaining and strategically enhancing road capacity, increasing passenger and cargo air travel capabilities, and developing ultra-high-speed rail systems.​
       <br/><br/>
-      Equally important is the integration of smart technologies to optimize traffic flow, improve transit efficiency, and reduce environmental impact. By prioritizing strategic investments, fostering regional collaboration, and planning for the long term, we can create a transportation system that not only keeps pace with growth but also enhances the quality of life for everyone in Washington.
-
+      High-speed rail (HSR) presents a promising solution to alleviate traffic congestion. Current initiatives are exploring the feasibility of an ultra-high-speed rail line connecting Vancouver, Seattle, and Portland, with trains operating at speeds up to 250 mph. This project aims to significantly reduce travel times between these major cities.
+      <br/><br/>
+      The visualization below allows you to explore and compare these travel times across different modes of transportation, providing insight into how high-speed rail could transform regional mobility. Use the interactive tool to select your origin and destination, and compare current travel times by car and train with projected times using the proposed high-speed rail system.
+      </p>
+      
+      <TravelComparison />
+      <p style={{fontStyle: 'italic', paddingTop: "65px", paddingRight: "5px", textAlign: "right"}}>
+      Note: These HSR travel times are based on projections from feasibility studies and are subject to change as the project develops.
       </p>
 
-      <GraySquare />
-      <p className="mt-4 mb-8">
-        Lorem ipsum dolor sit amet, oporteat constituam et ius, inani primis periculis ei usu, ad mazim cotidieque mei. Ius consulatu persecuti quaerendum ad, falli constituto pri ut. Ad pro debet constituam, vim libris sapientem interpretaris ei. Clita aperiam in has, sea in discere corrumpit. Eam vivendum legendos id, ex dolores appetere quo.      
-      </p>
-
-      <GraySquare />
-      <p className="mt-4 mb-8">
-        Lorem ipsum dolor sit amet, oporteat constituam et ius, inani primis periculis ei usu, ad mazim cotidieque mei. Ius consulatu persecuti quaerendum ad, falli constituto pri ut. Ad pro debet constituam, vim libris sapientem interpretaris ei. Clita aperiam in has, sea in discere corrumpit. Eam vivendum legendos id, ex dolores appetere quo.      
-      </p>
-
-      <h2 className="text-2xl font-semibold mb-4">
+     {/* <h2 className="text-2xl font-semibold mb-4">
         Discover the Impact: Your Interactive Mobility Dashboard
       </h2>
 
       <p className="mt-4 mb-8">
         Now it’s your turn to explore the future. Our interactive dashboard brings together all the data—population growth projections, commute times, transportation infrastructure scenarios, and more—into one easy-to-use platform. Dive deep into the trends, compare different future scenarios, and see exactly how changes will impact your daily life, from commute times to air travel wait times. Whether you're a commuter, policymaker, or simply curious about the region’s future, this dashboard empowers you to make informed decisions, understand the trade-offs, and envision a Washington that works for everyone.
+      </p>*/}
+
+      <h2 className="text-2xl font-semibold mb-4">
+      Experience the Impact: Your Interactive Traffic Simulation Game
+      </h2>
+
+      <p className="mt-4 mb-8">
+        Understanding how transportation choices affect traffic congestion is crucial for envisioning a more efficient future. Our interactive traffic simulation game allows you to explore the dynamics of various transportation modes and their influence on traffic flow. By adding or removing cars, buses, and trains, you can observe real-time changes in congestion levels, measured by the number of people moved and the resulting traffic conditions. The simulation provides immediate visual feedback, with congestion levels displayed on a graph—red indicating backed-up traffic and green representing free-flowing conditions. This engaging tool empowers you to experiment with different scenarios, deepening your understanding of how strategic transportation planning can alleviate congestion and improve mobility for all.
       </p>
 
-      <GraySquare />
+
+      <div>
+        <iframe
+          src={"https://vishnupriyanr.github.io/T2050_WI25"}
+          title="External Website"
+          width="100%"
+          height="800px"
+          style={{border: 'none'}}
+        />
+      </div>
 
     </div>
   );

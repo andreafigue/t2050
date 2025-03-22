@@ -633,8 +633,7 @@ const FreightCars = () => {
         display: "flex",
         flexDirection: "column",
         alignItems: "left",
-        justifyContent: "flex-start",
-        padding: "20px",
+        padding: "20px 60px 0px 0px",
         boxSizing: "border-box",
         position: "relative",
         overflow: "hidden"
@@ -975,19 +974,7 @@ const FreightCars = () => {
               border: "2px solid #333",
             }}>
               {/* Title */}
-              <div style={{
-                color: "#fff",
-                fontSize: "10px",
-                fontFamily: "monospace",
-                textTransform: "uppercase",
-                letterSpacing: "1px",
-                textAlign: "center",
-                marginBottom: "2px",
-                borderBottom: "1px solid #333",
-                paddingBottom: "2px"
-              }}>
-                Freight Moved
-              </div>
+
               
               {/* Cars section */}
               <div style={{
@@ -1075,64 +1062,7 @@ const FreightCars = () => {
             </div>
 
             {/* ETA Graph */}
-            <div style={{
-              position: "relative",
-              height: "60px",
-            }}>
-              <div style={{
-                color: "#000000",
-                fontSize: "10px",
-                fontFamily: "monospace",
-                textTransform: "uppercase",
-                letterSpacing: "1px",
-                position: "absolute",
-                top: "-20px",     // Position above the graph
-                width: "100%",
-                textAlign: "center",
-                zIndex: 1,        // Ensure text appears above other elements
-                pointerEvents: "none"  // Prevent text from interfering with interactions
-              }}>
-                Time of Day
-              </div>
-              <div style={{
-                height: "40px",
-                backgroundColor: "#1a1a1a",
-                border: "2px solid #333",
-                borderRadius: "8px",
-                padding: "8px 15px",
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "center",
-                width: "120px",
-                flexShrink: 0,
-                position: "relative"
-              }}>
-                <div style={{
-                  width: "100%",
-                  height: "40px",
-                  position: "relative",
-                  // backgroundColor: "#333",
-                  display: "flex",
-                  alignItems: "flex-end",
-                  gap: "2px"
-                }}>
-                  {etaHistory.map((value, index) => {
-                    const heightPercentage = Math.min((value / 600) * 100, 100);
-                    return (
-                      <div
-                        key={index}
-                        style={{
-                          flex: 1,
-                          backgroundColor: value > 300 ? "#ff4444" : "#4CAF50",
-                          height: `${heightPercentage}%`,
-                          minHeight: "1px"
-                        }}
-                      />
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
+           
           </div>
 
           {/* Active cars */}

@@ -445,7 +445,7 @@ const FreightTrains = () => {
             {/* Freight Moved Board */}
             <div style={{
               width: "240px",
-              height: "40px",
+              height: "60px",
               backgroundColor: "#1a1a1a",
               borderRadius: "12px",
               padding: "10px 12px",
@@ -538,7 +538,7 @@ const FreightTrains = () => {
                 Time of Day
               </div>
               <div style={{
-                height: "40px",
+                height: "60px",
                 backgroundColor: "#1a1a1a",
                 border: "2px solid #333",
                 borderRadius: "8px",

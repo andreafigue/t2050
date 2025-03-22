@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>MapboxViz</title>
+    
+    <!-- Include Mapbox GL CSS and JS -->
+    <link href="https://api.mapbox.com/mapbox-gl-js/v3.10.0/mapbox-gl.css" rel="stylesheet">
+    <script src="https://api.mapbox.com/mapbox-gl-js/v3.10.0/mapbox-gl.js"></script>
+
+    <!-- Load React 18 UMD build explicitly (DO NOT use React 19) -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/react@18/umd/react-jsx-runtime.production.min.js"></script>
+
+    <!-- Patch React global variables -->
+    <script>
+      window.React = React;
+      window.ReactDOM = ReactDOM;
+      window.jsxRuntime = window.ReactJSXRuntime || window.ReactJsxRuntime;
+      if (!window.jsxRuntime) {
+        console.warn("jsxRuntime not found; using fallback.");
+        window.jsxRuntime = {
+          jsx: React.createElement,
+          jsxs: React.createElement,
+          Fragment: React.Fragment,
+        };
+      }
+      console.log("jsxRuntime assigned", window.jsxRuntime);
+    </script>
+
+    <!-- Ensure that createRoot does not fail due to an invalid container -->
+    <script>
+      (function() {
+        const originalCreateRoot = ReactDOM.createRoot;
+        ReactDOM.createRoot = function(container, options) {
+          if (!container || !(container instanceof Element)) {
+            console.warn("ReactDOM.createRoot: Invalid container. Using persistent container.");
+            container = document.getElementById("mapbox-viz-root");
+          }
+          return originalCreateRoot(container, options);
+        };
+      })();
+    </script>
+  </head>
+  <body>
+    <!-- Persistent container for the visualization -->
+    <div id="mapbox-viz-root"></div>
+
+    <script>
+      console.log("mapbox.html loaded");
+    </script>
+
+    <!-- Load the compiled MapboxViz UMD bundle (WITHOUT async) -->
+    <script src="/lib/mapbox-viz/mapbox-viz.umd.js"></script>
+
+    <!-- Bootstrap the visualization AFTER all scripts load -->
+    <script>
+      window.addEventListener("load", function () {
+        const container = document.getElementById("mapbox-viz-root");
+        if (!container) {
+          console.error("Container not found");
+          return;
+        }
+        if (window.MapboxViz) {
+          console.log("MapboxViz is defined. Bootstrapping...");
+          const element = React.createElement(window.MapboxViz);
+          const root = ReactDOM.createRoot(container);
+          root.render(element);
+        } else {
+          console.error("MapboxViz is not defined.");
+        }
+      });
+    </script>
+  </body>
+</html>

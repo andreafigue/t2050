@@ -9,8 +9,6 @@ import Card from '@mui/material/Card';
 import CardHeader from "@mui/material/CardHeader";
 import CardContent from "@mui/material/CardContent";
 
-
-
 const AirportQueueViz = () => {
  const currentQueueLength = 15;
  const futureQueueLength = 45;

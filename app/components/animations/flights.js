@@ -459,7 +459,7 @@ const FreightFlights = () => {
             {/* Freight Moved Board */}
             <div style={{
               width: "240px",
-              height: "40px",
+              height: "60px",
               backgroundColor: "#1a1a1a",
               borderRadius: "12px",
               padding: "10px 12px",
@@ -477,7 +477,7 @@ const FreightFlights = () => {
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "center",
-                gap: "4px"
+                gap: "px"
               }}>
                 <div style={{ fontSize: "20px" }}>👥</div>
                 <div style={{
@@ -485,9 +485,10 @@ const FreightFlights = () => {
                   fontSize: "10px",
                   fontFamily: "monospace",
                   textTransform: "uppercase",
-                  letterSpacing: "1px"
+                  letterSpacing: "1px",
+          
                 }}>
-                  Freight Moved
+                  People Moved
                 </div>
               </div>
 
@@ -552,7 +553,7 @@ const FreightFlights = () => {
                 Time of Day
               </div>
               <div style={{
-                height: "40px",
+                height: "60px",
                 backgroundColor: "#1a1a1a",
                 border: "2px solid #333",
                 borderRadius: "8px",
