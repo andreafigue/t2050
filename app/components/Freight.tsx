@@ -71,6 +71,7 @@ const WashingtonMapWithLineGraphs = () => {
   useEffect(() => {
     let tooltip = d3.select("body").select("#tooltip");
     if (tooltip.empty()) {
+      // @ts-ignore
       tooltip = d3.select("body")
         .append("div")
         .attr("id", "tooltip")
