@@ -19,7 +19,7 @@ const WashingtonMapWithLineGraphs = () => {
   const [usStatesData, setUsStatesData] = useState<any>(null);
   const [rtpoData, setRtpoData] = useState<any>(null);
   const [selectedCounties, setSelectedCounties] = useState<Set<string>>(new Set());
-  const selectedCountiesRef = useRef<Set<string>>(selectedCounties);
+  const selectedCountiesRef = useRef<Set<string>>(new Set());
 
   const [freightCSVData, setFreightCSVData] = useState<FreightData[]>([]);
 
@@ -27,9 +27,8 @@ const WashingtonMapWithLineGraphs = () => {
   const [waCountyMapping, setWaCountyMapping] = useState<Record<string, string>>({});
 
   const [filterOptions] = useState({
-    inboundOutbound: ["all", "Inbound", "Outbound"],
     commodityGroup: [
-      "all",
+      "All",
       "Industrial Manufacturing",
       "Last-Mile Delivery",
       "Transportation Equipment",
@@ -57,13 +56,16 @@ const WashingtonMapWithLineGraphs = () => {
     ]
   });
   const [selectedFilters, setSelectedFilters] = useState({
-    inboundOutbound: "Outbound",
-    commodityGroup: "all",
+    commodityGroup: "All",
     tradeType: "all",
     mode: "all",
   });
 
-  const mapWidth = 600, mapHeight = 500;
+  //const mapWidth = 600, mapHeight = 500;
+  const container = mapSvgRef.current?.parentElement;
+  const mapWidth = container?.clientWidth || 600;
+  const mapHeight = container?.clientHeight || 500;
+
   const lineGraphWidth = 300, lineGraphHeight = 240;
 
   useEffect(() => {
@@ -71,7 +73,7 @@ const WashingtonMapWithLineGraphs = () => {
     const svg = d3.select(mapSvgRef.current);
     svg.selectAll(".county")
       .attr("fill", d =>
-        selectedCountiesRef.current.has((d as any).properties.NAME) ? "#007bff" : "#ccc"
+        selectedCounties.has((d as any).properties.NAME) ? "#007bff" : "#ccc"
       );
   }, [selectedCounties]);
 
@@ -122,27 +124,21 @@ const WashingtonMapWithLineGraphs = () => {
 
   const filteredFreightData = useMemo(() => {
     if (!freightCSVData || freightCSVData.length === 0) return [];
-    const inboundOutbound = selectedFilters.inboundOutbound;
-    let countyFilterSet: Set<string>;
-    if (selectedCounties.size > 0) {
-      countyFilterSet = new Set(
-        Array.from(selectedCounties)
-          .map(name => waCountyMapping[name])
-          .filter(id => id !== undefined)
-      );
-    } else {
-      countyFilterSet = waCountyIDs;
-    }
+
+    const countyFilterSet: Set<string> = new Set(
+      Array.from(selectedCounties)
+        .map(name => waCountyMapping[name])
+        .filter(id => id !== undefined)
+    );
+
+    if (selectedCounties.size > 0 && countyFilterSet.size === 0) return [];
+
     return freightCSVData.filter(d => {
       let pass = true;
-      if (inboundOutbound === "Outbound") {
-        pass = pass && countyFilterSet.has(d["Origin County"]);
-      } else if (inboundOutbound === "Inbound") {
-        pass = pass && countyFilterSet.has(d["Destination County"]);
-      } else if (inboundOutbound === "all") {
-        pass = pass && (countyFilterSet.has(d["Origin County"]) || countyFilterSet.has(d["Destination County"]));
+      if (selectedCounties.size > 0) {
+        pass = countyFilterSet.has(d["Origin County"]);
       }
-      if (selectedFilters.commodityGroup !== "all") {
+      if (selectedFilters.commodityGroup !== "All") {
         pass = pass && (d["Commodity Group"] === selectedFilters.commodityGroup);
       }
       if (selectedFilters.tradeType !== "all") {
@@ -153,7 +149,8 @@ const WashingtonMapWithLineGraphs = () => {
       }
       return pass;
     });
-  }, [freightCSVData, selectedFilters, selectedCounties, waCountyIDs, waCountyMapping]);
+  }, [freightCSVData, selectedFilters, selectedCounties, waCountyMapping]);
+
 
   // Draw the Washington map (unchanged)
   useEffect(() => {
@@ -166,7 +163,7 @@ const WashingtonMapWithLineGraphs = () => {
       .center([-0.6, 47.5])
       .rotate([120, 0])
       .parallels([48, 49])
-      .scale(6000)
+      .scale(Math.min(mapWidth, mapHeight) * 9 )
       .translate([mapWidth / 2, mapHeight / 2]);
     const path = d3.geoPath().projection(projection);
     //let tooltip = d3.select("body").select("#tooltip");
@@ -240,7 +237,7 @@ const WashingtonMapWithLineGraphs = () => {
   // Custom formatter for dollars: replace "G" with "B"
   const formatDollar = (n: number) => d3.format("~s")(n).replace("G", "B");
 
-  // Function to update line graph (common logic with animated transitions)
+  // Function to update line graph 
   const updateLineGraph = (
     svgRef: React.RefObject<SVGSVGElement | null>,
     aggregatedData: { x: number, y: number }[],
@@ -403,9 +400,9 @@ const WashingtonMapWithLineGraphs = () => {
   }, [filteredFreightData]);
 
   return (
-    <div className="flex gap-4 p-4" style={{ width: "1300px", margin: "0 auto" }}>
+    <div className="flex gap-4 p-4" style={{ width: "100%", margin: "0 auto" }}>
       {/* Left Panel: Filters */}
-      <div className="w-1/6 p-4 border">
+      <div className="w-1/6 p-4 border"  style={{borderRadius: 8}}>
         <h2 className="text-lg font-bold">Filters</h2>
         {Object.keys(selectedFilters).map((filter) => (
           <div key={filter} className="mb-2">
@@ -429,24 +426,24 @@ const WashingtonMapWithLineGraphs = () => {
           </div>
         ))}
         <div className="mt-4 p-2 border bg-gray-100">
-          <h3 className="font-bold">Selected Counties</h3>
+          <h2 className="text-lg font-bold">Selected Counties</h2>
           <p>{selectedCounties.size > 0 ? Array.from(selectedCounties).join(", ") : "All"}</p>
         </div>
       </div>
 
       {/* Center Panel: Map */}
-      <div className="w-3/6 border p-4">
-        <svg ref={mapSvgRef}></svg>
+      <div className="w-3/6 border p-4 " style={{borderRadius: 8}}>
+        <svg ref={mapSvgRef} className="w-full h-full" />
       </div>
 
       {/* Right Panel: Two line graphs */}
-      <div className="w-2/6 flex flex-col gap-4 border p-4">
+      <div className="w-2/6 flex flex-col gap-4 border p-4" style={{borderRadius: 8}}>
         <div className="flex flex-col items-center">
-          <h3 className="font-bold mb-2">Tons over Years</h3>
+          <h2 className="text-lg font-bold">Tons over Years</h2>
           <svg ref={lineGraph1Ref}></svg>
         </div>
         <div className="flex flex-col items-center">
-          <h3 className="font-bold mb-2">Value over Years</h3>
+          <h2 className="text-lg font-bold">Value over Years</h2>
           <svg ref={lineGraph2Ref}></svg>
         </div>
       </div>

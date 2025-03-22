@@ -15,6 +15,7 @@ import FreightFlights from "../components/animations/flights";
 import FreightShips from "../components/animations/ships";
 import FreightTrains from "../components/animations/Trains";
 import FreightCars from "../components/animations/Cars";
+import WashingtonMapWithLineGraphs from '../components/Freight';
 
 import TravelComparison from '../components/hsr';
 import BridgeNeedsMap from '../components/BridgeMap';
@@ -53,7 +54,6 @@ export default async function ChoroplethPage() {
         This visualization invites you to explore the future of Washington’s mobility needs, uncovering 
         the impacts of growth, infrastructure projects, and potential solutions.
       </p>
-
       <h2 className="text-2xl font-semibold mb-4">A Region on the Rise: Population Growth from 1961 to 2050</h2>
 
       <p className="mt-4 mb-8">
@@ -127,8 +127,8 @@ export default async function ChoroplethPage() {
         remains a key player in national and global trade.
       </p>
 
-      <div>
-        <FreightAreaChart/>
+      <div >
+        <WashingtonMapWithLineGraphs/>
       </div>
       <br/> 
 
