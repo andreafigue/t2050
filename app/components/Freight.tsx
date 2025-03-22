@@ -426,7 +426,7 @@ const WashingtonMapWithLineGraphs = () => {
           </div>
         ))}
         <div className="mt-4 p-2 border bg-gray-100">
-          <h2 className="text-lg font-bold">Selected Counties</h2>
+          <h2 className="text-base  font-bold">Selected Counties</h2>
           <p>{selectedCounties.size > 0 ? Array.from(selectedCounties).join(", ") : "All"}</p>
         </div>
       </div>
