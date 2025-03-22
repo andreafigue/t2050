@@ -61,12 +61,29 @@ const WashingtonMapWithLineGraphs = () => {
     mode: "all",
   });
 
-  //const mapWidth = 600, mapHeight = 500;
   const container = mapSvgRef.current?.parentElement;
   const mapWidth = container?.clientWidth || 600;
   const mapHeight = container?.clientHeight || 500;
 
   const lineGraphWidth = 300, lineGraphHeight = 240;
+
+  // Tooltip: Create once on mount if it doesn't exist.
+  useEffect(() => {
+    let tooltip = d3.select("body").select("#tooltip");
+    if (tooltip.empty()) {
+      tooltip = d3.select("body")
+        .append("div")
+        .attr("id", "tooltip")
+        .style("position", "absolute")
+        .style("background", "white")
+        .style("padding", "5px")
+        .style("border", "1px solid #ccc")
+        .style("border-radius", "5px")
+        .style("display", "none")
+        .style("pointer-events", "none");
+      console.log("Tooltip created:", tooltip.node());
+    }
+  }, []);
 
   useEffect(() => {
     selectedCountiesRef.current = selectedCounties;
@@ -151,8 +168,7 @@ const WashingtonMapWithLineGraphs = () => {
     });
   }, [freightCSVData, selectedFilters, selectedCounties, waCountyMapping]);
 
-
-  // Draw the Washington map (unchanged)
+  // Draw the Washington map with counties.
   useEffect(() => {
     if (!usStatesData) return;
     const svg = d3.select(mapSvgRef.current)
@@ -163,26 +179,11 @@ const WashingtonMapWithLineGraphs = () => {
       .center([-0.6, 47.5])
       .rotate([120, 0])
       .parallels([48, 49])
-      .scale(Math.min(mapWidth, mapHeight) * 9 )
+      .scale(Math.min(mapWidth, mapHeight) * 9)
       .translate([mapWidth / 2, mapHeight / 2]);
     const path = d3.geoPath().projection(projection);
-    //let tooltip = d3.select("body").select("#tooltip");
-    //let tooltip: d3.Selection<BaseType, unknown, HTMLElement, any> = d3.select("body").select("#tooltip");
-    let tooltip: d3.Selection<HTMLDivElement, unknown, HTMLElement, any> = d3.select("body").select<HTMLDivElement>("#tooltip");
+    let tooltip = d3.select("body").select("#tooltip");
 
-
-    if (tooltip.empty()) {
-      tooltip = d3.select("body")
-        .append("div")
-        .attr("id", "tooltip")
-        .style("position", "absolute")
-        .style("background", "white")
-        .style("padding", "5px")
-        .style("border", "1px solid #ccc")
-        .style("border-radius", "5px")
-        .style("display", "none")
-        .style("pointer-events", "none");
-    }
     d3.json("/data/freight/counties.geojson")
       .then((geojson: any) => {
         const washingtonCounties = geojson.features.filter((f: any) => f.properties.STATEFP === "53");
@@ -195,9 +196,6 @@ const WashingtonMapWithLineGraphs = () => {
           .enter()
           .append("path")
           .attr("class", "county")
-          //.attr("d", (d) => path(d) || "")
-          //.attr("d", path)
-          //.attr("d", (d: GeoJSON.Feature<GeoJSON.Geometry, any>) => path(d) || "")
           .attr("d", (d) => path(d as GeoJSON.Feature<GeoJSON.Geometry, any>) || "")
           .attr("stroke", "#333")
           .attr("stroke-width", 1)
@@ -206,8 +204,15 @@ const WashingtonMapWithLineGraphs = () => {
             d3.select(this).attr("fill", "orange");
             tooltip.style("display", "block")
               .html(`<strong>${(d as any).properties.NAME}</strong>`)
-              .style("left", `${event.clientX + 10}px`)
-              .style("top", `${event.clientY - 20}px`);
+              .style("left", `${event.pageX + 10}px`)
+              .style("top", `${event.pageY - 20}px`);
+            console.log("Mouseover event:", event.pageX, event.pageY);
+            console.log("Tooltip set to:", event.pageX + 10, event.pageY - 20);
+          })
+          .on("mousemove", function(event, d) {
+            tooltip.style("left", `${event.pageX + 10}px`)
+              .style("top", `${event.pageY - 20}px`);
+            console.log("Mousemove event at:", event.pageX, event.pageY);
           })
           .on("mouseout", function(event, d) {
             const isSelected = selectedCountiesRef.current.has((d as any).properties.NAME);
@@ -216,14 +221,18 @@ const WashingtonMapWithLineGraphs = () => {
               .duration(200)
               .attr("fill", isSelected ? "#007bff" : "#ccc");
             tooltip.style("display", "none");
+            console.log("Mouseout event: Tooltip hidden");
           })
           .on("click", function(event, d) {
             setSelectedCounties(prev => {
               const newSet = new Set(prev);
-              if (newSet.has((d as any).properties.NAME)) {
-                newSet.delete((d as any).properties.NAME);
+              const countyName = (d as any).properties.NAME;
+              if (newSet.has(countyName)) {
+                newSet.delete(countyName);
+                console.log("County deselected:", countyName);
               } else {
-                newSet.add((d as any).properties.NAME);
+                newSet.add(countyName);
+                console.log("County selected:", countyName);
               }
               return newSet;
             });
@@ -252,14 +261,10 @@ const WashingtonMapWithLineGraphs = () => {
     const innerHeight = lineGraphHeight - margin.top - margin.bottom;
     const t = d3.transition().duration(1000);
     
-    // Choose tick formatter based on yLabel.
-    //const tickFormatter = yLabel === "Value" ? (n: number) => formatDollar(n) : formatSI;
     const tickFormatter = yLabel === "Value"
       ? (n: d3.NumberValue, i: number) => formatDollar(+n)
       : (n: d3.NumberValue, i: number) => formatSI(+n);
-
     
-    // Create or select main group.
     let g = svg.select<SVGGElement>("g.chart");
     if (g.empty()) {
       g = svg.append<SVGGElement>("g")
@@ -269,7 +274,6 @@ const WashingtonMapWithLineGraphs = () => {
       g.append("g").attr("class", "y-axis");
     }
         
-    // Scales
     const xScale = d3.scaleLinear()
       .domain(d3.extent(aggregatedData, d => d.x) as [number, number])
       .range([0, innerWidth]);
@@ -278,7 +282,6 @@ const WashingtonMapWithLineGraphs = () => {
       .nice()
       .range([innerHeight, 0]);
     
-    // Update axes with transitions
     g.select(".x-axis")
       .transition(t)
       .call((d3.axisBottom(xScale).tickFormat(d3.format("d"))) as any);
@@ -286,13 +289,11 @@ const WashingtonMapWithLineGraphs = () => {
       .transition(t)
       .call((d3.axisLeft(yScale).tickFormat(tickFormatter)) as any);
     
-    // Line generator
     const line = d3.line<any>()
       .x(d => xScale(d.x))
       .y(d => yScale(d.y))
       .curve(d3.curveMonotoneX);
     
-    // Update the line path using data join
     const pathSelection = g.selectAll("path.line").data([aggregatedData]);
     pathSelection.join(
       enter => enter.append("path")
@@ -305,7 +306,6 @@ const WashingtonMapWithLineGraphs = () => {
       exit => exit.remove()
     );
     
-    // Update circles using keyed join on x value
     const circles = g.selectAll("circle").data(aggregatedData, d => (d as any).x);
     circles.join(
       enter => enter.append("circle")
@@ -322,7 +322,6 @@ const WashingtonMapWithLineGraphs = () => {
       exit => exit.remove()
     );
     
-    // Update forecast vertical line at 2020 (dashed grey)
     const forecastLine = g.selectAll("line.forecast").data([2020]);
     forecastLine.join(
       enter => enter.append("line")
@@ -340,12 +339,12 @@ const WashingtonMapWithLineGraphs = () => {
       exit => exit.remove()
     );
     
-    // Update tooltip events on circles
     g.selectAll("circle")
       .on("mouseover", function(event, d) {
         d3.select("#tooltip")
           .style("display", "block")
           .html(`Year: ${(d as any).x}<br/>${yLabel}: ${tickFormatter((d as any).y, 0)}`);
+        console.log("Line graph circle mouseover at:", event.pageX, event.pageY);
       })
       .on("mousemove", function(event) {
         d3.select("#tooltip")
@@ -356,7 +355,6 @@ const WashingtonMapWithLineGraphs = () => {
         d3.select("#tooltip").style("display", "none");
       });
     
-    // Update y-axis label (remove previous and add new)
     svg.selectAll("text.y-label").remove();
     svg.append("text")
       .attr("class", "y-label")
@@ -367,11 +365,8 @@ const WashingtonMapWithLineGraphs = () => {
       .text(yLabel);
   };
 
-  // Draw line graph 1 (Tons over Years)
   useEffect(() => {
     if (!filteredFreightData || filteredFreightData.length === 0) return;
-    // Aggregate data: group by Year summing Tons.
-    // Multiply by 1000 to convert kilo-tons to tons.
     const aggregatedTons = Array.from(
       d3.rollups(
         filteredFreightData,
@@ -383,11 +378,8 @@ const WashingtonMapWithLineGraphs = () => {
     updateLineGraph(lineGraph1Ref, aggregatedTons, "steelblue", "Tons");
   }, [filteredFreightData]);
 
-  // Draw line graph 2 (Value over Years)
   useEffect(() => {
     if (!filteredFreightData || filteredFreightData.length === 0) return;
-    // Aggregate data: group by Year summing Value.
-    // Multiply by 1,000,000 to convert million USD to dollars.
     const aggregatedValue = Array.from(
       d3.rollups(
         filteredFreightData,
@@ -401,7 +393,6 @@ const WashingtonMapWithLineGraphs = () => {
 
   return (
     <div className="flex gap-4 p-4" style={{ width: "100%", margin: "0 auto" }}>
-      {/* Left Panel: Filters */}
       <div className="w-1/6 p-4 border"  style={{borderRadius: 8}}>
         <h2 className="text-lg font-bold">Filters</h2>
         {Object.keys(selectedFilters).map((filter) => (
@@ -431,12 +422,10 @@ const WashingtonMapWithLineGraphs = () => {
         </div>
       </div>
 
-      {/* Center Panel: Map */}
       <div className="w-3/6 border p-4 " style={{borderRadius: 8}}>
         <svg ref={mapSvgRef} className="w-full h-full" />
       </div>
 
-      {/* Right Panel: Two line graphs */}
       <div className="w-2/6 flex flex-col gap-4 border p-4" style={{borderRadius: 8}}>
         <div className="flex flex-col items-center">
           <h2 className="text-lg font-bold">Tons over Years</h2>

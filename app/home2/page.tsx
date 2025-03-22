@@ -55,7 +55,6 @@ export default async function ChoroplethPage() {
         the impacts of growth, infrastructure projects, and potential solutions.
       </p>
       <h2 className="text-2xl font-semibold mb-4">A Region on the Rise: Population Growth from 1961 to 2050</h2>
-
       <p className="mt-4 mb-8">
         Population growth doesn’t happen overnight—it unfolds over decades. Using historical data 
         from 1961 and projections through 2050, we can trace how demographic shifts have shaped, 
@@ -126,8 +125,7 @@ export default async function ChoroplethPage() {
         are essential to keeping supply chains moving, reducing congestion, and ensuring Washington 
         remains a key player in national and global trade.
       </p>
-
-      <div >
+      <div className="container " style={{  width: '1300px', height: '700px'}}>
         <WashingtonMapWithLineGraphs/>
       </div>
       <br/> 

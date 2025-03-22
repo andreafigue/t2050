@@ -197,6 +197,7 @@ const TravelComparison: React.FC = () => {
 
         carMapInstance.current.addSource("car-route", {
           type: "geojson",
+          // @ts-ignore
           data: routeGeoJSON,
         });
 
@@ -241,6 +242,7 @@ const TravelComparison: React.FC = () => {
       const midLng = (start[0] + end[0]) / 2;
       const lat = (1 - t) * (1 - t) * start[1] + 2 * (1 - t) * t * midLat + t * t * end[1];
       const lng = (1 - t) * (1 - t) * start[0] + 2 * (1 - t) * t * midLng + t * t * end[0];
+      // @ts-ignore
       arcCoords.push([lng, lat]);
     }
 
