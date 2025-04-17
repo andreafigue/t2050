@@ -16,6 +16,8 @@ import FreightShips from "../components/animations/ships";
 import FreightTrains from "../components/animations/Trains";
 import FreightCars from "../components/animations/Cars";
 import WashingtonMapWithLineGraphs from '../components/Freight';
+import MapComponent from '../components/interstate';
+
 
 import TravelComparison from '../components/hsr';
 import BridgeNeedsMap from '../components/BridgeMap';
@@ -125,6 +127,11 @@ export default async function ChoroplethPage() {
         are essential to keeping supply chains moving, reducing congestion, and ensuring Washington 
         remains a key player in national and global trade.
       </p>
+
+      <div className="container " style={{  width: '1300px', height: '700px'}}>
+        <MapComponent/>
+      </div>
+
       <div className="container " style={{  width: '1300px', height: '700px'}}>
         <WashingtonMapWithLineGraphs/>
       </div>
