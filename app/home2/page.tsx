@@ -17,9 +17,8 @@ import FreightTrains from "../components/animations/Trains";
 import FreightCars from "../components/animations/Cars";
 import WashingtonMapWithLineGraphs from '../components/Freight';
 import MapComponent from '../components/interstate';
-
-
-import TravelComparison from '../components/hsr';
+import ChartComponent from '../components/hsr2';
+// import TravelComparison from '../components/hsr';
 import BridgeNeedsMap from '../components/BridgeMap';
 
 export default async function ChoroplethPage() {
@@ -64,9 +63,7 @@ export default async function ChoroplethPage() {
         trends across counties. Use the slider to move through time, and hover over each county to 
         view detailed population changes year by year.
       </p>
-
       <ChoroplethMap geojsonData={geojsonData} countyCsvData={countyCsvData} />
-
       <br/>
       <h2 className="text-2xl font-semibold mb-4">The Road Ahead: How Growth Impacts You</h2>
 
@@ -131,24 +128,19 @@ export default async function ChoroplethPage() {
       <div className="container " style={{  width: '1300px', height: '700px'}}>
         <MapComponent/>
       </div>
-
       <div className="container " style={{  width: '1300px', height: '700px'}}>
         <WashingtonMapWithLineGraphs/>
       </div>
       <br/> 
-
       <h2 className="text-2xl font-semibold mb-4">
         Ensuring Longevity: Maintenance and Preservation of Washington's Transportation Infrastructure
       </h2>
-
       <p className="mt-4 mb-8">
         Washington's extensive network of over 8,400 bridges serves as vital connectors for communities, commerce, and transportation. However, with approximately 5.5% of these structures classified as structurally deficient, the focus on maintenance and preservation becomes paramount. The interactive map below provides a comprehensive overview of all bridges in Washington, detailing their current conditions. This visualization underscores the critical need for targeted maintenance strategies and highlights areas where infrastructure investments are essential to ensure safety and efficiency across the state's transportation network. Failure to address these deficiencies could lead to significant traffic disruptions, increased congestion, and compromised safety for all road users.
       </p>
-
       <div style={{ padding: '1rem 1rem' }}>
         <BridgeNeedsMap />
       </div>
-
       <h2 className="text-2xl font-semibold mb-4">
         Building a Better Tomorrow: Solutions for Mobility Challenges
       </h2>
@@ -160,8 +152,11 @@ export default async function ChoroplethPage() {
       <br/><br/>
       The visualization below allows you to explore and compare these travel times across different modes of transportation, providing insight into how high-speed rail could transform regional mobility. Use the interactive tool to select your origin and destination, and compare current travel times by car and train with projected times using the proposed high-speed rail system.
       </p>
-      
-      <TravelComparison />
+
+      <div style={{ padding: '1rem 1rem', width: "100%", height: "330px" }}>
+        <ChartComponent />
+      </div>
+
       <p style={{fontStyle: 'italic', paddingTop: "65px", paddingRight: "5px", textAlign: "right"}}>
       Note: These HSR travel times are based on projections from feasibility studies and are subject to change as the project develops.
       </p>
@@ -181,17 +176,6 @@ export default async function ChoroplethPage() {
       <p className="mt-4 mb-8">
         Understanding how transportation choices affect traffic congestion is crucial for envisioning a more efficient future. Our interactive traffic simulation game allows you to explore the dynamics of various transportation modes and their influence on traffic flow. By adding or removing cars, buses, and trains, you can observe real-time changes in congestion levels, measured by the number of people moved and the resulting traffic conditions. The simulation provides immediate visual feedback, with congestion levels displayed on a graph—red indicating backed-up traffic and green representing free-flowing conditions. This engaging tool empowers you to experiment with different scenarios, deepening your understanding of how strategic transportation planning can alleviate congestion and improve mobility for all.
       </p>
-
-
-      <div>
-        <iframe
-          src={"https://vishnupriyanr.github.io/T2050_WI25"}
-          title="External Website"
-          width="100%"
-          height="800px"
-          style={{border: 'none'}}
-        />
-      </div>
 
     </div>
   );
