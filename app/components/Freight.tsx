@@ -1,8 +1,13 @@
+// @ts-nocheck
 'use client';
 
 import React, { useEffect, useRef, useState, useMemo } from "react";
 import * as d3 from "d3";
-import type { BaseType } from "d3-selection";
+
+interface FreightProps {
+  externalSelectedCounties?: Set<string>;
+  onCountySelectionChange?: (selected: Set<string>) => void;
+}
 
 interface FreightData {
   Year: number;
@@ -11,67 +16,24 @@ interface FreightData {
   [key: string]: any;
 }
 
-const WashingtonMapWithLineGraphs = () => {
-  const mapSvgRef = useRef<SVGSVGElement>(null);
-  const lineGraph1Ref = useRef<SVGSVGElement>(null);
-  const lineGraph2Ref = useRef<SVGSVGElement>(null);
+const WashingtonMapWithLineGraphs: React.FC<FreightProps> = ({
+  externalSelectedCounties,
+  onCountySelectionChange = () => {},
+}) => {
+  // --- County selection state and sync ---
+  const [selectedCounties, setSelectedCounties] = useState<Set<string>>(externalSelectedCounties ?? new Set());
+  const selectedCountiesRef = useRef(selectedCounties);
+  useEffect(() => {
+    if (externalSelectedCounties) {
+      setSelectedCounties(new Set(externalSelectedCounties));
+      selectedCountiesRef.current = new Set(externalSelectedCounties);
+    }
+  }, [externalSelectedCounties]);
 
-  const [usStatesData, setUsStatesData] = useState<any>(null);
-  const [rtpoData, setRtpoData] = useState<any>(null);
-  const [selectedCounties, setSelectedCounties] = useState<Set<string>>(new Set());
-  const selectedCountiesRef = useRef<Set<string>>(new Set());
-
-  const [freightCSVData, setFreightCSVData] = useState<FreightData[]>([]);
-
-  const [waCountyIDs, setWaCountyIDs] = useState<Set<string>>(new Set());
-  const [waCountyMapping, setWaCountyMapping] = useState<Record<string, string>>({});
-
-  const [filterOptions] = useState({
-    commodityGroup: [
-      "All",
-      "Industrial Manufacturing",
-      "Last-Mile Delivery",
-      "Transportation Equipment",
-      "Agriculture & Seafood",
-      "Clothing and Misc. Manufacturing",
-      "Energy",
-      "Food Manufacturing",
-      "Forestry Products",
-      "High-Tech Manufacturing",
-      "Construction"
-    ],
-    tradeType: [
-      { id: "all", name: "All" },
-      { id: "1", name: "Domestic Only" },
-      { id: "2", name: "Import" },
-      { id: "3", name: "Export" }
-    ],
-    mode: [
-      { id: "all", name: "All" },
-      { id: "1", name: "Truck" },
-      { id: "2", name: "Rail" },
-      { id: "3", name: "Water" },
-      { id: "4", name: "Air" },
-      { id: "5", name: "Multiple Modes Including Mail" }
-    ]
-  });
-  const [selectedFilters, setSelectedFilters] = useState({
-    commodityGroup: "All",
-    tradeType: "all",
-    mode: "all",
-  });
-
-  const container = mapSvgRef.current?.parentElement;
-  const mapWidth = container?.clientWidth || 600;
-  const mapHeight = container?.clientHeight || 500;
-
-  const lineGraphWidth = 300, lineGraphHeight = 240;
-
-  // Tooltip: Create once on mount if it doesn't exist.
+  // --- Tooltip setup ---
   useEffect(() => {
     let tooltip = d3.select("body").select("#tooltip");
     if (tooltip.empty()) {
-      // @ts-ignore
       tooltip = d3.select("body")
         .append("div")
         .attr("id", "tooltip")
@@ -82,359 +44,318 @@ const WashingtonMapWithLineGraphs = () => {
         .style("border-radius", "5px")
         .style("display", "none")
         .style("pointer-events", "none");
-      console.log("Tooltip created:", tooltip.node());
     }
   }, []);
 
-  useEffect(() => {
-    selectedCountiesRef.current = selectedCounties;
-    const svg = d3.select(mapSvgRef.current);
-    svg.selectAll(".county")
-      .attr("fill", d =>
-        selectedCounties.has((d as any).properties.NAME) ? "#007bff" : "#ccc"
-      );
-  }, [selectedCounties]);
+  // --- Data loading & map init (run once) ---
+  const [freightCSVData, setFreightCSVData] = useState<FreightData[]>([]);
+  const [waCountyMapping, setWaCountyMapping] = useState<Record<string,string>>({});
+  const geojsonRef = useRef<any[]>([]);
+  const mapSvgRef = useRef<SVGSVGElement>(null);
 
   useEffect(() => {
-    d3.json("https://raw.githubusercontent.com/PublicaMundi/MappingAPI/master/data/geojson/us-states.json")
-      .then((data) => {
-        setUsStatesData({ type: "FeatureCollection", features: (data as any).features });
-      });
-    d3.json("/data/freight/RTPO.json")
-      .then((data) => {
-        const geoJson = {
-          type: "FeatureCollection",
-          features: (data as any).features.map((d: any) => ({
-            type: "Feature",
-            geometry: { type: "Polygon", coordinates: d.geometry.rings },
-            properties: d.attributes,
-          }))
-        };
-        setRtpoData(geoJson);
-      });
-  }, []);
-
-  useEffect(() => {
-    d3.csv<FreightData>("/data/freight/sample.csv", row => ({
+    // Load CSV
+    d3.csv<FreightData>('/data/freight/sample.csv', row => ({
       ...row,
       Year: +row.Year,
       Tons: +row.Tons,
       Value: +row.Value
-    })).then(data => setFreightCSVData(data));
+    })).then(setFreightCSVData);
+
+    // Load & draw counties once
+    d3.json('/data/freight/counties.geojson').then((geojson: any) => {
+      const features = geojson.features.filter((f:any) => f.properties.STATEFP === '53');
+      geojsonRef.current = features;
+
+      // Build mapping for filtering
+      const mapping: Record<string,string> = {};
+      features.forEach((f:any) => {
+        mapping[f.properties.NAME] =
+          f.properties.GEOID ?? (f.properties.STATEFP + f.properties.COUNTYFP);
+      });
+      setWaCountyMapping(mapping);
+
+      // Initial draw
+      const svg = d3.select(mapSvgRef.current)
+        .attr('width', 600)
+        .attr('height', 500);
+      const projection = d3.geoAlbers()
+        .center([-0.6, 47.5])
+        .rotate([120, 0])
+        .parallels([48, 49])
+        .scale(8 * Math.min(600, 500))
+        .translate([300, 250]);
+      const path = d3.geoPath().projection(projection);
+
+      svg.selectAll('.county')
+        .data(features)
+        .enter().append('path')
+        .attr('class','county')
+        .attr('d', path as any)
+        .style('stroke','#333')
+        .style('fill', (d:any) =>
+          selectedCounties.has(d.properties.NAME) ? '#007bff' : '#ccc'
+        )
+        .on('mouseover', (event,d:any) => {
+          d3.select(event.currentTarget).style('fill','orange');
+          d3.select('#tooltip')
+            .style('display','block')
+            .html(`<strong>${d.properties.NAME}</strong>`)
+            .style('left',  `${event.pageX + 10}px`)
+            .style('top',   `${event.pageY - 20}px`);
+        })
+        .on('mousemove', (event) => {
+          d3.select('#tooltip')
+            .style('left',  `${event.pageX + 10}px`)
+            .style('top',   `${event.pageY - 20}px`);
+        })
+        // ON MOUSE OUT: use the freshest ref so we don’t lose the blue
+        .on('mouseout', (event,d:any) => {
+          d3.select(event.currentTarget)
+            .style('fill',
+              selectedCountiesRef.current.has(d.properties.NAME)
+                ? '#007bff'
+                : '#ccc'
+            );
+          d3.select('#tooltip').style('display','none');
+        })
+        .on('click', (event,d:any) => {
+          const name = d.properties.NAME;
+          setSelectedCounties(prev => {
+            const next = new Set(prev);
+            if (next.has(name)) next.delete(name);
+            else next.add(name);
+            selectedCountiesRef.current = next;
+            onCountySelectionChange(next);
+            return next;
+          });
+        });
+    });
   }, []);
 
+  // --- Whenever selection changes, repaint fill ---
   useEffect(() => {
-    d3.json("/data/freight/counties.geojson")
-      .then((geojson: any) => {
-        const wa = geojson.features.filter((f: any) => f.properties.STATEFP === "53");
-        const ids = new Set<string>();
-        const mapping: Record<string, string> = {};
-        wa.forEach((f: any) => {
-          const id = f.properties.GEOID ? f.properties.GEOID : (f.properties.STATEFP + f.properties.COUNTYFP);
-          ids.add(id);
-          mapping[f.properties.NAME] = id;
-        });
-        setWaCountyIDs(ids);
-        setWaCountyMapping(mapping);
-      })
-      .catch(err => console.error(err));
-  }, []);
+    d3.select(mapSvgRef.current).selectAll('.county')
+      .style('fill', (d:any) =>
+        selectedCounties.has(d.properties.NAME) ? '#007bff' : '#ccc'
+      );
+  }, [selectedCounties]);
+
+  // --- Filters & data pipeline ---
+  const [filterOptions] = useState({
+    commodityGroup: ["All","Industrial Manufacturing","Last-Mile Delivery","Transportation Equipment","Agriculture & Seafood","Clothing and Misc. Manufacturing","Energy","Food Manufacturing","Forestry Products","High-Tech Manufacturing","Construction"],
+    tradeType: [{id:"all",name:"All"},{id:"1",name:"Domestic Only"},{id:"2",name:"Import"},{id:"3",name:"Export"}],
+    mode: [{id:"all",name:"All"},{id:"1",name:"Truck"},{id:"2",name:"Rail"},{id:"3",name:"Water"},{id:"4",name:"Air"},{id:"5",name:"Multiple Modes Including Mail"}]
+  });
+  const [selectedFilters, setSelectedFilters] = useState({ commodityGroup:"All", tradeType:"all", mode:"all" });
 
   const filteredFreightData = useMemo(() => {
-    if (!freightCSVData || freightCSVData.length === 0) return [];
-
-    const countyFilterSet: Set<string> = new Set(
+    if (!freightCSVData.length) return [];
+    const countyIds = new Set(
       Array.from(selectedCounties)
-        .map(name => waCountyMapping[name])
-        .filter(id => id !== undefined)
+        .map(n => waCountyMapping[n])
+        .filter(Boolean)
     );
-
-    if (selectedCounties.size > 0 && countyFilterSet.size === 0) return [];
-
     return freightCSVData.filter(d => {
-      let pass = true;
-      if (selectedCounties.size > 0) {
-        pass = countyFilterSet.has(d["Origin County"]);
-      }
-      if (selectedFilters.commodityGroup !== "All") {
-        pass = pass && (d["Commodity Group"] === selectedFilters.commodityGroup);
-      }
-      if (selectedFilters.tradeType !== "all") {
-        pass = pass && (d["Trade Type"] === selectedFilters.tradeType);
-      }
-      if (selectedFilters.mode !== "all") {
-        pass = pass && (d["Mode"] === selectedFilters.mode);
-      }
-      return pass;
+      if (countyIds.size && !countyIds.has(d["Origin County"])) return false;
+      if (selectedFilters.commodityGroup !== "All" && d["Commodity Group"] !== selectedFilters.commodityGroup) return false;
+      if (selectedFilters.tradeType    !== "all" && d["Trade Type"]      !== selectedFilters.tradeType)      return false;
+      if (selectedFilters.mode         !== "all" && d["Mode"]            !== selectedFilters.mode)           return false;
+      return true;
     });
   }, [freightCSVData, selectedFilters, selectedCounties, waCountyMapping]);
 
-  // Draw the Washington map with counties.
-  useEffect(() => {
-    if (!usStatesData) return;
-    const svg = d3.select(mapSvgRef.current)
-      .attr("width", mapWidth)
-      .attr("height", mapHeight);
-    svg.selectAll("*").remove();
-    const projection = d3.geoAlbers()
-      .center([-0.6, 47.5])
-      .rotate([120, 0])
-      .parallels([48, 49])
-      .scale(Math.min(mapWidth, mapHeight) * 9)
-      .translate([mapWidth / 2, mapHeight / 2]);
-    const path = d3.geoPath().projection(projection);
-    let tooltip = d3.select("body").select("#tooltip");
-
-    d3.json("/data/freight/counties.geojson")
-      .then((geojson: any) => {
-        const washingtonCounties = geojson.features.filter((f: any) => f.properties.STATEFP === "53");
-        if (washingtonCounties.length === 0) {
-          console.error("No Washington counties found. Check GeoJSON structure.");
-          return;
-        }
-        svg.selectAll(".county")
-          .data(washingtonCounties)
-          .enter()
-          .append("path")
-          .attr("class", "county")
-          .attr("d", (d) => path(d as GeoJSON.Feature<GeoJSON.Geometry, any>) || "")
-          .attr("stroke", "#333")
-          .attr("stroke-width", 1)
-          .attr("fill", d => selectedCountiesRef.current.has((d as any).properties.NAME) ? "#007bff" : "#ccc")
-          .on("mouseover", function(event, d) {
-            d3.select(this).attr("fill", "orange");
-            tooltip.style("display", "block")
-              .html(`<strong>${(d as any).properties.NAME}</strong>`)
-              .style("left", `${event.pageX + 10}px`)
-              .style("top", `${event.pageY - 20}px`);
-            console.log("Mouseover event:", event.pageX, event.pageY);
-            console.log("Tooltip set to:", event.pageX + 10, event.pageY - 20);
-          })
-          .on("mousemove", function(event, d) {
-            tooltip.style("left", `${event.pageX + 10}px`)
-              .style("top", `${event.pageY - 20}px`);
-            console.log("Mousemove event at:", event.pageX, event.pageY);
-          })
-          .on("mouseout", function(event, d) {
-            const isSelected = selectedCountiesRef.current.has((d as any).properties.NAME);
-            d3.select(this)
-              .transition()
-              .duration(200)
-              .attr("fill", isSelected ? "#007bff" : "#ccc");
-            tooltip.style("display", "none");
-            console.log("Mouseout event: Tooltip hidden");
-          })
-          .on("click", function(event, d) {
-            setSelectedCounties(prev => {
-              const newSet = new Set(prev);
-              const countyName = (d as any).properties.NAME;
-              if (newSet.has(countyName)) {
-                newSet.delete(countyName);
-                console.log("County deselected:", countyName);
-              } else {
-                newSet.add(countyName);
-                console.log("County selected:", countyName);
-              }
-              return newSet;
-            });
-          });
-      })
-      .catch(err => console.error("Error loading counties GeoJSON:", err));
-  }, [usStatesData]);
-
-  // A formatter for numbers using SI notation (e.g., 1k, 1M)
+  // --- Line chart logic ---
+  const lineGraph1Ref = useRef<SVGSVGElement>(null);
+  const lineGraph2Ref = useRef<SVGSVGElement>(null);
+  const w = 300, h = 240;
   const formatSI = d3.format("~s");
-  // Custom formatter for dollars: replace "G" with "B"
-  const formatDollar = (n: number) => d3.format("~s")(n).replace("G", "B");
+  const formatDollar = (n:number) => d3.format("~s")(n).replace("G","B");
 
-  // Function to update line graph 
   const updateLineGraph = (
-    svgRef: React.RefObject<SVGSVGElement | null>,
-    aggregatedData: { x: number, y: number }[],
-    lineColor: string,
+    svgRef: React.RefObject<SVGSVGElement>,
+    data: {x:number,y:number}[],
+    color: string,
     yLabel: string
   ) => {
-    const svg = d3.select(svgRef.current)
-      .attr("width", lineGraphWidth)
-      .attr("height", lineGraphHeight);
+    const svg = d3.select(svgRef.current!)
+      .attr("width",  w)
+      .attr("height", h)
+      .style("overflow","visible");    // allow labels to show
     const margin = { top: 40, right: 20, bottom: 50, left: 60 };
-    const innerWidth = lineGraphWidth - margin.left - margin.right;
-    const innerHeight = lineGraphHeight - margin.top - margin.bottom;
-    const t = d3.transition().duration(1000);
-    
-    const tickFormatter = yLabel === "Value"
-      ? (n: d3.NumberValue, i: number) => formatDollar(+n)
-      : (n: d3.NumberValue, i: number) => formatSI(+n);
-    
+    const innerW = w - margin.left - margin.right;
+    const innerH = h - margin.top - margin.bottom;
+    const t = d3.transition().duration(800);
+
+    const tickFmt = yLabel === "Value"
+      ? (n:any) => formatDollar(n)
+      : (n:any) => formatSI(n);
+
     let g = svg.select<SVGGElement>("g.chart");
     if (g.empty()) {
       g = svg.append<SVGGElement>("g")
-        .attr("class", "chart")
-        .attr("transform", `translate(${margin.left},${margin.top})`);
-      g.append("g").attr("class", "x-axis").attr("transform", `translate(0,${innerHeight})`);
-      g.append("g").attr("class", "y-axis");
+        .attr("class","chart")
+        .attr("transform",`translate(${margin.left},${margin.top})`);
+      g.append("g").attr("class","x-axis").attr("transform",`translate(0,${innerH})`);
+      g.append("g").attr("class","y-axis");
     }
-        
+
     const xScale = d3.scaleLinear()
-      .domain(d3.extent(aggregatedData, d => d.x) as [number, number])
-      .range([0, innerWidth]);
+      .domain(d3.extent(data, d => d.x) as [number,number])
+      .range([0, innerW]);
     const yScale = d3.scaleLinear()
-      .domain([0, d3.max(aggregatedData, d => d.y) || 100])
+      .domain([0, d3.max(data, d => d.y)!])
       .nice()
-      .range([innerHeight, 0]);
-    
-    g.select(".x-axis")
-      .transition(t)
+      .range([innerH, 0]);
+
+    g.select(".x-axis").transition(t)
       .call((d3.axisBottom(xScale).tickFormat(d3.format("d"))) as any);
-    g.select(".y-axis")
-      .transition(t)
-      .call((d3.axisLeft(yScale).tickFormat(tickFormatter)) as any);
-    
+    g.select(".y-axis").transition(t)
+      .call((d3.axisLeft(yScale).tickFormat(tickFmt)) as any);
+
     const line = d3.line<any>()
       .x(d => xScale(d.x))
       .y(d => yScale(d.y))
       .curve(d3.curveMonotoneX);
-    
-    const pathSelection = g.selectAll("path.line").data([aggregatedData]);
-    pathSelection.join(
+
+    g.selectAll("path.line").data([data]).join(
       enter => enter.append("path")
-        .attr("class", "line")
-        .attr("fill", "none")
-        .attr("stroke", lineColor)
+        .attr("class","line")
+        .attr("fill","none")
+        .attr("stroke", color)
         .attr("stroke-width", 2)
         .attr("d", line),
       update => update.transition(t).attr("d", line),
-      exit => exit.remove()
+      exit   => exit.remove()
     );
-    
-    const circles = g.selectAll("circle").data(aggregatedData, d => (d as any).x);
-    circles.join(
+
+    const circles = g.selectAll("circle").data(data, (d:any) => d.x).join(
       enter => enter.append("circle")
-        .attr("cx", d => xScale(d.x))
-        .attr("cy", d => yScale(d.y))
         .attr("r", 4)
-        .attr("fill", lineColor)
+        .attr("fill", color)
         .call(enter => enter.transition(t)
-          .attr("cx", d => xScale(d.x))
-          .attr("cy", d => yScale(d.y))),
+          .attr("cx", (d:any) => xScale(d.x))
+          .attr("cy", (d:any) => yScale(d.y))),
       update => update.transition(t)
-        .attr("cx", d => xScale(d.x))
-        .attr("cy", d => yScale(d.y)),
-      exit => exit.remove()
+        .attr("cx", (d:any) => xScale(d.x))
+        .attr("cy", (d:any) => yScale(d.y)),
+      exit   => exit.remove()
     );
-    
+
+    // Forecast line
     const forecastLine = g.selectAll("line.forecast").data([2020]);
     forecastLine.join(
       enter => enter.append("line")
-        .attr("class", "forecast")
+        .attr("class","forecast")
         .attr("x1", xScale(2020))
         .attr("y1", 0)
         .attr("x2", xScale(2020))
-        .attr("y2", innerHeight)
-        .attr("stroke", "grey")
-        .attr("stroke-dasharray", "4 4"),
+        .attr("y2", innerH)
+        .attr("stroke","grey")
+        .attr("stroke-dasharray","4 4"),
       update => update.transition(t)
         .attr("x1", xScale(2020))
         .attr("x2", xScale(2020))
-        .attr("y2", innerHeight),
-      exit => exit.remove()
+        .attr("y2", innerH),
+      exit   => exit.remove()
     );
-    
-    g.selectAll("circle")
-      .on("mouseover", function(event, d) {
-        d3.select("#tooltip")
-          .style("display", "block")
-          .html(`Year: ${(d as any).x}<br/>${yLabel}: ${tickFormatter((d as any).y, 0)}`);
-        console.log("Line graph circle mouseover at:", event.pageX, event.pageY);
-      })
-      .on("mousemove", function(event) {
-        d3.select("#tooltip")
-          .style("left", `${event.pageX + 10}px`)
-          .style("top", `${event.pageY - 20}px`);
-      })
-      .on("mouseout", function() {
-        d3.select("#tooltip").style("display", "none");
-      });
-    
+
+    // Re-add Y‐axis label (your original “legend”)
     svg.selectAll("text.y-label").remove();
     svg.append("text")
-      .attr("class", "y-label")
-      .attr("text-anchor", "middle")
-      .attr("transform", `rotate(-90)`)
-      .attr("x", -lineGraphHeight / 2)
+      .attr("class","y-label")
+      .attr("text-anchor","middle")
+      .attr("transform",`rotate(-90)`)
+      .attr("x", -h/2)
       .attr("y", 15)
       .text(yLabel);
+
+    // Tooltip on circles
+    circles.on("mouseover", (event, d:any) => {
+        d3.select("#tooltip")
+          .style("display","block")
+          .html(`Year: ${d.x}<br/>${yLabel}: ${tickFmt(d.y)}`);
+      })
+      .on("mousemove", (event) => {
+        d3.select("#tooltip")
+          .style("left",`${event.pageX+10}px`)
+          .style("top", `${event.pageY-20}px`);
+      })
+      .on("mouseout", () => {
+        d3.select("#tooltip").style("display","none");
+      });
   };
 
+  // Update each chart when data or filters change
   useEffect(() => {
-    if (!filteredFreightData || filteredFreightData.length === 0) return;
-    const aggregatedTons = Array.from(
-      d3.rollups(
-        filteredFreightData,
-        v => d3.sum(v, d => d.Tons) * 1000,
-        d => d.Year
-      ),
-      ([year, total]) => ({ x: +year, y: total })
-    ).sort((a, b) => a.x - b.x);
-    updateLineGraph(lineGraph1Ref, aggregatedTons, "steelblue", "Tons");
+    if (!filteredFreightData.length) return;
+    const aggT = Array.from(
+      d3.rollups(filteredFreightData, v => d3.sum(v, d => d.Tons)*1000, d => d.Year),
+      ([year, tot]) => ({ x:+year, y: tot })
+    ).sort((a,b) => a.x - b.x);
+    updateLineGraph(lineGraph1Ref, aggT, "steelblue", "Tons");
   }, [filteredFreightData]);
 
   useEffect(() => {
-    if (!filteredFreightData || filteredFreightData.length === 0) return;
-    const aggregatedValue = Array.from(
-      d3.rollups(
-        filteredFreightData,
-        v => d3.sum(v, d => d.Value) * 1000000,
-        d => d.Year
-      ),
-      ([year, total]) => ({ x: +year, y: total })
-    ).sort((a, b) => a.x - b.x);
-    updateLineGraph(lineGraph2Ref, aggregatedValue, "darkorange", "Value");
+    if (!filteredFreightData.length) return;
+    const aggV = Array.from(
+      d3.rollups(filteredFreightData, v => d3.sum(v, d => d.Value)*1e6, d => d.Year),
+      ([year, tot]) => ({ x:+year, y: tot })
+    ).sort((a,b) => a.x - b.x);
+    updateLineGraph(lineGraph2Ref, aggV, "darkorange", "Value");
   }, [filteredFreightData]);
 
   return (
-    <div className="flex gap-4 p-4" style={{ width: "100%", margin: "0 auto" }}>
-      <div className="w-1/6 p-4 border"  style={{borderRadius: 8}}>
+    <div className="flex gap-4 p-4" style={{ width:'100%', margin:0 }}>
+      {/* Sidebar */}
+      <div className="w-1/6 p-4 border rounded">
         <h2 className="text-lg font-bold">Filters</h2>
-        {Object.keys(selectedFilters).map((filter) => (
-          <div key={filter} className="mb-2">
-            <label className="block text-sm font-medium capitalize">{filter}</label>
+        {Object.keys(selectedFilters).map(key => (
+          <div key={key} className="mb-2">
+            <label className="block text-sm font-medium capitalize">{key}</label>
             <select
               className="w-full p-2 border"
-              value={selectedFilters[filter as keyof typeof selectedFilters]}
-              onChange={(e) =>
-                setSelectedFilters({
-                  ...selectedFilters,
-                  [filter]: e.target.value
-                })
-              }
+              value={(selectedFilters as any)[key]}
+              onChange={e => setSelectedFilters(prev => ({
+                ...prev, [key]: e.target.value
+              }))}
             >
-              {filterOptions[filter as keyof typeof filterOptions].map((option, index) => (
-                <option key={index} value={typeof option === "object" ? option.id : option}>
-                  {typeof option === "object" ? option.name : option}
+              {filterOptions[key as keyof typeof filterOptions].map(opt => (
+                <option key={(opt as any).id ?? opt} value={(opt as any).id ?? opt}>
+                  {(opt as any).name ?? opt}
                 </option>
               ))}
             </select>
           </div>
         ))}
-        <div className="mt-4 p-2 border bg-gray-100">
-          <h2 className="text-base  font-bold">Selected Counties</h2>
-          <p>{selectedCounties.size > 0 ? Array.from(selectedCounties).join(", ") : "All"}</p>
+        <div className="mt-4 p-2 border bg-gray-100 rounded">
+          <h2 className="text-base font-bold">Selected Counties</h2>
+          <p>{selectedCounties.size ? Array.from(selectedCounties).join(", ") : "All"}</p>
         </div>
       </div>
 
-      <div className="w-3/6 border p-4 " style={{borderRadius: 8}}>
+      {/* Map */}
+      <div className="w-3/6 border p-4 rounded">
         <svg ref={mapSvgRef} className="w-full h-full" />
       </div>
 
-      <div className="w-2/6 flex flex-col gap-4 border p-4" style={{borderRadius: 8}}>
+      {/* Charts */}
+      <div className="w-2/6 flex flex-col gap-4 border p-4 rounded">
         <div className="flex flex-col items-center">
           <h2 className="text-lg font-bold">Tons over Years</h2>
-          <svg ref={lineGraph1Ref}></svg>
+          <svg
+            ref={lineGraph1Ref}
+            className="w-full h-48"
+            style={{ overflow: 'visible' }}
+          />
         </div>
         <div className="flex flex-col items-center">
           <h2 className="text-lg font-bold">Value over Years</h2>
-          <svg ref={lineGraph2Ref}></svg>
+          <svg
+            ref={lineGraph2Ref}
+            className="w-full h-48"
+            style={{ overflow: 'visible' }}
+          />
         </div>
       </div>
     </div>
