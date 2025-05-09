@@ -35,6 +35,7 @@ interface FreightRow {
 }
 
 const Dashboard: React.FC = () => {
+
   const [countyData, setCountyData] = useState<Record<string, CountyCsvRow[]>>({});
   const [stateData, setStateData] = useState<StateDataPoint[]>([]);
   const [selectedCounties, setSelectedCounties] = useState<Set<string>>(new Set());
@@ -930,12 +931,12 @@ const Dashboard: React.FC = () => {
       .call(d3.axisLeft(y));
 
     // Bars
-    const bars = g.selectAll("rect.bar")
+    const bars = g.selectAll("rect.bar-d3")
       .data(chartData, (d: any) => d.condition);
 
     bars.join(
       enter => enter.append("rect")
-        .attr("class", "bar")
+        .attr("class", "bar-d3")
         .attr("x", d => x(d.condition)!)
         .attr("width", x.bandwidth())
         .attr("y", innerH)
@@ -987,62 +988,61 @@ const Dashboard: React.FC = () => {
     }
   }, [bridgeData, selectedCounties]);
 
-
-
   return (
     <div className="p-6 space-y-6">
-  <h1 className="text-3xl font-bold mb-4">Washington State County Dashboard</h1>
 
-  <div className="grid grid-cols-3 gap-6">
-    <div className="bg-white border p-4 rounded shadow h-full flex flex-col">
-      <h2 className="text-lg font-semibold mb-2">Select Counties</h2>
-      <div className="flex-grow relative">
-        <svg ref={mapRef} className="w-full h-full" />
-      </div>
-    </div>
+      <div className="grid grid-cols-3 gap-6">
+        <div className="bg-white border p-4 rounded shadow h-full flex flex-col">
+          <h2 className="text-lg font-semibold mb-2">Select Counties</h2>
+          <div className="flex-grow relative">
+            <svg ref={mapRef} className="w-full h-full" />
+          </div>
+        </div>
 
-    <div className="col-span-2 grid grid-cols-2 gap-6">
-      <div className="bg-white border p-4 rounded shadow">
-        <h2 className="text-lg font-semibold mb-2">Population Over Time</h2>
-        <div ref={popChartContainerRef} className="w-full h-[350px]">
-          <svg ref={svgRef} className="w-full h-full" />
+        <div className="col-span-2 grid grid-cols-2 gap-6">
+          <div className="bg-white border p-4 rounded shadow">
+            <h2 className="text-lg font-semibold mb-2">Population Over Time</h2>
+            <div ref={popChartContainerRef} className="w-full h-[350px]">
+              <svg ref={svgRef} className="w-full h-full" />
+            </div>
+          </div>
+
+          <div className="bg-white border p-4 rounded shadow">
+            <h2 className="text-lg font-semibold mb-2">Population Growth Rate</h2>
+            <div ref={growthChartContainerRef} className="w-full h-[350px]">
+              <svg id="growthChart" className="w-full h-full" />
+            </div>
+          </div>
+
         </div>
       </div>
 
-      <div className="bg-white border p-4 rounded shadow">
-        <h2 className="text-lg font-semibold mb-2">Population Growth Rate</h2>
-        <div ref={growthChartContainerRef} className="w-full h-[350px]">
-          <svg id="growthChart" className="w-full h-full" />
-        </div>
-      </div>
-
-    </div>
-  </div>
-
-  <div className="grid grid-cols-2 gap-6">
-    <div className="bg-white border p-4 rounded shadow">
-      <h2 className="text-lg font-semibold mb-4">Bridge Conditions</h2>
-      <div className="flex gap-6">
-        <svg ref={bridgeChartRef} className="w-1/2 h-[200px]" />
-        <div id="bridge-summary" className="w-1/2 flex flex-col justify-center items-start space-y-2 text-lg"></div>
-      </div>
-    </div>
-
-    <div className="bg-white border p-4 rounded shadow">
-      <h2 className="text-lg font-semibold mb-2">Freight Over Time</h2>
       <div className="grid grid-cols-2 gap-6">
-        <div className="p-2">
-          <h3 className="text-md font-medium mb-1">Tons Over Years</h3>
-          <svg ref={tonsChartRef} className="w-full h-[200px]" />
+        <div className="bg-white border p-4 rounded shadow">
+          <h2 className="text-lg font-semibold mb-4">Bridge Conditions</h2>
+          <div className="flex gap-6">
+            <svg ref={bridgeChartRef} className="w-full h-[200px]">
+              <g className="chart" />
+            </svg>
+            <div id="bridge-summary" className="w-1/2 flex flex-col justify-center items-start space-y-2 text-lg"></div>
+          </div>
         </div>
-        <div className="p-2">
-          <h3 className="text-md font-medium mb-1">Value Over Years</h3>
-          <svg ref={valueChartRef} className="w-full h-[200px]" />
+
+        <div className="bg-white border p-4 rounded shadow">
+          <h2 className="text-lg font-semibold mb-2">Freight Over Time</h2>
+          <div className="grid grid-cols-2 gap-6">
+            <div className="p-2">
+              <h3 className="text-sm font-small mb-1">Tons Over Years</h3>
+              <svg ref={tonsChartRef} className="w-full h-full" />
+            </div>
+            <div className="p-2">
+              <h3 className="text-sm font-medium mb-1">Value Over Years</h3>
+              <svg ref={valueChartRef} className="w-full h-full" />
+            </div>
+          </div>
         </div>
       </div>
     </div>
-  </div>
-</div>
 
   );
 };
