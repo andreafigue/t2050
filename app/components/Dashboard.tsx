@@ -47,7 +47,7 @@ const Dashboard: React.FC = () => {
   const tonsChartRef = useRef<SVGSVGElement>(null);
   const valueChartRef = useRef<SVGSVGElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
-  const mapRef = useRef<SVGSVGElement>(null);
+  const mapRef2 = useRef<SVGSVGElement>(null);
   const geoDataRef = useRef<any>(null);
   const bridgeChartRef = useRef<SVGSVGElement>(null);
 
@@ -149,17 +149,17 @@ const Dashboard: React.FC = () => {
     }
 
     d3.json('/data/freight/counties.geojson').then((geo: any) => {
-      const svg = d3.select(mapRef.current);
+      const svg = d3.select(mapRef2.current);
       svg.selectAll("*").remove();
 
-      const width = mapRef.current?.clientWidth || 300;
-      const height = mapRef.current?.clientHeight || 250;
+      const width = mapRef2.current?.clientWidth || 300;
+      const height = mapRef2.current?.clientHeight || 250;
 
       const projection = d3.geoAlbers()
         .center([-0.6, 47.5])
         .rotate([120, 0])
         .parallels([48, 49])
-        .scale(12 * Math.min(width, height))
+        .scale(11 * Math.min(width, height))
         .translate([width / 2, height / 2]);
 
       const path = d3.geoPath().projection(projection);
@@ -218,7 +218,7 @@ const Dashboard: React.FC = () => {
   // Update fill on selection change
   useEffect(() => {
     if (!geoDataRef.current) return;
-    d3.select(mapRef.current)
+    d3.select(mapRef2.current)
       .selectAll('path')
       .attr('fill', (d: any) => selectedCounties.has(d.properties.NAME) ? '#007bff' : '#ccc');
   }, [selectedCounties]);
@@ -995,7 +995,7 @@ const Dashboard: React.FC = () => {
         <div className="bg-white border p-4 rounded shadow h-full flex flex-col">
           <h2 className="text-lg font-semibold mb-2">Select Counties</h2>
           <div className="flex-grow relative">
-            <svg ref={mapRef} className="w-full h-full" />
+            <svg ref={mapRef2} className="w-full h-full" />
           </div>
         </div>
 

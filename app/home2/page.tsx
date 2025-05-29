@@ -105,7 +105,7 @@ export default function ChoroplethPage() {
           <strong>Explore:</strong> See how TSA wait times – including for TSA PreCheck users – could grow without more investment in our state’s airports.  
         </p>
 
-        <div>
+        <div style={{width: "80%"}}>
           <AirportQueue />
         </div>
 

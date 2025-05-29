@@ -46,16 +46,16 @@ const AirportQueueViz = () => {
  const rows = Math.ceil(total / rowCapacity);
 
  return (
- <div className="mb-12">
- <h3 className={`text-lg font-semibold mb-2 ${isPre ? "text-emerald-600" : "text-blue-600"}`}>
+ <div className="mb-4 ">
+ <h3 style={{fontFamily: "Encode Sans Compressed, sans-serif"}} className={`text-lg font-semibold mb-2 ${isPre ? "text-emerald-600" : "text-blue-600"}`}>
  {label}
  </h3>
- <p className="text-xl font-bold text-gray-700 mb-4">{description}</p>
- <div className="relative border-2 border-gray-200 p-8 rounded-lg bg-gray-50">
+ <p style={{fontFamily: "Encode Sans Compressed, sans-serif"}} className="text-base font-bold text-gray-700 mb-0">{description}</p>
+ <div className="relative border-2 border-gray-200 p-4 rounded-lg bg-gray-50">
  <div className="flex flex-col gap-8">
  {Array(rows).fill(0).map((_, i) => (
  <div key={i} className="relative flex">
- <div className="absolute -left-2 -top-4">
+ <div className="absolute -left-2 -top-2">
  <StanchionPost />
  </div>
  <QueueRow
@@ -110,7 +110,7 @@ const AirportQueueViz = () => {
  isPre={true}
  hideVerticalLines={true}
  />
- <div className="mt-36">
+ <div className="mt-8">
  <Queue
  total={futurePrecheckLength}
  label="Projected 2050 PreCheck Line"

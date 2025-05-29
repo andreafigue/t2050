@@ -80,7 +80,7 @@ const WashingtonMapWithLineGraphs: React.FC<FreightProps> = ({
         .attr('width', 600)
         .attr('height', 500);
       const projection = d3.geoAlbers()
-        .center([-0.6, 47.5])
+        .center([1, 47])
         .rotate([120, 0])
         .parallels([48, 49])
         .scale(8 * Math.min(600, 500))
