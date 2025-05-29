@@ -42,130 +42,147 @@ const DynamicDashboard = dynamic(() => import('../components/Dashboard'), { load
 export default function ChoroplethPage() {
   return (
     <div>
-      <div className="container mx-auto px-4 py-8" style={{ margin: '40px', width: '1200px'}}>
+      <div className="container mx-auto px-4 py-8 mt-4 mb-0" style={{ margin: '0px', width: '1200px'}}>
         <h1 className="text-3xl font-bold mb-6">Challenge 2050: The Future in Motion</h1>
         <p className="mb-4">
-          By 2050, Washington’s population is expected to grow by 1.8 million more people, 
-          increasing to 10 million calling our state home. Of those new residents, 1.5 million 
-          will be in the central Puget Sound region.  King, Pierce, Snohomish, and Kitsap counties 
-          will be home to 5.8 million people, a 35% increase compared to today. 
+          By the year 2050, Washington State will be home to 10 million people—a population surge of 1.8 million, with the vast majority settling in the already-bustling central Puget Sound region. 
           <br/><br/>
-          This rapid growth will reshape how we live, work, and move. Our transportation system, 
-          already under strain, will face unprecedented challenges that demand bold, coordinated action. 
-          This visualization invites you to explore the future of Washington’s mobility needs, uncovering 
-          the impacts of growth, infrastructure projects, and potential solutions.
+          Such growth poses profound questions for the state’s future. Chief among them: How will Washingtonians move?
+          <br/><br/>
+          As roads, bridges, ferries, railways, and airports strain under increased demand, state and regional leaders face a stark choice—invest boldly and strategically now, or face the rising costs of inaction: clogged highways, delayed flights, and a quality of life diminished by congestion.
         </p>
-        <h2 className="text-2xl font-semibold mb-4">A Region on the Rise: Population Growth from 1961 to 2050</h2>
+        <h2 className="text-2xl font-semibold mb-4">A Changing State</h2>
         <p className="mt-4 mb-8">
-          Population growth doesn’t happen overnight—it unfolds over decades. Using historical data 
-          from 1961 and projections through 2050, we can trace how demographic shifts have shaped, 
-          and will continue to shape, our state. Explore the interactive map below to see growth 
-          trends across counties. Use the slider to move through time, and hover over each county to 
-          view detailed population changes year by year.
+          Washington’s evolution has been decades in the making. From 1961 through projections for 2050, population growth has shifted the balance across counties, reshaping urban and rural communities alike.
+          <br/><br/>
+          <strong>Explore:</strong> See how our state’s population has changed since 1961 and is predicted to continue to grow over the next 25 years.
         </p>
         <Population />
         <br/>
-        <h2 className="text-2xl font-semibold mb-4">The Road Ahead: How Growth Impacts You</h2>
-        <p className="mt-4 mb-8">
-          Population growth isn’t just a statistic—it’s a reality that will reshape your daily life. 
-          More people mean more cars on the road, higher demand for public transit, and increased strain 
-           infrastructure. Without preservation of our existing infrastructure and strategic investments in 
-           mobility, longer commutes that reduce our quality of life will become the norm. As millions of new 
-           residents rely on the same roads, rail lines, and airports, commute times, travel costs, and overall 
-           mobility will be significantly impacted. 
+        <h2 className="text-2xl font-semibold mb-4">The Commute, Reimagined</h2>
+        <p className="mt-4 mb-4">
+          This growth is more than abstract data—it affects everyday lives. More cars on the road mean longer commutes, greater stress, and fewer hours at home. Without preservation of our existing roads and bridges and new investments, average travel times could stretch well beyond tolerable limits.
         </p>
-        <FreightCars />
-        <p className="mt-4 mb-8">
-          How will this affect you? Use the interactive tool below to see how your daily commute might 
-          change by 2050. Simply enter your origin and destination to compare current travel times with 
-          projections for the future, based on different infrastructure investment scenarios.
-        </p>       
-        <DynamicMapRoute />
-        <div style={{height: '84px'}} />      
-        <p className="mt-4 mb-8">
-        Your commute is more than just a trip—it’s time out of your day, every day. This visualization 
-        helps you understand how future growth and infrastructure decisions will directly affect the 
-        time you spend getting to your destination, enabling you to see why we need to start now to 
-        plan for Washington’s transportation future.
+        <strong>
+          Did you know?
+        </strong>
+        <ul className="list-disc pl-6 mb-6 mt-2">
+          <li>In 2022, the average commuter spent 82 hours stuck in traffic at an annual cost of $1,874.</li>
+          <li>Congestion contributes 621,000 metric tons of excess carbon dioxide emissions annually, contributing to climate change.</li>
+        </ul>
+        <p className="mt-4 mb-4">
+          <strong>Explore:</strong> See how much longer a trip will take in 2050 if we don’t plan for future growth. 
         </p>
+        {/*<FreightCars />*/}
 
-        <h2 className="text-2xl font-semibold mb-4">Cleared for Takeoff? The Future of TSA Wait Times at SEA-TAC Airport</h2>
+        <div className="container mb-8">
+          <DynamicMapRoute />
+        </div>
+
+        <br/>
+
+        <div className="container mt-12" style={{  width: '1300px', height: '700px'}}>
+          <DynamicMapComponent/>
+        </div>
+
+        <h2 className="text-2xl font-semibold mb-4">Airports Under Pressure</h2>
         
-        <FreightFlights />
+        {/*<FreightFlights />*/}
         
         <p className="mt-4 mb-8">
-          As the central Puget Sound region’s population surges toward 5.8 million by 2050, airports will face unprecedented passenger volumes. This growth will directly impact TSA security wait times, with delays affecting leisure and business travelers and air cargo planes exporting Washington’s agriculture products to international customers. Without an increase in capacity, Washington residents will experience significantly longer security lines, especially during peak travel seasons.
+          Air travel, too, will feel the crunch. With Puget Sound’s population expected to swell, we need more capacity. TSA wait times could soar—especially during holidays and peak seasons—slowing both leisure travelers and the cargo planes that carry Washington’s exports abroad.
+          <br/><br/>
+          Without serious investment in airport capacity, delays and bottlenecks will become more than an inconvenience—they’ll be an impediment to commerce and global connectivity.
+        </p>
+        <strong>
+          Did you know?
+        </strong>
+        <ul className="list-disc pl-6 mb-6 mt-2">
+          <li>Demand for take-offs and landings are projected to double by 2050, resulting in unmet demand by 2050 that is roughly equivalent to all passengers served at Sea-Tac in 2019.</li>
+          <li>The region will fall short of on-airport warehouse space for air cargo by 2027.</li>
+        </ul>
+        <p className="mt-4 mb-4">
+          <strong>Explore:</strong> See how TSA wait times – including for TSA PreCheck users – could grow without more investment in our state’s airports.  
         </p>
 
         <div>
           <AirportQueue />
         </div>
 
-        <p className="mt-4 mb-8">
-          This visualization highlights the critical need for proactive airport planning and infrastructure investments. Efficient, future-ready airports aren’t just about convenience—they’re essential for keeping our state connected to the world.
-        </p>
+        <h2 className="text-2xl font-semibold mb-4 mt-4">Freight and the Backbone of Commerce</h2>
 
-        <h2 className="text-2xl font-semibold mb-4">Freight on the Move: The Future of Goods Transportation</h2>
-
-        <FreightShips />
+        {/*<FreightShips />*/}
 
         <p className="mt-4 mb-8">
-          As Washington’s population and economy grow, so does the demand for efficient freight movement. 
-          By 2050, the volume of goods transported across the state is expected to rise significantly, 
-          impacting highways, railways, ports, and air cargo facilities. Our interactive visualization 
-          allows you to explore freight projections, filtering by mode of transportation and cargo type to 
-          see how different industries will be affected. Strategic investments in freight infrastructure 
-          are essential to keeping supply chains moving, reducing congestion, and ensuring Washington 
-          remains a key player in national and global trade.
+          Goods movement is no less essential. As Washington’s economy grows, so will the demand on freight corridors—by highway, rail, sea, and air. 
         </p>
 
-        <div className="container " style={{  width: '1300px', height: '700px'}}>
-          <DynamicMapComponent/>
-        </div>
-        <div className="container " style={{  width: '1300px', height: '700px'}}>
+        <strong>
+          Did you know?
+        </strong>
+        <ul className="list-disc pl-6 mb-6 mt-2">
+          <li>Freight transported within Washington is forecast to increase by more than 40%, and imports and exports by more than 50%.</li>
+          <li>The number of truck miles traveled per day is forecast to increase by 27%.</li>
+        </ul>
+        <p className="mt-4 mb-4">
+          <strong>Explore:</strong>  Learn how cargo moves around the state and how it is expected to grow to meet the increased demand of a growing population. Cargo that can’t get to overseas markets harms our state’s economy, including the 1 in 4 jobs dependent on international trade. 
+        </p>
+
+        <div className="container " style={{  width: '1300px', height: '600px'}}>
           <DynamicWashingtonMapWithLineGraphs/>
         </div>
         <br/> 
         <h2 className="text-2xl font-semibold mb-4">
-          Ensuring Longevity: Maintenance and Preservation of Washington's Transportation Infrastructure
+          The Quiet Crisis Beneath Our Roads
         </h2>
         <p className="mt-4 mb-8">
-          Washington's extensive network of over 8,400 bridges serves as vital connectors for communities, commerce, and transportation. However, with approximately 5.5% of these structures classified as structurally deficient, the focus on maintenance and preservation becomes paramount. The interactive map below provides a comprehensive overview of all bridges in Washington, detailing their current conditions. This visualization underscores the critical need for targeted maintenance strategies and highlights areas where infrastructure investments are essential to ensure safety and efficiency across the state's transportation network. Failure to address these deficiencies could lead to significant traffic disruptions, increased congestion, and compromised safety for all road users.
+          Beneath the weight of growth lies a quieter crisis: infrastructure decay. The state’s 8,400-plus bridges—essential connectors for people and goods—are aging. A bridge in disrepair may not make headlines until it fails, but the data reveals a system in urgent need of maintenance.
+        </p>
+
+        <strong>
+          Did you know?
+        </strong>
+        <ul className="list-disc pl-6 mb-6 mt-2">
+          <li>More than 55% of bridges across the state are in only fair condition and inching ever closer to falling into poor condition.</li>
+          <li>In April 2025, WSDOT permanently closed the 103-year old SR 165 Carbon River/Fairfax Bridge because it was no longer safe to drive on, cutting off access to popular Mount Rainier recreation areas and requiring a 9-mile emergency access detour.</li>
+          <li>Preservation funding is only 40% of what is needed to keep our infrastructure in a state of good repair.  </li>
+        </ul>
+        <p className="mt-4 mb-4">
+          <strong>Explore:</strong>  Inspect the condition of spans across the state and see what detours would be required if bridges were closed before they could be repaired or replaced.
         </p>
         <div style={{ padding: '1rem 1rem' }}>
           <BridgeNeedsMap />
         </div>
-        <h2 className="text-2xl font-semibold mb-4">
-          Building a Better Tomorrow: Solutions for Mobility Challenges
-        </h2>
-
-        <p className="mt-4 mb-8">
-        To meet the demands of a growing population and ensure efficient, sustainable mobility across Washington, bold, coordinated action is essential. This involves investing in infrastructure projects such as expanding public transit networks, maintaining and strategically enhancing road capacity, increasing passenger and cargo air travel capabilities, and developing ultra-high-speed rail systems.​
-        <br/><br/>
-        High-speed rail (HSR) presents a promising solution to alleviate traffic congestion. Current initiatives are exploring the feasibility of an ultra-high-speed rail line connecting Vancouver, Seattle, and Portland, with trains operating at speeds up to 250 mph. This project aims to significantly reduce travel times between these major cities.
-        <br/><br/>
-        The visualization below allows you to explore and compare these travel times across different modes of transportation, providing insight into how high-speed rail could transform regional mobility. Use the interactive tool to select your origin and destination, and compare current travel times by car and train with projected times using the proposed high-speed rail system.
-        </p>
-
-        <div style={{ padding: '1rem 1rem', width: "100%", height: "330px" }}>
-          <DynamicChartComponent />
-        </div>
-        <p style={{fontStyle: 'italic', paddingTop: "65px", paddingRight: "5px", textAlign: "right"}}>
-        Note: These HSR travel times are based on projections from feasibility studies and are subject to change as the project develops.
-        </p>
-        <h2 className="text-2xl font-semibold mb-4">
-        Experience the Impact: Your Interactive Traffic Simulation Game
-        </h2>
-        <p className="mt-4 mb-8">
-          Understanding how transportation choices affect traffic congestion is crucial for envisioning a more efficient future. Our interactive traffic simulation game allows you to explore the dynamics of various transportation modes and their influence on traffic flow. By adding or removing cars, buses, and trains, you can observe real-time changes in congestion levels, measured by the number of people moved and the resulting traffic conditions. The simulation provides immediate visual feedback, with congestion levels displayed on a graph—red indicating backed-up traffic and green representing free-flowing conditions. This engaging tool empowers you to experiment with different scenarios, deepening your understanding of how strategic transportation planning can alleviate congestion and improve mobility for all.
-        </p>
-        <InteractiveGame />
-        <h2 className="mt-4 text-2xl font-semibold mb-4">
-          Discover the Impact: Your Interactive Mobility Dashboard
+        <h2 className="text-2xl font-semibold mb-4 mt-4">
+          A High-Speed Vision
         </h2>
 
         <p className="mt-4 mb-4">
-          Now it’s your turn to explore the future. Our interactive dashboard brings together all the data—population growth projections, commute times, transportation infrastructure scenarios, and more—into one easy-to-use platform. Dive deep into the trends, compare different future scenarios, and see exactly how changes will impact your daily life, from commute times to air travel wait times. Whether you're a commuter, policymaker, or simply curious about the region’s future, this dashboard empowers you to make informed decisions, understand the trade-offs, and envision a Washington that works for everyone.
+          The future isn’t just about fixing what’s broken—it’s also about imagining what could be. One vision being explored is the development of an ultra-high-speed rail system linking Vancouver, BC; Seattle, WA; and Portland, OR, with trains topping 250 mph. This would offer an alternative to congested highways and security lines at the airport.
+        </p>
+        <p className="mb-4">
+          <strong>Explore:</strong>   Trips between Seattle and Vancouver, BC or Seattle and Portland, OR could be an hour or shorter —redefining what it means to live and work in the Pacific Northwest.
+        </p>
+
+        <div className="mb-4" style={{ padding: '1rem 1rem', width: "100%", height: "330px" }}>
+          <DynamicChartComponent />
+          <p style={{fontStyle: 'italic', paddingRight: "5px", textAlign: "right"}}>
+          Note: These HSR travel times are based on projections from feasibility studies and are subject to change as the project develops.
+          </p>
+        </div>
+        
+        <h2 className="text-2xl font-semibold mb-4">
+        An Invitation to Explore and Shape the Future
+        </h2>
+        <p className="mt-4 mb-4">
+          The future is in your hands. 
+        </p>
+        <p className="mt-4 mb-10">
+          <strong>Explore:</strong> Use this interactive tool to watch in real time how each decision affects congestion. It’s an engaging—and sobering—look at how transportation planning decisions ripple outward.
+        </p>
+        <InteractiveGame  />
+        <p className="mt-10 mb-0">
+          <strong>Explore:</strong>  See how population growth will impact each Washington county.  For policymakers, commuters, and curious citizens, it’s a window into the future—and a call to action. As Washington stands on the threshold of unprecedented growth, its path forward is clear. Investment today will determine whether the state’s transportation network can carry the weight of tomorrow.
         </p>
       </div>
       <div className="mx-auto" style={{width: "90%", height: "100%", margin: "0 auto", background: '#f4f4f4', borderRadius: 2 }}>
