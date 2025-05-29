@@ -1,6 +1,6 @@
 // pages/index.tsx
 import React from 'react';
-import BridgeNeedsMap from '../components/BridgeMap';
+import BridgeNeedsMap from '../components/BridgeMap2';
 
 const HomePage: React.FC = () => {
   return (

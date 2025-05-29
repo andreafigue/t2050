@@ -42,8 +42,8 @@ const Dashboard: React.FC = () => {
   const [bridgeData, setBridgeData] = useState<BridgeRow[]>([]);
   const [freightData, setFreightData] = useState<FreightRow[]>([]);
   const [waCountyMapping, setWaCountyMapping] = useState<Record<string, string>>({});
-  const growthChartContainerRef = useRef<HTMLDivElement>(null);
-  const popChartContainerRef = useRef<HTMLDivElement>(null);
+  const growthChartContainerRef2 = useRef<HTMLDivElement>(null);
+  const popChartContainerRef2 = useRef<HTMLDivElement>(null);
   const tonsChartRef = useRef<SVGSVGElement>(null);
   const valueChartRef = useRef<SVGSVGElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -262,7 +262,7 @@ const Dashboard: React.FC = () => {
       .style("overflow", "visible");
 
     const margin = { top: 40, right: 20, bottom: 50, left: 60 };
-    const container = popChartContainerRef.current;
+    const container = popChartContainerRef2.current;
     const w = container?.clientWidth || 600;
 
     const h = 350;
@@ -404,7 +404,7 @@ const Dashboard: React.FC = () => {
         y: d.growthRate ?? 0
       }));
 
-    const container = growthChartContainerRef.current;
+    const container = growthChartContainerRef2.current;
     const w = container?.clientWidth || 300;
     const h = 350;
     const margin = { top: 40, right: 20, bottom: 50, left: 60 };
@@ -412,7 +412,7 @@ const Dashboard: React.FC = () => {
     const innerH = h - margin.top - margin.bottom;
     const t = d3.transition().duration(800);
 
-    const svg = d3.select("#growthChart")
+    const svg = d3.select("#growthChart2")
       .attr("width", w)
       .attr("height", h)
       .style("overflow", "visible");
@@ -1002,15 +1002,15 @@ const Dashboard: React.FC = () => {
         <div className="col-span-2 grid grid-cols-2 gap-6">
           <div className="bg-white border p-4 rounded shadow">
             <h2 className="text-lg font-semibold mb-2">Population Over Time</h2>
-            <div ref={popChartContainerRef} className="w-full h-[350px]">
+            <div ref={popChartContainerRef2} className="w-full h-[350px]">
               <svg ref={svgRef} className="w-full h-full" />
             </div>
           </div>
 
           <div className="bg-white border p-4 rounded shadow">
             <h2 className="text-lg font-semibold mb-2">Population Growth Rate</h2>
-            <div ref={growthChartContainerRef} className="w-full h-[350px]">
-              <svg id="growthChart" className="w-full h-full" />
+            <div ref={growthChartContainerRef2} className="w-full h-[350px]">
+              <svg id="growthChart2" className="w-full h-full" />
             </div>
           </div>
 

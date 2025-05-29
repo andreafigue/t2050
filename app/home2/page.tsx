@@ -1,37 +1,37 @@
 // app/choropleth/page.tsx
 import React from 'react';
 import dynamic from 'next/dynamic';
-import fs from 'fs';
-import path from 'path';
-import type { FeatureCollection } from 'geojson';
-import { csvParse } from 'd3-dsv';
-import type { CountyCsvRow } from '../components/ChoroplethMap';
-import GraySquare from '../components/GraySquare';
+//import fs from 'fs';
+//import path from 'path';
+//import type { FeatureCollection } from 'geojson';
+//import { csvParse } from 'd3-dsv';
+//import type { CountyCsvRow } from '../components/ChoroplethMap';
 import FreightFlights from "../components/animations/flights";
 import FreightShips from "../components/animations/ships";
 import FreightTrains from "../components/animations/Trains";
 import FreightCars from "../components/animations/Cars";
-import BridgeNeedsMap from '../components/BridgeMap';
+import BridgeNeedsMap from '../components/BridgeMap2';
 import InteractiveGame from '../components/InteractiveGame';
 import AirportQueue from '../components/AirportQueue';
+import Population from '../components/Population';
 
-export const revalidate = 3600;
+//export const revalidate = 3600;
 
-const geojsonPath = path.join(process.cwd(), 'public', 'wa_counties.geojson');
-const csvPath = path.join(process.cwd(), 'public', 'county_data.csv');
-const geojsonData: FeatureCollection = JSON.parse(fs.readFileSync(geojsonPath, 'utf-8'));
-const countyCsvData: CountyCsvRow[] = csvParse(
-  fs.readFileSync(csvPath, 'utf-8'),
-  (d) => ({
-    County: d.County,
-    Year: Number(d.Year),
-    Population: Number(d.Population),
-    Source: d.Source,
-    rate: Number(d.rate),
-  })
-);
+// const geojsonPath = path.join(process.cwd(), 'public', 'wa_counties.geojson');
+// const csvPath = path.join(process.cwd(), 'public', 'county_data.csv');
+// const geojsonData: FeatureCollection = JSON.parse(fs.readFileSync(geojsonPath, 'utf-8'));
+// const countyCsvData: CountyCsvRow[] = csvParse(
+//   fs.readFileSync(csvPath, 'utf-8'),
+//   (d) => ({
+//     County: d.County,
+//     Year: Number(d.Year),
+//     Population: Number(d.Population),
+//     Source: d.Source,
+//     rate: Number(d.rate),
+//   })
+// );
 
-const DynamicChoroplethMap = dynamic(() => import('../components/ChoroplethMap'), { loading: () => <p>Loading map…</p> });
+//const DynamicChoroplethMap = dynamic(() => import('../components/ChoroplethMap'), { loading: () => <p>Loading map…</p> });
 const DynamicMapRoute = dynamic(() => import('../components/MapRoute2'), { loading: () => <p>Loading commute map…</p> });
 const DynamicWashingtonMapWithLineGraphs = dynamic(() => import('../components/Freight'), { loading: () => <p>Loading freight trends…</p> });
 const DynamicChartComponent = dynamic(() => import('../components/hsr2'), { loading: () => <p>Loading HSR chart…</p> });
@@ -63,7 +63,7 @@ export default function ChoroplethPage() {
           trends across counties. Use the slider to move through time, and hover over each county to 
           view detailed population changes year by year.
         </p>
-        <DynamicChoroplethMap geojsonData={geojsonData} countyCsvData={countyCsvData} />
+        <Population />
         <br/>
         <h2 className="text-2xl font-semibold mb-4">The Road Ahead: How Growth Impacts You</h2>
         <p className="mt-4 mb-8">
