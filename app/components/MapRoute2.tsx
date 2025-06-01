@@ -462,7 +462,7 @@ const MapRoute: React.FC = () => {
     {/* Map Containers */}
     <div className="row" style={{ height: 600, border: "1px solid #fff" }}>
       <div className="column" style={{ width: "50%", padding: "20px" }}>
-        <h3 style={{ textAlign: "center" }}>Current Traffic levels</h3>
+        <h3 style={{ textAlign: "center" }}>Current Traffic Levels</h3>
         <p style={{ textAlign: "center", height: "32px" }}>
           {travelTime ? <>Estimated travel time: <strong>{travelTime} min</strong></> : ""}
         </p>
