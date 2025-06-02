@@ -19,10 +19,14 @@ const DynamicDashboard = dynamic(() => import('../components/Dashboard'), { load
 export default function ChoroplethPage() {
   return (
     <div>
-      <div className="container mx-auto px-4 py-8 mt-4 mb-0" style={{ margin: '0px', width: '1200px'}}>
+      <div className="container mx-auto px-4 py-8 mt-4 mb-0" style={{ margin: '0px', width: '1200px', fontFamily: "Encode Sans Compressed, sans-serif"}}>
         <h1 className="text-3xl font-bold mb-6">Challenge 2050: The Future in Motion</h1>
         
-        <br/><br/><br/>
+        <br/><br/>
+        <h3 className="text-3xl mb-6">
+          1. Map of Projected Traffic Levels
+        </h3>
+        <br/>
        
         <div className="container mb-8">
           <DynamicMapRoute />
@@ -31,7 +35,10 @@ export default function ChoroplethPage() {
         <br/><br/><br/>
 
         <hr/>
-
+        <br/>
+        <h3 className="text-3xl mb-6">
+          2. Traffic Mode Travel Times
+        </h3>
         <div className="mb-4" style={{ padding: '1rem 1rem', width: "100%", height: "330px" }}>
           <DynamicChartComponent />
           <p style={{fontStyle: 'italic', paddingRight: "5px", textAlign: "right"}}>
@@ -40,7 +47,10 @@ export default function ChoroplethPage() {
         </div>
 
         <br/><br/><hr/>
-        <br/><br/>
+        <br/>
+        <h3 className="text-3xl mb-6">
+          3. Trade Map of WA State
+        </h3>
 
         <div className="container " style={{  width: '1300px', height: '520px'}}>
           <DynamicWashingtonMapWithLineGraphs/>
@@ -48,13 +58,21 @@ export default function ChoroplethPage() {
 
         <br/><br/><br/><hr/>
         <br/>
-
+        <h3 className="text-3xl mb-6">
+          4. Map of Bridge Conditions
+        </h3>
         <div style={{ padding: '1rem 1rem' }}>
           <BridgeNeedsMap />
         </div>
 
         <br/><hr/>
-        <br/><br/>
+        <br/>
+
+        <h3 className="text-3xl mb-6">
+          5. TSA Wait Times
+        </h3>
+
+        <br/>
 
         <div style={{width: "80%"}}>
           <AirportQueue />
@@ -62,11 +80,20 @@ export default function ChoroplethPage() {
 
         <br/><br/><hr/>
 
-        <br/><br/>
+        <br/>
+
+        <h3 className="text-3xl mb-6">
+          6. Map of Population Growth
+        </h3><br/>
 
         <Population />
        
         <br/><br/><hr/>
+
+        <br/>
+        <h3 className="text-3xl mb-6">
+          7. Map of Travel Times in Clark County
+        </h3>
 
         <div className="container mt-12" style={{  width: '1300px', height: '700px'}}>
           <DynamicMapComponent/>
