@@ -56,7 +56,11 @@ export default function ChoroplethPage() {
           <DynamicMapRoute />
         </div>
 
-        <br/><br/><br/>
+        <br/>
+
+        <div className="container mt-12" style={{  width: '1300px', height: '700px'}}>
+          <DynamicMapComponent/>
+        </div>
 
         <h2 className="text-2xl font-semibold mb-4">Airports Under Pressure</h2>
         
@@ -101,10 +105,6 @@ export default function ChoroplethPage() {
           <strong>Explore:</strong>  Learn how cargo moves around the state and how it is expected to grow to meet the increased demand of a growing population. Cargo that can’t get to overseas markets harms our state’s economy, including the 1 in 4 jobs dependent on international trade. 
         </p>
 
-        <div className="container mt-12" style={{  width: '1300px', height: '700px'}}>
-          <DynamicMapComponent/>
-        </div>
-        
         <div className="container " style={{  width: '1300px', height: '600px'}}>
           <DynamicWashingtonMapWithLineGraphs/>
         </div>
