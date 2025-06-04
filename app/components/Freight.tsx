@@ -308,7 +308,7 @@ const WashingtonMapWithLineGraphs: React.FC<FreightProps> = ({
   return (
     <div className="flex gap-4 p-4" style={{ width:'100%', margin:0 }}>
       {/* Sidebar */}
-      <div className="w-1/6 p-4 border rounded">
+      <div className="w-1/6 p-4 border rounded bg-white">
         <h2 className="text-lg font-bold">Filters</h2>
         {Object.keys(selectedFilters).map(key => (
           <div key={key} className="mb-2">
@@ -335,12 +335,12 @@ const WashingtonMapWithLineGraphs: React.FC<FreightProps> = ({
       </div>
 
       {/* Map */}
-      <div className="w-3/6 border p-4 rounded">
+      <div className="w-3/6 border p-4 rounded bg-white">
         <svg ref={mapSvgRef} className="w-full h-full" />
       </div>
 
       {/* Charts */}
-      <div className="w-2/6 flex flex-col gap-4 border p-4 rounded">
+      <div className="w-2/6 flex flex-col gap-4 border p-4 rounded bg-white">
         <div className="flex flex-col items-center">
           <h2 className="text-lg font-bold">Tons over Years</h2>
           <svg

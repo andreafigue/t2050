@@ -210,7 +210,7 @@ const ChartComponent = () => {
   return (
     <div className="flex h-full">
       {/* Filters */}
-      <div className="w-2/6 p-6 bg-white border-r">
+      <div className="w-2/6 p-6 bg-white border rounded">
         <div className="flex justify-between gap-4">
           {/* From Column */}
           <div className="flex-1">
@@ -253,8 +253,6 @@ const ChartComponent = () => {
           </div>
         </div>
       </div>
-
-
 
       {/* D3 Chart */}
       <div className="w-4/6 pl-4 pr-10 py-10 flex flex-col justify-center items-start">

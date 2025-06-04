@@ -22,8 +22,6 @@ interface StateDataPoint {
   source: string;
 }
 
-
-
 const Population: React.FC = () => {
 
   const [countyData, setCountyData] = useState<Record<string, CountyCsvRow[]>>({});
@@ -556,7 +554,7 @@ useEffect(() => {
   }, [stateData]);
 
   return (
-    <div style={{ height: "95vh", display: "flex", background: "#f4f4f4", borderRadius: 8 }}>
+    <div style={{ height: "95vh", display: "flex", background: "white", borderRadius: 8 }}>
       
       {/* Map Section */}
       <div style={{ width: "60%", position: "relative" }}>
@@ -622,147 +620,140 @@ useEffect(() => {
           
         </div>
 
-{/* Floating Sidebar */}
-<div
-  style={{
-    position: "absolute",
-    top: "20px",
-    right: "20px",
-    width: "240px",
-    backgroundColor: "rgba(255, 255, 255, 0.95)",
-    borderRadius: "8px",
-    boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
-    zIndex: 10,
-    padding: "10px",
-    fontSize: "12px",
-    cursor: "pointer",
-    maxHeight: isSidebarHovered ? "400px" : "90px",
-    overflow: isSidebarHovered ? "auto" : "hidden",
-    transition: "all 0.3s ease-in-out",
-  }}
-  onMouseEnter={() => setIsSidebarHovered(true)}
-  onMouseLeave={() => setIsSidebarHovered(false)}
->
-  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
-    <strong>Selected Counties</strong>
-    {selectedCounties.size > 0 && (
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          setSelectedCounties(new Set());
-        }}
-        style={{
-          background: "transparent",
-          border: "none",
-          color: "#ef4444",
-          cursor: "pointer",
-          fontSize: "12px",
-          fontWeight: "bold",
-        }}
-      >
-        Clear All
-      </button>
-    )}
-  </div>
-
-<div
-  ref={chipContainerRef}
-  style={{
-    display: "flex",
-    flexWrap: "wrap",
-    gap: "6px",
-    alignContent: "flex-start",
-    overflowY: isSidebarHovered && showScroll ? "auto" : "hidden",
-    maxHeight: isSidebarHovered ? "160px" : "60px",
-    paddingBottom: "2px",
-  }}
->
-
-  {selectedCounties.size === 0 ? (
-    <span style={{ color: "#888" }}>None selected</span>
-  ) : (
-    (() => {
-      const counties = [...selectedCounties];
-      const isExpanded = isSidebarHovered;
-
-      let visibleCount = counties.length;
-      let showEllipsis = false;
-
-      if (!isExpanded) {
-        if (counties.length > 3) {
-          visibleCount = 2;
-          showEllipsis = true;
-        }
-      }
-
-      const visibleChips = counties.slice(0, visibleCount).map((county) => (
+        {/* Floating Sidebar */}
         <div
-          key={county}
           style={{
-            background: "#eff6ff",
-            padding: "4px 8px",
-            borderRadius: "12px",
-            fontSize: "11px",
-            display: "flex",
-            alignItems: "center",
-            maxWidth: "100%",
+            position: "absolute",
+            top: "20px",
+            right: "20px",
+            width: "240px",
+            backgroundColor: "rgba(255, 255, 255, 0.95)",
+            borderRadius: "8px",
+            boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
+            zIndex: 10,
+            padding: "10px",
+            fontSize: "12px",
+            cursor: "pointer",
+            maxHeight: isSidebarHovered ? "400px" : "90px",
+            overflow: isSidebarHovered ? "auto" : "hidden",
+            transition: "all 0.3s ease-in-out",
           }}
+          onMouseEnter={() => setIsSidebarHovered(true)}
+          onMouseLeave={() => setIsSidebarHovered(false)}
         >
-          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            {county}
-          </span>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setSelectedCounties((prev) => {
-                const next = new Set(prev);
-                next.delete(county);
-                return new Set(next);
-              });
-            }}
-            style={{
-              marginLeft: "6px",
-              background: "transparent",
-              border: "none",
-              cursor: "pointer",
-              color: "#3b82f6",
-              fontWeight: "bold",
-              fontSize: "14px",
-            }}
-          >
-            ×
-          </button>
-        </div>
-      ));
-
-      if (showEllipsis) {
-        visibleChips.push(
-          <div
-            key="ellipsis"
-            style={{
-              background: "#e5e7eb",
-              padding: "4px 8px",
-              borderRadius: "12px",
-              fontSize: "11px",
-            }}
-          >
-            ...
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px" }}>
+            <strong>Selected Counties</strong>
+            {selectedCounties.size > 0 && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedCounties(new Set());
+                }}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  color: "#ef4444",
+                  cursor: "pointer",
+                  fontSize: "12px",
+                  fontWeight: "bold",
+                }}
+              >
+                Clear All
+              </button>
+            )}
           </div>
-        );
-      }
 
-      return visibleChips;
-    })()
-  )}
-</div>
+          <div
+            ref={chipContainerRef}
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: "6px",
+              alignContent: "flex-start",
+              overflowY: isSidebarHovered && showScroll ? "auto" : "hidden",
+              maxHeight: isSidebarHovered ? "160px" : "60px",
+              paddingBottom: "2px",
+            }}
+          >
 
+            {selectedCounties.size === 0 ? (
+              <span style={{ color: "#888" }}>None selected</span>
+            ) : (
+              (() => {
+                const counties = [...selectedCounties];
+                const isExpanded = isSidebarHovered;
 
+                let visibleCount = counties.length;
+                let showEllipsis = false;
 
+                if (!isExpanded) {
+                  if (counties.length > 3) {
+                    visibleCount = 2;
+                    showEllipsis = true;
+                  }
+                }
 
-</div>
+                const visibleChips = counties.slice(0, visibleCount).map((county) => (
+                  <div
+                    key={county}
+                    style={{
+                      background: "#eff6ff",
+                      padding: "4px 8px",
+                      borderRadius: "12px",
+                      fontSize: "11px",
+                      display: "flex",
+                      alignItems: "center",
+                      maxWidth: "100%",
+                    }}
+                  >
+                    <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {county}
+                    </span>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedCounties((prev) => {
+                          const next = new Set(prev);
+                          next.delete(county);
+                          return new Set(next);
+                        });
+                      }}
+                      style={{
+                        marginLeft: "6px",
+                        background: "transparent",
+                        border: "none",
+                        cursor: "pointer",
+                        color: "#3b82f6",
+                        fontWeight: "bold",
+                        fontSize: "14px",
+                      }}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ));
 
+                if (showEllipsis) {
+                  visibleChips.push(
+                    <div
+                      key="ellipsis"
+                      style={{
+                        background: "#e5e7eb",
+                        padding: "4px 8px",
+                        borderRadius: "12px",
+                        fontSize: "11px",
+                      }}
+                    >
+                      ...
+                    </div>
+                  );
+                }
 
-        {/* Optional: Legend or filters could go here */}
+                return visibleChips;
+              })()
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Right Column for Charts */}
@@ -770,7 +761,7 @@ useEffect(() => {
         width: "40%", 
         display: "flex", 
         flexDirection: "column", 
-        padding: "20px", 
+        padding: "0px 20px 0px 20px", 
         height: "100%", 
         boxSizing: "border-box" 
       }}>
@@ -792,18 +783,19 @@ useEffect(() => {
 
         
         {/* Population Chart */}
-        <div style={{ 
+        <div className="border" style={{ 
           flex: "0 0 50%", 
-          background: "white", 
+          background: "#f4f4f4", 
           borderRadius: "8px", 
+          border: "gray", 
           padding: "15px", 
-          marginBottom: "15px", 
+          marginBottom: "20px", 
           boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
           overflow: "hidden",
           display: "flex",
           flexDirection: "column"
         }}>
-          <h4 style={{ fontSize: "13pt", marginBottom: "8px", fontWeight: "bold" }}>
+          <h4 style={{ fontSize: "15pt", paddingTop: "10px", marginBottom: "8px", fontWeight: "bold" }}>
             Population Over Time {selectedCounties.size > 0 && "(selected counties)"}
           </h4>
 
@@ -813,9 +805,9 @@ useEffect(() => {
         </div>
 
         {/* Growth Rate Chart */}
-        <div style={{ 
+        <div className="border" style={{ 
           flex: "1 1 0", 
-          background: "white", 
+          background: "#f4f4f4", 
           borderRadius: "8px", 
           padding: "15px", 
           boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
@@ -823,7 +815,7 @@ useEffect(() => {
           display: "flex",
           flexDirection: "column"
         }}>
-          <h4 style={{ fontSize: "13pt", marginBottom: "8px", fontWeight: "bold" }}>
+          <h4 style={{ fontSize: "15pt", paddingTop: "10px", marginBottom: "8px", fontWeight: "bold" }}>
             Population Growth Rate {selectedCounties.size > 0 && "(selected counties)"}
           </h4>
 

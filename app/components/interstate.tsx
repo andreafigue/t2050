@@ -324,8 +324,8 @@ const MapComponent = () => {
   }, [selectedRoute, direction, yMetric, chartData]);
 
   return (
-    <div className="flex gap-4 p-4" style={{ width: "100%", margin: "0 auto", height:"700px" }}>
-      <div className="w-1/6 p-4 border"  style={{borderRadius: 8}}>
+    <div className="flex gap-4 p-4" style={{ width: "100%", height:"700px" }}>
+      <div className="w-1/6 p-4 border bg-white"  style={{borderRadius: 8}}>
         <h2 className="text-lg font-bold mb-4">Select Route</h2>
         {routes.map((route) => (
           <label key={route.id} className="block text-sm font-medium capitalize">
@@ -377,7 +377,7 @@ const MapComponent = () => {
         </select>
         <p className="mt-6 text-md font-semibold ">Distance: {routeMiles} miles</p>
       </div>
-      <div className="w-5/6 flex flex-col gap-4 border p-4" style={{borderRadius: 8}}>
+      <div className="w-5/6 flex flex-col gap-4 border p-4 bg-white" style={{borderRadius: 8}}>
         <div ref={mapContainer} className="flex flex-col border h-1/2 " style={{borderRadius: 8}}/>
         <div className="flex flex-col items-center h-1/2">
           <div ref={chartRef} />

@@ -1,141 +1,455 @@
-// app/choropleth/page.tsx
+'use client';
+
 import React from 'react';
-import ChoroplethMap, { CountyCsvRow } from '../components/ChoroplethMap';
-import GraySquare from '../components/GraySquare';
-import fs from 'fs/promises';
-import path from 'path';
-import type { FeatureCollection } from 'geojson';
-import { csvParse } from 'd3-dsv';
-//import MapWrapper from '../components/MapWrapper';
+import Image from 'next/image';
+import dynamic from 'next/dynamic';
+import { useScroll, useTransform, motion } from 'framer-motion';
+import { useRef } from 'react';
+
+import Population from '../components/Population';
+import BridgeNeedsMap from '../components/BridgeMap2';
+import InteractiveGame from '../components/InteractiveGame';
 import AirportQueue from '../components/AirportQueue';
 
-export default async function ChoroplethPage() {
-  // Read and parse the GeoJSON file.
-  const geojsonFilePath = path.join(process.cwd(), 'public', 'wa_counties.geojson');
-  const geojsonDataRaw = await fs.readFile(geojsonFilePath, 'utf-8');
-  const geojsonData: FeatureCollection = JSON.parse(geojsonDataRaw);
+const DynamicMapRoute = dynamic(() => import('../components/MapRoute2'), { loading: () => <p>Loading commute map…</p> });
+const DynamicWashingtonMapWithLineGraphs = dynamic(() => import('../components/Freight'), { loading: () => <p>Loading freight trends…</p> });
+const DynamicChartComponent = dynamic(() => import('../components/hsr2'), { loading: () => <p>Loading HSR chart…</p> });
+const DynamicMapComponent = dynamic(() => import('../components/interstate'), { loading: () => <p>Loading freight map…</p> });
+const DynamicDashboard = dynamic(() => import('../components/Dashboard'), { loading: () => <p>Loading dashboard…</p> });
 
-  // Read and parse the single CSV file (county_data.csv).
-  const csvFilePath = path.join(process.cwd(), 'public', 'county_data.csv');
-  let countyCsvData: CountyCsvRow[] = [];
-  try {
-    const csvFileContent = await fs.readFile(csvFilePath, 'utf-8');
-    countyCsvData = csvParse(csvFileContent, (d) => ({
-      County: d.County,
-      Year: Number(d.Year),
-      Population: Number(d.Population),
-      Source: d.Source,
-      rate: Number(d.rate),
-    }));
-  } catch (err) {
-    console.error('Error reading county CSV:', err);
-  }
+
+const Page = () => {
+
+  const containerRef = useRef(null);
+
+  const { scrollYProgress } = useScroll({
+    target: containerRef,
+    offset: ['start start', 'end start'],
+  });
+
+  // Animations
+  const titleTop = useTransform(scrollYProgress, [0, 0.5, 0.7], ['25%', '6rem', '6rem']);
+  const titleLeft = useTransform(scrollYProgress, [0, 0.5, 0.7], ['45%', '7.5rem','7.5rem']);
+  const titleX = useTransform(scrollYProgress, [0, 0.5, 0.7], ['-50%', '0%', "0%"]);
+  const titleY = useTransform(scrollYProgress, [0, 0.5, 0.7], ['-50%', '0%', "0%"]);
+
+  const titleScale = useTransform(scrollYProgress, [0, 0.5, 0.7], [1.4, 1, 1]);
+
+  const overlayOpacity = useTransform(scrollYProgress, [0, 0.5, 0.7], [0.5, 0.7, 0.7]);
+
+  const textOpacity = useTransform(scrollYProgress, [0.25, 0.5, 0.7], [0, 1, 1]);
+  const textY = useTransform(scrollYProgress, [0, 0.5, 0.7], ['25rem', '5rem', '5rem']);
+
+  //const logoOpacity = useTransform(scrollYProgress, [0.25, 0.5, 0.7], [0, 1, 1]);
+  //const logoY = useTransform(scrollYProgress, [0, 0.5, 0.7], ['25rem', '5rem', '5rem']);
 
   return (
-    <div className="container mx-auto px-4 py-8" style={{ margin: '40px', width: '800px'}}>
-      <h1 className="text-3xl font-bold mb-6">Challenge 2050: The Future in Motion</h1>
+    <main style={{ fontFamily: 'Encode Sans Compressed, sans-serif' }}>
+      {/* Pinned Scroll Transition */}
+      <section ref={containerRef} className="relative h-[300vh] bg-black">
+        {/* Sticky wrapper */}
+         <div className="sticky top-0 h-screen w-full overflow-hidden z-10">
+          {/* Background image */}
+          <Image
+            src="/img/link.jpg"
+            alt="Background"
+            layout="fill"
+            objectFit="cover"
+            className="z-0"
+          />
+          <motion.div
+            className="absolute inset-0 bg-black z-10"
+            style={{ opacity: overlayOpacity }}
+          />
 
-      <p className="mb-4">
-        By 2050, Washington’s population is expected to grow by 1.8 million more people, 
-        increasing to 10 million calling our state home. Of those new residents, 1.5 million 
-        will be in the central Puget Sound region.  King, Pierce, Snohomish, and Kitsap counties 
-        will be home to 5.8 million people, a 35% increase compared to today. 
-        <br/><br/>
-        This rapid growth will reshape how we live, work, and move. Our transportation system, 
-        already under strain, will face unprecedented challenges that demand bold, coordinated action. 
-        This visualization invites you to explore the future of Washington’s mobility needs, uncovering 
-        the impacts of growth, infrastructure projects, and potential solutions.
+          {/* Title */}
+          <motion.div
+            className="absolute z-20 text-white"
+            style={{
+              top: titleTop,
+              left: titleLeft,
+              translateX: titleX,
+              translateY: titleY,
+              scale: titleScale
+            }}
+          >
+            <h1 className="text-4xl md:text-6xl font-bold mb-2 drop-shadow-lg">
+              Challenge 2050
+            </h1>
+            <p className="text-xl md:text-2xl drop-shadow">The Future in Motion</p>
+          </motion.div>
 
-      </p>
+          {/* Section 1 Text */}
+          <motion.div
+            className="absolute z-20 text-white px-4 md:px-16"
+            style={{
+              top: '10rem',
+              left: '6rem',
+              opacity: textOpacity,
+              y: textY,
+            }}
+          >
+            <div className="max-w-xl">
+              <p className="text-xl mb-4">
+                By the year 2050, Washington State will be home to 10 million people—a population surge of 1.8 million,
+                with the vast majority settling in the already-bustling central Puget Sound region.
+              </p>
+              <p className="text-xl mb-4">
+                Such growth poses profound questions for the state’s future. Chief among them: <strong>How will Washingtonians move?</strong>
+              </p>
+              <p className="text-xl mb-4">
+                As roads, bridges, ferries, railways, and airports strain under increased demand, state and regional leaders
+                face a stark choice—invest boldly and strategically now, or face the rising costs of inaction: clogged highways,
+                delayed flights, and a quality of life diminished by congestion.
+              </p>
+            </div>
+          </motion.div>
 
-      <h2 className="text-2xl font-semibold mb-4">A Region on the Rise: Population Growth from 1961 to 2050</h2>
+          <motion.div
+            className="absolute z-20 text-white px-4 md:px-8"
+            style={{
+              top: '4rem',
+              right: '4rem',
+              //opacity: logoOpacity,
+              //x: logoY,
+            }}
+          >
+            <a href="https://https://www.washington.edu//" target="_blank" rel="noopener noreferrer">
+              <Image src="/logos/Signature_Stacked_White.png" alt="UW" width={250} height={67} />
+            </a>
+          </motion.div>
+        </div>
+      </section>
 
+      {/* Section 2 */}
+      <motion.section
+        className="px-4 md:px-16 py-16 bg-gray-100"
+        initial={{ opacity: 0, y: 30 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.6 }}
+      >
+        <div className="max-w-6xl mx-auto">
+          <div className="flex flex-col md:flex-row-reverse gap-8 items-start">
+            <Image
+              src="/img/pikeplace.jpg"
+              alt="A Changing State"
+              width={450}
+              height={300}
+              className="rounded-xl shadow-lg"
+            />
+            <div>
+              <h2 className="text-3xl md:text-4xl font-semibold mb-4">A Changing State</h2>
+              <p className="text-lg mb-4">
+                Washington’s evolution has been decades in the making. From 1961 through projections for 2050,
+                population growth has shifted the balance across counties, reshaping urban and rural communities alike.
+              </p>
+            </div>
+          </div>
 
-      <p className="mt-4 mb-8">
-        Population growth doesn’t happen overnight—it unfolds over decades. Using historical data 
-        from 1961 and projections through 2050, we can trace how demographic shifts have shaped, 
-        and will continue to shape, our state. Explore the interactive map below to see growth 
-        trends across counties. Use the slider to move through time, and hover over each county to 
-        view detailed population changes year by year.
-      </p>
+          <div className="mt-12 bg-white p-6 border" style={{borderRadius: 8}}>
+            <p className="text-2xl mb-4">
+              <strong>Explore:</strong> See how our state’s population has changed since 1961 and is predicted to continue to grow over the next 25 years.
+            </p>
+            <Population />
+          </div>
 
-      <ChoroplethMap geojsonData={geojsonData} countyCsvData={countyCsvData} />
-
-      <br/>
-      <h2 className="text-2xl font-semibold mb-4">The Road Ahead: How Growth Impacts You</h2>
-
-
-      <p className="mt-4 mb-8">
-        Population growth isn’t just a statistic—it’s a reality that will reshape your daily life. 
-        More people mean more cars on the road, higher demand for public transit, and increased strain 
-         infrastructure. Without preservation of our existing infrastructure and strategic investments in 
-         mobility, longer commutes that reduce our quality of life will become the norm. As millions of new 
-         residents rely on the same roads, rail lines, and airports, commute times, travel costs, and overall 
-         mobility will be significantly impacted. 
-      </p>
-
-
-      <p className="mt-4 mb-8">
-        How will this affect you? Use the interactive tool below to see how your daily commute might 
-        change by 2050. Simply enter your origin and destination to compare current travel times with 
-        projections for the future, based on different infrastructure investment scenarios.
-      </p>
-      <p className="mt-4 mb-8">
-
-      Your commute is more than just a trip—it’s time out of your day, every day. This visualization 
-      helps you understand how future growth and infrastructure decisions will directly affect the 
-      time you spend getting to your destination, enabling you to see why we need to start now to 
-      plan for Washington’s transportation future.
-      </p>
-      
-
-      <h2 className="text-2xl font-semibold mb-4">Cleared for Takeoff? The Future of TSA Wait Times at SEA-TAC Airport</h2>
-
-      <p className="mt-4 mb-8">
-        As the central Puget Sound region’s population surges toward 5.8 million by 2050, airports will face unprecedented passenger volumes. This growth will directly impact TSA security wait times, with delays affecting leisure and business travelers and air cargo planes exporting Washington’s agriculture products to international customers. Without an increase in capacity, Washington residents will experience significantly longer security lines, especially during peak travel seasons.
-      </p>
-
-      <div>
-      <AirportQueue />
-    </div>
-
-      <p className="mt-4 mb-8">
-        This visualization highlights the critical need for proactive airport planning and infrastructure investments. Efficient, future-ready airports aren’t just about convenience—they’re essential for keeping our state connected to the world.
-      </p>
-
-      <h2 className="text-2xl font-semibold mb-4">
-        Building a Better Tomorrow: Solutions for Mobility Challenges
-      </h2>
-
-      <p className="mt-4 mb-8">
-      To meet the demands of a growing population and ensure efficient, sustainable mobility across Washington, bold, coordinated action is essential. This means investing in infrastructure projects, such as expanding public transit networks, maintaining and strategically investing in road capacity, adding capacity for passenger and cargo air travel, and building ultra-high-speed rail. 
-      <br/><br/>
-      Equally important is the integration of smart technologies to optimize traffic flow, improve transit efficiency, and reduce environmental impact. By prioritizing strategic investments, fostering regional collaboration, and planning for the long term, we can create a transportation system that not only keeps pace with growth but also enhances the quality of life for everyone in Washington.
-
-      </p>
-
-      <GraySquare />
-      <p className="mt-4 mb-8">
-        Lorem ipsum dolor sit amet, oporteat constituam et ius, inani primis periculis ei usu, ad mazim cotidieque mei. Ius consulatu persecuti quaerendum ad, falli constituto pri ut. Ad pro debet constituam, vim libris sapientem interpretaris ei. Clita aperiam in has, sea in discere corrumpit. Eam vivendum legendos id, ex dolores appetere quo.      
-      </p>
-
-      <GraySquare />
-      <p className="mt-4 mb-8">
-        Lorem ipsum dolor sit amet, oporteat constituam et ius, inani primis periculis ei usu, ad mazim cotidieque mei. Ius consulatu persecuti quaerendum ad, falli constituto pri ut. Ad pro debet constituam, vim libris sapientem interpretaris ei. Clita aperiam in has, sea in discere corrumpit. Eam vivendum legendos id, ex dolores appetere quo.      
-      </p>
-
-      <h2 className="text-2xl font-semibold mb-4">
-        Discover the Impact: Your Interactive Mobility Dashboard
-      </h2>
-
-      <p className="mt-4 mb-8">
-        Now it’s your turn to explore the future. Our interactive dashboard brings together all the data—population growth projections, commute times, transportation infrastructure scenarios, and more—into one easy-to-use platform. Dive deep into the trends, compare different future scenarios, and see exactly how changes will impact your daily life, from commute times to air travel wait times. Whether you're a commuter, policymaker, or simply curious about the region’s future, this dashboard empowers you to make informed decisions, understand the trade-offs, and envision a Washington that works for everyone.
-      </p>
-
-      <GraySquare />
+        </div>
+      </motion.section>
 
 
+      {/* Section 3 */}
+      <motion.section
+        className="px-4 md:px-16 py-16 bg-white"
+        initial={{ opacity: 0, y: 30 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.6 }}
+      >
+        <div className="max-w-6xl mx-auto">
+          <div className="flex flex-col md:flex-row gap-8 items-start">
+            <Image
+              src="/img/i5corridor.jpg"
+              alt="The Commute, Reimagined"
+              width={450}
+              height={300}
+              className="rounded-xl shadow-lg"
+            />
+            <div>
+              <h2 className="text-3xl md:text-4xl font-semibold mb-4">The Commute, Reimagined</h2>
+              <p className="text-lg mb-4">
+                This growth is more than abstract data—it affects everyday lives. More cars on the road mean
+                longer commutes, greater stress, and fewer hours at home. Without preservation of our existing
+                roads and bridges and new investments, average travel times could stretch well beyond tolerable limits.
+              </p>
+              <p className="text-lg mb-4 font-semibold">Did you know?</p>
+              <ul className="list-disc list-inside text-lg mb-4 space-y-2">
+                <li>In 2022, the average commuter spent 82 hours stuck in traffic at an annual cost of $1,874.</li>
+                <li>Congestion contributes 621,000 metric tons of excess carbon dioxide emissions annually, contributing to climate change.</li>
+              </ul>           
+            </div>
+          </div>
+          <div className="mt-12 p-6 border bg-gray-100" style={{borderRadius: 8}}>
+            <p className="text-2xl mb-4">
+              <strong>Explore:</strong> See how much longer a trip will take in 2050 if we don’t plan for future growth.
+            </p>
 
-    </div>
+            <div className="container mb-16">
+              <DynamicMapRoute />
+            </div>
+
+            <br/>
+          </div>
+          <div className="mt-12 bg-gray-100 p-6 border" style={{borderRadius: 8}}>
+            <div className="container">
+              <DynamicMapComponent/>
+            </div>
+          </div>
+        </div>
+      </motion.section>
+
+      {/* Section 4 */}
+      <motion.section
+        className="px-4 md:px-16 py-16 bg-gray-100"
+        initial={{ opacity: 0, y: 30 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.6 }}
+      >
+        <div className="max-w-6xl mx-auto">
+          <div className="flex flex-col md:flex-row-reverse gap-8 items-start">
+            <Image
+              src="/img/tsa.JPG"
+              alt="Airports Under Pressure"
+              width={450}
+              height={300}
+              className="rounded-xl shadow-lg"
+            />
+            <div>
+              <h2 className="text-3xl md:text-4xl font-semibold mb-4">Airports Under Pressure</h2>
+              <p className="text-lg mb-4">
+                Air travel, too, will feel the crunch. With Puget Sound’s population expected to swell, we need more capacity.
+                TSA wait times could soar—especially during holidays and peak seasons—slowing both leisure travelers and the cargo planes that carry Washington’s exports abroad.
+              </p>
+              <p className="text-lg mb-4">
+                Without serious investment in airport capacity, delays and bottlenecks will become more than an inconvenience—they’ll be an impediment to commerce and global connectivity.
+              </p>
+              <p className="text-lg mb-4 font-semibold">Did you know?</p>
+              <ul className="list-disc list-inside text-lg mb-4 space-y-2">
+                <li>Demand for take-offs and landings are projected to double by 2050, resulting in unmet demand roughly equivalent to all passengers served at Sea-Tac in 2019.</li>
+                <li>The region will fall short of on-airport warehouse space for air cargo by 2027.</li>
+              </ul>
+            </div>
+          </div>
+          <div className="mt-12 bg-white p-6 border" style={{borderRadius: 8}}>
+            <p className="text-2xl mb-4">
+              <strong>Explore:</strong> See how TSA wait times – including for TSA PreCheck users – could grow without more investment in our state’s airports.
+            </p>
+
+            <div style={{width: "80%"}}>
+              <AirportQueue />
+            </div>
+          </div>
+        </div>
+      </motion.section>
+
+
+      {/* Section 5 */}
+      <motion.section
+        className="px-4 md:px-16 py-16 bg-white"
+        initial={{ opacity: 0, y: 30 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.6 }}
+      >
+        <div className="max-w-6xl mx-auto">
+          <div className="flex flex-col md:flex-row gap-8 items-start">
+            <Image
+              src="/img/WA-port.jpg"
+              alt="Freight and the Backbone of Commerce"
+              width={450}
+              height={300}
+              className="rounded-xl shadow-lg"
+            />
+            <div>
+              <h2 className="text-3xl md:text-4xl font-semibold mb-4">Freight and the Backbone of Commerce</h2>
+              <p className="text-lg mb-4">
+                Goods movement is no less essential. As Washington’s economy grows, so will the demand on freight corridors—by highway, rail, sea, and air.
+              </p>
+              <p className="text-lg mb-4 font-semibold">Did you know?</p>
+              <ul className="list-disc list-inside text-lg mb-4 space-y-2">
+                <li>Freight transported within Washington is forecast to increase by more than 40%, and imports and exports by more than 50%.</li>
+                <li>The number of truck miles traveled per day is forecast to increase by 27%.</li>
+              </ul>
+              
+            </div>
+          </div>
+          <div className="mt-12 bg-gray-100 p-6 border" style={{borderRadius: 8}}>
+            <p className="text-2xl mb-4">
+              <strong>Explore:</strong> Learn how cargo moves around the state and how it is expected to grow to meet the increased demand of a growing population.
+              Cargo that can’t get to overseas markets harms our state’s economy, including the 1 in 4 jobs dependent on international trade.
+            </p>
+
+            <div className="container ">
+              <DynamicWashingtonMapWithLineGraphs/>
+            </div>
+          </div>
+        </div>
+      </motion.section>
+
+      {/* Section 6 */}
+      <motion.section
+        className="px-4 md:px-16 py-16 bg-gray-100"
+        initial={{ opacity: 0, y: 30 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.6 }}
+      >
+        <div className="max-w-6xl mx-auto">
+          <div className="flex flex-col md:flex-row-reverse gap-8 items-start">
+            <Image
+              src="/img/bridge.jpg"
+              alt="The Quiet Crisis Beneath Our Roads"
+              width={450}
+              height={300}
+              className="rounded-xl shadow-lg"
+            />
+            <div>
+              <h2 className="text-3xl md:text-4xl font-semibold mb-4">The Quiet Crisis Beneath Our Roads</h2>
+              <p className="text-lg mb-4">
+                Beneath the weight of growth lies a quieter crisis: infrastructure decay. The state’s 8,400-plus bridges—
+                essential connectors for people and goods—are aging. A bridge in disrepair may not make headlines until it fails,
+                but the data reveals a system in urgent need of maintenance.
+              </p>
+              <p className="text-lg mb-4 font-semibold">Did you know?</p>
+              <ul className="list-disc list-inside text-lg mb-4 space-y-2">
+                <li>More than 55% of bridges across the state are in only fair condition and inching ever closer to falling into poor condition.</li>
+                <li>In April 2025, WSDOT permanently closed the 103-year old SR 165 Carbon River/Fairfax Bridge because it was no longer safe to drive on, cutting off access to Mount Rainier recreation areas and requiring a 9-mile emergency access detour.</li>
+                <li>Preservation funding is only 40% of what is needed to keep our infrastructure in a state of good repair.</li>
+              </ul>
+              
+            </div>
+          </div>
+          <div className="mt-12 bg-white p-6 border" style={{borderRadius: 8}}>
+            <p className="text-2xl mb-4">
+              <strong>Explore:</strong> Inspect the condition of spans across the state and see what detours would be required if bridges were closed before they could be repaired or replaced.
+            </p>
+
+            <div style={{ padding: '1rem 1rem' }}>
+              <BridgeNeedsMap />
+            </div>
+          </div>
+        </div>
+      </motion.section>
+
+      {/* Section 7 */}
+      <motion.section
+        className="px-4 md:px-16 py-16 bg-white"
+        initial={{ opacity: 0, y: 30 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.6 }}
+      >
+        <div className="max-w-6xl mx-auto">
+          <div className="flex flex-col md:flex-row gap-8 items-start">
+            <Image
+              src="/img/hsr.jpg"
+              alt="A High-Speed Vision"
+              width={450}
+              height={300}
+              className="rounded-xl shadow-lg"
+            />
+            <div>
+              <h2 className="text-3xl md:text-4xl font-semibold mb-10 text-center md:text-left">
+                A High-Speed Vision
+              </h2>
+              
+              <p className="text-lg mb-4">
+                The future isn’t just about fixing what’s broken—it’s also about imagining what could be.
+                One vision being explored is the development of an ultra-high-speed rail system linking Vancouver, BC; Seattle, WA; and Portland, OR,
+                with trains topping 250 mph.
+              </p>
+              
+            </div>  
+          </div>
+          <div className="mt-12 bg-gray-100 p-6 border" style={{borderRadius: 8}}>
+            <p className="text-2xl mb-4">
+              <strong>Explore:</strong> Trips between Seattle and Vancouver, BC or Seattle and Portland, OR could be an hour or shorter—
+              redefining what it means to live and work in the Pacific Northwest.
+            </p>
+
+            <div className="mb-4" style={{ padding: '1rem 1rem', width: "100%", height: "330px" }}>
+              <div className="max-w-5xl w-full h-full">
+                <DynamicChartComponent />
+              </div>
+              <p style={{fontStyle: 'italic', paddingRight: "5px", textAlign: "left", marginTop: "5px"}}>
+              Note: These HSR travel times are based on projections from feasibility studies and are subject to change as the project develops.
+              </p>
+            </div>
+          </div>
+        </div>
+      </motion.section>
+
+      {/* Section 8 */}
+      <motion.section
+        className="px-4 md:px-16 py-16 bg-gray-100"
+        initial={{ opacity: 0, y: 30 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.6 }}
+      >
+        <div className="max-w-6xl mx-auto">
+          <div className="md:flex-row-reverse items-start">
+            <div>
+              <h2 className="text-3xl md:text-4xl font-semibold mb-4">
+                An Invitation to Explore and Shape the Future
+              </h2>
+              <p className="text-lg">
+                The future is in your hands.
+              </p>              
+            </div>
+          </div>
+          <div className="mt-12 bg-white p-6 border" style={{borderRadius: 8}}>
+            <p className="text-2xl mb-4">
+              <strong>Explore:</strong> Use this interactive tool to watch in real time how each decision affects congestion.
+              It’s an engaging—and sobering—look at how transportation planning decisions ripple outward.
+            </p>
+            <InteractiveGame  />
+          </div>
+
+        </div>
+      </motion.section>
+
+      {/* Footer */}
+      <footer className="bg-gray-50 text-sm text-gray-600 pt-16 pb-12 text-center">
+        <h2 className="text-2xl font-semibold mb-4">Partners</h2>
+        <div className="flex flex-wrap justify-center items-center gap-8 px-4 mb-10">
+          <a href="https://wsdot.wa.gov/" target="_blank" rel="noopener noreferrer">
+            <Image src="/logos/wsdot.png" alt="WSDOT" width={150} height={40} />
+          </a>
+          <a href="https://kingcounty.gov/" target="_blank" rel="noopener noreferrer">
+            <Image src="/logos/king-county.png" alt="King County" width={150} height={40} />
+          </a>
+          <a href="https://www.challengeseattle.com/" target="_blank" rel="noopener noreferrer">
+            <Image src="/logos/challenge-seattle.png" alt="Challenge Seattle" width={150} height={40} />
+          </a>
+          <a href="https://www.alaskaair.com/" target="_blank" rel="noopener noreferrer">
+            <Image src="/logos/alaska-airlines.png" alt="Alaska Airlines" width={150} height={40} />
+          </a>
+          <a href="https://www.microsoft.com/" target="_blank" rel="noopener noreferrer">
+            <Image src="/logos/microsoft.png" alt="Microsoft" width={150} height={40} />
+          </a>
+          <a href="https://www.boeing.com/" target="_blank" rel="noopener noreferrer">
+            <Image src="/logos/boeing.png" alt="Boeing" width={150} height={40} />
+          </a>
+        </div>
+        <p className="text-s text-gray-500">
+          © {new Date().getFullYear()} Challenge 2050 • The Future in Motion
+        </p>
+      </footer>
+
+    </main>
   );
-}
+};
+
+export default Page;

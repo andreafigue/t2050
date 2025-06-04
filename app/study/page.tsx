@@ -19,7 +19,8 @@ const DynamicDashboard = dynamic(() => import('../components/Dashboard'), { load
 export default function ChoroplethPage() {
   return (
     <div>
-      <div className="container mx-auto px-4 py-8 mt-4 mb-0" style={{ margin: '0px', width: '1200px', fontFamily: "Encode Sans Compressed, sans-serif"}}>
+      <div className="container mx-auto px-4 py-8 mt-4 mb-0" 
+        style={{ margin: '0px', width: '1200px', fontFamily: "Encode Sans Compressed, sans-serif"}}>
         <h1 className="text-3xl font-bold mb-6">Challenge 2050: The Future in Motion</h1>
         
         <br/><br/>
