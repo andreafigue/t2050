@@ -149,6 +149,13 @@ const Page = () => {
 
           <div className="mt-12 bg-white p-6 border" style={{borderRadius: 8}}>
             <p className="text-2xl mb-4">
+              <Image
+                src="/img/search2.png" // adjust this path to match your public folder
+                alt="Explore icon"
+                width={35}
+                height={35} 
+                className="inline-block opacity-90 mr-2"
+              />
               <strong>Explore:</strong> See how our state’s population has changed since 1961 and is predicted to continue to grow over the next 25 years.
             </p>
             <Population />
@@ -191,6 +198,13 @@ const Page = () => {
           </div>
           <div className="mt-12 p-6 border bg-gray-100" style={{borderRadius: 8}}>
             <p className="text-2xl mb-4">
+              <Image
+                src="/img/search2.png" // adjust this path to match your public folder
+                alt="Explore icon"
+                width={35}
+                height={35} 
+                className="inline-block opacity-90 mr-2"
+              />
               <strong>Explore:</strong> See how much longer a trip will take in 2050 if we don’t plan for future growth.
             </p>
 
@@ -243,6 +257,13 @@ const Page = () => {
           </div>
           <div className="mt-12 bg-white p-6 border" style={{borderRadius: 8}}>
             <p className="text-2xl mb-4">
+              <Image
+                src="/img/search2.png" // adjust this path to match your public folder
+                alt="Explore icon"
+                width={35}
+                height={35} 
+                className="inline-block opacity-90 mr-2"
+              />
               <strong>Explore:</strong> See how TSA wait times – including for TSA PreCheck users – could grow without more investment in our state’s airports.
             </p>
 
@@ -286,6 +307,13 @@ const Page = () => {
           </div>
           <div className="mt-12 bg-gray-100 p-6 border" style={{borderRadius: 8}}>
             <p className="text-2xl mb-4">
+              <Image
+                src="/img/search2.png" // adjust this path to match your public folder
+                alt="Explore icon"
+                width={35}
+                height={35} 
+                className="inline-block opacity-90 mr-2"
+              />
               <strong>Explore:</strong> Learn how cargo moves around the state and how it is expected to grow to meet the increased demand of a growing population.
               Cargo that can’t get to overseas markets harms our state’s economy, including the 1 in 4 jobs dependent on international trade.
             </p>
@@ -332,6 +360,13 @@ const Page = () => {
           </div>
           <div className="mt-12 bg-white p-6 border" style={{borderRadius: 8}}>
             <p className="text-2xl mb-4">
+              <Image
+                src="/img/search2.png" // adjust this path to match your public folder
+                alt="Explore icon"
+                width={35}
+                height={35} 
+                className="inline-block opacity-90 mr-2"
+              />
               <strong>Explore:</strong> Inspect the condition of spans across the state and see what detours would be required if bridges were closed before they could be repaired or replaced.
             </p>
 
@@ -374,6 +409,13 @@ const Page = () => {
           </div>
           <div className="mt-12 bg-gray-100 p-6 border" style={{borderRadius: 8}}>
             <p className="text-2xl mb-4">
+              <Image
+                src="/img/search2.png" // adjust this path to match your public folder
+                alt="Explore icon"
+                width={35}
+                height={35} 
+                className="inline-block opacity-90 mr-2"
+              />
               <strong>Explore:</strong> Trips between Seattle and Vancouver, BC or Seattle and Portland, OR could be an hour or shorter—
               redefining what it means to live and work in the Pacific Northwest.
             </p>
@@ -411,6 +453,13 @@ const Page = () => {
           </div>
           <div className="mt-12 bg-white p-6 border" style={{borderRadius: 8}}>
             <p className="text-2xl mb-4">
+              <Image
+                src="/img/search2.png" // adjust this path to match your public folder
+                alt="Explore icon"
+                width={35}
+                height={35} 
+                className="inline-block opacity-90 mr-2"
+              />
               <strong>Explore:</strong> Use this interactive tool to watch in real time how each decision affects congestion.
               It’s an engaging—and sobering—look at how transportation planning decisions ripple outward.
             </p>
