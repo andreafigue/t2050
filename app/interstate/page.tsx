@@ -4,7 +4,7 @@ import Map from '../components/interstate';
 
 const HomePage: React.FC = () => {
   return (
-    <div style={{ padding: '4rem 2rem' }}>
+    <div>
       <Map />
     </div>
   );

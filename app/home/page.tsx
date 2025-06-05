@@ -17,7 +17,6 @@ const DynamicChartComponent = dynamic(() => import('../components/hsr2'), { load
 const DynamicMapComponent = dynamic(() => import('../components/interstate'), { loading: () => <p>Loading freight map…</p> });
 const DynamicDashboard = dynamic(() => import('../components/Dashboard'), { loading: () => <p>Loading dashboard…</p> });
 
-
 const Page = () => {
 
   const containerRef = useRef(null);
@@ -39,9 +38,6 @@ const Page = () => {
 
   const textOpacity = useTransform(scrollYProgress, [0.25, 0.5, 0.7], [0, 1, 1]);
   const textY = useTransform(scrollYProgress, [0, 0.5, 0.7], ['25rem', '5rem', '5rem']);
-
-  //const logoOpacity = useTransform(scrollYProgress, [0.25, 0.5, 0.7], [0, 1, 1]);
-  //const logoY = useTransform(scrollYProgress, [0, 0.5, 0.7], ['25rem', '5rem', '5rem']);
 
   return (
     <main style={{ fontFamily: 'Encode Sans Compressed, sans-serif' }}>
@@ -214,10 +210,18 @@ const Page = () => {
 
             <br/>
           </div>
-          <div className="mt-12 bg-gray-100 p-6 border" style={{borderRadius: 8}}>
-            <div className="container">
-              <DynamicMapComponent/>
-            </div>
+          <div className="mt-12 p-6 bg-gray-100 border" style={{borderRadius: 8}}>
+            <p className="text-2xl mb-4">
+              <Image
+                src="/img/search2.png" // adjust this path to match your public folder
+                alt="Explore icon"
+                width={35}
+                height={35} 
+                className="inline-block opacity-90 mr-2"
+              />
+              <strong>Explore:</strong> See how much longer travel on I-5 and I-205 in Clark County could take by 2045 if no improvements are made.
+            </p>
+            <DynamicMapComponent/>
           </div>
         </div>
       </motion.section>
