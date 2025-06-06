@@ -42,8 +42,7 @@ const Population: React.FC = () => {
   const chipMeasureRef = useRef<HTMLDivElement>(null);
   const [showEllipsis, setShowEllipsis] = useState(false);
 
-const [firstLineCount, setFirstLineCount] = useState(0);
-
+  const [firstLineCount, setFirstLineCount] = useState(0);
 
   const growthChartContainerRef = useRef<HTMLDivElement>(null);
   const popChartContainerRef = useRef<HTMLDivElement>(null);
@@ -51,21 +50,20 @@ const [firstLineCount, setFirstLineCount] = useState(0);
 
   const [choroplethYear, setChoroplethYear] = useState<number>(2020); // default year
 
+  const [showScroll, setShowScroll] = useState(false);
 
-const [showScroll, setShowScroll] = useState(false);
+  useEffect(() => {
+    if (!isSidebarHovered || !chipContainerRef.current) {
+      setShowScroll(false);
+      return;
+    }
 
-useEffect(() => {
-  if (!isSidebarHovered || !chipContainerRef.current) {
-    setShowScroll(false);
-    return;
-  }
+    const container = chipContainerRef.current;
+    const contentHeight = container.scrollHeight;
+    const maxHeight = 160; // ~4 rows
 
-  const container = chipContainerRef.current;
-  const contentHeight = container.scrollHeight;
-  const maxHeight = 160; // ~4 rows
-
-  setShowScroll(contentHeight > maxHeight);
-}, [isSidebarHovered, selectedCounties]);
+    setShowScroll(contentHeight > maxHeight);
+  }, [isSidebarHovered, selectedCounties]);
 
 
   useEffect(() => {
