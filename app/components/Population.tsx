@@ -529,8 +529,6 @@ const Population: React.FC = () => {
 
     };
 
-
-
     render();
 
     const observer = new ResizeObserver(() => {
@@ -552,78 +550,78 @@ const Population: React.FC = () => {
   }, [stateData]);
 
   return (
-    <div style={{ height: "95vh", display: "flex", background: "white", borderRadius: 8 }}>
+    <div className = "flex gap-4" style={{ width:"100%", height: "95vh", margin:0}}>
       
       {/* Map Section */}
-      <div style={{ width: "60%", position: "relative" }}>
-        {/* Map container */}
-        <div style={{ height: "100%", borderRadius: 8 }}>
-          
+      <div className = "w-3/5 border rounded-lg shadow-md flex relative h-full">
+        
+        {/* Slider */}  
+        <div 
+        style={{ 
+          position: 'absolute', 
+          top: "16px",
+          left: "16px",
+          //display: "flex",
+          borderRadius: "8px",
+          background: "rgba(255, 255, 255, 0.95)",
+          boxShadow: "0 2px 4px rgba(0,0,0,0.1)", 
+          padding: "10px 15px", 
+          alignItems: "center",
+          gap: "15px",
+          zIndex: 2 }}
+        >
+          <label htmlFor="yearSlider">Year: {choroplethYear}</label>
+          <br />
+          <input
+            id="yearSlider"
+            type="range"
+            min="1962"
+            max="2050"
+            value={choroplethYear}
+            onChange={(e) => {
+              const raw = Number(e.target.value);
+              // Find closest valid year
+              const closest = validYears.reduce((a, b) =>
+                Math.abs(b - raw) < Math.abs(a - raw) ? b : a
+              );
+              setChoroplethYear(closest);
+            }}
 
-          <div style={{ flex: 1, position: "relative", width: "100%", height: "100%", }}>
-            <div 
-            style={{ 
-              position: 'absolute', 
-              top: "20px",
-              left: "20px",
-              //display: "flex",
-              borderRadius: "8px",
-              background: "rgba(255, 255, 255, 0.95)",
-              boxShadow: "0 2px 4px rgba(0,0,0,0.1)", 
-              padding: "10px 15px", 
-              alignItems: "center",
-              gap: "15px",
-              zIndex: 2 }}
-            >
-              <label htmlFor="yearSlider">Year: {choroplethYear}</label>
-              <br />
-              <input
-                id="yearSlider"
-                type="range"
-                min="1962"
-                max="2050"
-                value={choroplethYear}
-                onChange={(e) => {
-                  const raw = Number(e.target.value);
-                  // Find closest valid year
-                  const closest = validYears.reduce((a, b) =>
-                    Math.abs(b - raw) < Math.abs(a - raw) ? b : a
-                  );
-                  setChoroplethYear(closest);
-                }}
-
-              />
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span>1962</span>
-                <span>2050</span>
-              </div>
-            </div>
-
-            <MapboxChoroplethMap
-              geojsonData={geoJsonData}
-              countyData={transformedCountyData}
-              year={choroplethYear}
-              selectedCounties={selectedCounties}
-              onCountyClick={(county) => {
-                setSelectedCounties(prev => {
-                  const next = new Set(prev);
-                  next.has(county) ? next.delete(county) : next.add(county);
-                  return new Set(next);
-                });
-              }}
-            />
-
-
+          />
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <span>1962</span>
+            <span>2050</span>
           </div>
-          
         </div>
+
+        <MapboxChoroplethMap
+          geojsonData={geoJsonData}
+          countyData={transformedCountyData}
+          year={choroplethYear}
+          selectedCounties={selectedCounties}
+          onCountyClick={(county) => {
+            setSelectedCounties(prev => {
+              const next = new Set(prev);
+              next.has(county) ? next.delete(county) : next.add(county);
+              return new Set(next);
+            });
+          }}
+          getCountyKey={(props) => props.GEOID}
+          dataField="growthRates" // use growth rate for coloring
+          valueLabel="Growth Rate"
+          tooltipFields={[
+            { label: "Population", field: "population", format: (v) => v.toLocaleString() },
+            { label: "Growth Rate", field: "growthRates", format: (v) => `${(v * 100).toFixed(1)}%` },
+          ]}
+          transformValue={(v) => Math.sign(v) * Math.sqrt(Math.abs(v))}
+        />
 
         {/* Floating Sidebar */}
         <div
           style={{
             position: "absolute",
-            top: "20px",
-            right: "20px",
+            top: "16px",
+            right: "16px",
             width: "240px",
             backgroundColor: "rgba(255, 255, 255, 0.95)",
             borderRadius: "8px",
@@ -755,14 +753,7 @@ const Population: React.FC = () => {
       </div>
 
       {/* Right Column for Charts */}
-      <div style={{ 
-        width: "40%", 
-        display: "flex", 
-        flexDirection: "column", 
-        padding: "0px 20px 0px 20px", 
-        height: "100%", 
-        boxSizing: "border-box" 
-      }}>
+      <div className = "flex flex-col relative w-2/5 h-full">
 
         <div
           id="line-tooltip"
@@ -781,7 +772,9 @@ const Population: React.FC = () => {
 
         
         {/* Population Chart */}
-        <div className="border" style={{ 
+        <div className="border items-center shadow-md rounded-lg flex flex-col mb-4 p-4 h-full"
+        style={{background: "#f4f4f4"}}>
+{/*        <div className="border" style={{ 
           flex: "0 0 50%", 
           background: "#f4f4f4", 
           borderRadius: "8px", 
@@ -792,18 +785,19 @@ const Population: React.FC = () => {
           overflow: "hidden",
           display: "flex",
           flexDirection: "column"
-        }}>
-          <h4 style={{ fontSize: "15pt", paddingTop: "10px", marginBottom: "8px", fontWeight: "bold" }}>
+        }}>*/}
+          <h4 style={{ fontSize: "15pt", fontWeight: "bold" }}>
             Population Over Time {selectedCounties.size > 0 && "(selected counties)"}
           </h4>
 
-          <div ref={popChartContainerRef} style={{minHeight: "150px", maxHeight: "250px", height: "100%"}}>
+          <div ref={popChartContainerRef} className="w-full h-full">
             <svg ref={svgRef} style={{ width: "100%", height: "100%" }} />
           </div>
         </div>
 
         {/* Growth Rate Chart */}
-        <div className="border" style={{ 
+        <div className="border items-center shadow-md rounded-lg flex flex-col p-4 h-full bg-gray " style={{background: "#f4f4f4"}}>
+        {/*<div className="border" style={{ 
           flex: "1 1 0", 
           background: "#f4f4f4", 
           borderRadius: "8px", 
@@ -812,13 +806,13 @@ const Population: React.FC = () => {
           overflow: "hidden",
           display: "flex",
           flexDirection: "column"
-        }}>
-          <h4 style={{ fontSize: "15pt", paddingTop: "10px", marginBottom: "8px", fontWeight: "bold" }}>
+        }}>*/}
+          <h4 style={{ fontSize: "15pt", fontWeight: "bold" }}>
             Population Growth Rate {selectedCounties.size > 0 && "(selected counties)"}
           </h4>
 
-          <div ref={growthChartContainerRef} style={{minHeight: "150px", maxHeight: "250px", height: "100%"}}>
-            <svg id="growthChart" style={{ width: "100%", height: "100%" }} />
+          <div ref={growthChartContainerRef} className = "w-full h-full">
+            <svg id="growthChart"  />
           </div>
         </div>
       </div>

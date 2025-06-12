@@ -13,10 +13,9 @@ import { scaleQuantize } from "d3-scale";
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN as string;
 
 // === COLOR CONFIGURATION ===
-const COLOR_NEG = "#d73027";     // stronger red
-const COLOR_NEUTRAL = "#ffffbf"; // keep as is
-const COLOR_POS = "#1c9099";     // stronger blue/teal
-
+const COLOR_NEG = "#d73027";    
+const COLOR_NEUTRAL = "#ffffbf"; 
+const COLOR_POS = "#1c9099";     
 
 // === OTHER CONFIG ===
 const COLOR_NULL = "#ccc";
@@ -40,17 +39,33 @@ const generateColorRange = (): string[] => {
 const map_layer = "land-structure-polygon";
 
 interface CountyData {
-  growthRates: { [year: number]: number };
-  populations: { [year: number]: number };
+  [field: string]: {
+    [year: number]: number;
+  };
 }
 
-interface Props {
-  geojsonData: GeoJSON.FeatureCollection;
+type Props = {
+  geojsonData: any;
   countyData: Record<string, CountyData>;
   year: number;
-  selectedCounties: Set<string>;
-  onCountyClick: (county: string) => void;
-}
+  selectedCounties: string[] | Set<string>;
+  onCountyClick?: (countyKey: string) => void;
+  getCountyKey?: (featureProps: any) => string;
+
+  dataField?: keyof CountyData; // used for coloring
+  valueLabel?: string;          // label for dataField (optional)
+  formatValue?: (val: number) => string; // optional formatter for dataField
+
+  tooltipFields?: {
+    label: string;
+    field: keyof CountyData;
+    format: (val: number) => string;
+  }[];
+
+  colorScale?: (val: number) => string;
+  transformValue?: (value: number) => number;
+
+};
 
 const MapboxChoroplethMap: React.FC<Props> = ({
   geojsonData,
@@ -58,41 +73,69 @@ const MapboxChoroplethMap: React.FC<Props> = ({
   year,
   selectedCounties,
   onCountyClick,
+  getCountyKey = (props) => props?.NAME,
+  dataField = "populations",
+  valueLabel = "Population",
+  formatValue = (v: number) => v.toLocaleString(),
+  tooltipFields,
+  colorScale,
+  transformValue = (v) => v,
 }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const popupRef = useRef<mapboxgl.Popup | null>(null);
   const hoveredCountyId = useRef<number | null>(null);
-  const [mapLoaded, setMapLoaded] = useState(false);
+
+  const defaultColorScale = useMemo(() => {
+    return scaleQuantize<string>()
+      .domain([transformValue(-0.15), transformValue(0.15)])
+      .range(generateColorRange());
+  }, []);
+
+  const getColor = (value: number): string => {
+    const scale = colorScale ?? defaultColorScale;
+    const domain = scale.domain(); // [transformedMin, transformedMax]
+    const clamped = Math.max(domain[0], Math.min(domain[1], value));
+    const color = scale(clamped);
+
+    //console.log("map component max: ", domain[1])
+
+    return color ?? COLOR_NULL;
+  };
+
+  const isSelected = (id: string | undefined | null): boolean => {
+    if (!id || !selectedCounties) return false;
+    if (Array.isArray(selectedCounties)) {
+      return selectedCounties.includes(id);
+    }
+    if (selectedCounties instanceof Set) {
+      return selectedCounties.has(id);
+    }
+    return false;
+  };
 
   const [minRate, maxRate] = useMemo(() => {
     let min = Infinity;
     let max = -Infinity;
     for (const county of Object.values(countyData)) {
-      for (const rate of Object.values(county.growthRates)) {
-        if (rate != null) {
-          min = Math.min(min, rate);
-          max = Math.max(max, rate);
+      const yearToValue = county?.[dataField];
+      if (!yearToValue) continue;
+
+      for (const val of Object.values(yearToValue)) {
+        if (val != null && isFinite(val)) {
+          min = Math.min(min, val);
+          max = Math.max(max, val);
         }
       }
     }
     return [min, max];
-  }, [countyData]);
+  }, [countyData, dataField]);
 
-  const allRates = useMemo(() => {
-    return Object.values(countyData)
-      .map(d => d.growthRates[year])
-      .filter((v): v is number => v != null);
-  }, [countyData, year]);
+  const tooltipDataRef = useRef({ year, countyData, tooltipFields });
 
-  const transformRate = (rate: number) =>
-    Math.sign(rate) * Math.sqrt(Math.abs(rate));
-
-  const quantizeScale = useMemo(() => {
-    return scaleQuantize<string>()
-      .domain([transformRate(-0.15), transformRate(0.15)])
-      .range(generateColorRange());
-  }, []);
+  useEffect(() => {
+    tooltipDataRef.current = { year, countyData, tooltipFields };
+  }, [year, countyData, tooltipFields]);
 
   useEffect(() => {
     if (mapRef.current || !mapContainerRef.current || !geojsonData) return;
@@ -104,10 +147,14 @@ const MapboxChoroplethMap: React.FC<Props> = ({
       zoom: 5.6,
     });
 
+    if (!popupRef.current) {
+      popupRef.current = new mapboxgl.Popup({ closeButton: false, closeOnClick: false });
+    }
+
     mapRef.current.on("style.load", () => {
       if (!mapRef.current) return;
 
-      const updatedData = computeMapData();
+      const updatedData = enrichedGeoJson;
 
       mapRef.current.addSource("counties", {
         type: "geojson",
@@ -170,7 +217,6 @@ const MapboxChoroplethMap: React.FC<Props> = ({
         });
       }
 
-
       mapRef.current.addLayer({
         id: "counties-selected",
         type: "fill",
@@ -189,24 +235,36 @@ const MapboxChoroplethMap: React.FC<Props> = ({
         mapRef.current.getCanvas().style.cursor = "pointer";
 
         const feature = e.features[0];
-        const name = feature.properties?.NAME;
-        const rate = feature.properties?.growthRate;
-        const rawPop = countyData[name]?.population?.[year];
-        const pop = rawPop != null ? rawPop.toLocaleString('en-US') : null;
+        const key = feature.properties?.GEOID ?? feature.properties?.NAME;
+        const name = feature.properties?.NAME ?? key;
+        const lines = [`<strong>${name}</strong>`];
+        const { year, countyData, tooltipFields } = tooltipDataRef.current;
 
-        if (popupRef.current) {
-          popupRef.current.remove();
+        lines.push(`Year: ${year}`);
+
+        if (tooltipFields?.length) {
+          for (const { label, field, format } of tooltipFields) {
+            const raw = countyData[name]?.[field]?.[year] ?? countyData[key]?.[field]?.[year];
+            const formatted = raw != null ? format(raw) : "N/A";
+            lines.push(`${label}: ${formatted}`);
+            //console.log("Name: ", name)
+            //console.log("key: ", key)
+            //console.log("Label: ", label)
+            //console.log("Field: ", field)
+            //console.log("year: ", year)
+            //console.log("formatted: ", countyData[key]?.[field]?.[year])
+          }
+        } else {
+          // fallback to single field
+          const fallback = value != null ? formatValue(value) : "N/A";
+          lines.push(`${valueLabel}: ${fallback}`);
         }
 
-        popupRef.current = new mapboxgl.Popup({ closeButton: false, closeOnClick: false })
+        popupRef.current
           .setLngLat(e.lngLat)
-          .setHTML(`
-            <strong>${name}</strong><br/>
-            Population: ${pop}<br/>
-            Year: ${year}<br/>
-            Growth Rate: ${(rate * 100).toFixed(2)}%
-          `)
+          .setHTML(lines.join("<br/>"))
           .addTo(mapRef.current);
+
 
         mapRef.current.setFilter("counties-highlight", ["==", "NAME", name]);
       });
@@ -216,7 +274,7 @@ const MapboxChoroplethMap: React.FC<Props> = ({
         mapRef.current.getCanvas().style.cursor = "";
         if (popupRef.current) {
           popupRef.current.remove();
-          popupRef.current = null;
+          //  popupRef.current = null;
         }
         mapRef.current.setFilter("counties-highlight", ["==", "NAME", ""]);
       });
@@ -225,11 +283,11 @@ const MapboxChoroplethMap: React.FC<Props> = ({
         if (e.features && e.features.length > 0) {
           const feature = e.features[0];
           const name = feature.properties?.NAME;
+          const key = feature.properties?.GEOID;
           if (name) onCountyClick(name);
         }
       });
 
-      setMapLoaded(true);
     });
 
     mapRef.current.on("error", (e) => {
@@ -240,46 +298,81 @@ const MapboxChoroplethMap: React.FC<Props> = ({
       mapRef.current?.remove();
       mapRef.current = null;
     };
-  }, [geojsonData, minRate, maxRate]);
+  }, [geojsonData]);
 
-  useEffect(() => {
-    if (!mapRef.current || !mapLoaded) return;
-    const source = mapRef.current.getSource("counties") as mapboxgl.GeoJSONSource;
-    if (!source) return;
-    source.setData(computeMapData());
-  }, [year, countyData, selectedCounties, mapLoaded]);
+  const enrichedGeoJson = useMemo(() => {
+    if (!geojsonData?.features || !countyData || !year) {
+      return {
+        type: "FeatureCollection",
+        features: [],
+      };
+    }
 
-  const computeMapData = (): GeoJSON.FeatureCollection => {
     const features = geojsonData.features
       .filter((f) => f.properties?.STATEFP === "53")
       .map((f) => {
-        const name = f.properties?.NAME;
-        const rate = countyData[name]?.growthRates[year] ?? null;
-        const rawPop = countyData[name]?.population?.[year];
-        const pop = rawPop != null ? rawPop.toLocaleString("en-US") : null;
-        const color = rate != null ? quantizeScale(transformRate(rate)) : COLOR_NULL;
+        const key = f.properties?.GEOID
+        //const key = f.properties?.NAME ?? key;
+        const name =  f.properties?.NAME;
+        const entry = countyData[key] ?? countyData[name];
+        const rawValue = entry?.[dataField]?.[year];
+        //console.log("countyData", countyData[key])
+        const color = rawValue != null ? getColor(transformValue(rawValue)) : COLOR_NULL;
+
+        //console.log("Raw value for feature", key, name, rawValue);
+
         return {
           ...f,
           properties: {
             ...f.properties,
-            growthRate: rate,
-            population: pop,
-            selected: selectedCounties.has(name),
+            value: rawValue,
+            selected:
+              isSelected(f.properties?.NAME) || isSelected(f.properties?.GEOID),
+              //selectedCounties.includes(f.properties?.NAME) ||
+              //selectedCounties.includes(f.properties?.GEOID),
             fillColor: color,
           },
         };
       });
 
-    return { ...geojsonData, features };
-  };
+    // if (!geojsonData?.features?.length) return;
+    // const allValues = geojsonData.features.map((feature: any) => {
+    //   const countyKey = getCountyKey(feature.properties);
+    //   const entry = countyData[name];
+    //   return entry?.[dataField]?.[year] ?? null;
+    // }).filter((v) => v !== null);  
 
-const Legend = () => {
-  const thresholds = quantizeScale.thresholds();
-  const colors = quantizeScale.range();
+    return {
+      ...geojsonData,
+      features,
+    };
+  }, [geojsonData, countyData, year, dataField, selectedCounties, getCountyKey]);
 
-  return (
-    <div
-      style={{
+  useEffect(() => {
+    if (!mapRef.current) return;
+
+    const map = mapRef.current;
+
+    const source = map.getSource("counties") as mapboxgl.GeoJSONSource;
+    if (source) {
+      source.setData(enrichedGeoJson);
+    }
+  }, [enrichedGeoJson]);
+
+  const Legend = ({ colorScale, valueLabel, formatValue }: { colorScale?: (val: number) => string; valueLabel?: string }) => {
+    if (!colorScale) return null;
+    
+    // detect domain
+    const domain = (colorScale as any).domain?.() ?? [0, 1];
+    const steps = 10;
+    const range = Array.from({ length: steps }, (_, i) => {
+      const t = i / (steps - 1);
+      const val = domain[0] + t * (domain[1] - domain[0]);
+      return { val, color: colorScale(val) };
+    });
+
+    return (
+      <div style={{
         position: "absolute",
         bottom: 16,
         right: 16,
@@ -292,41 +385,56 @@ const Legend = () => {
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        width: 200
-      }}
-    >
-      <div style={{ fontWeight: 600, marginBottom: 6 }}>Growth Rate</div>
-      <div
-        style={{
-          width: "100%",
-          height: 10,
-          borderRadius: 5,
-          background: `linear-gradient(to right, ${generateColorRange().join(', ')})`,
-          marginBottom: 4
-        }}
-      />
-      <div
-        style={{
+        width: 200,
+        zIndex: 100
+      }}>
+        <div style={{ fontWeight: 600, marginBottom: 6 }}>{valueLabel ?? "Legend"}</div>
+
+        <div
+          style={{
+            width: "100%",
+            height: 12,
+            borderRadius: 4,
+            background: `linear-gradient(to right, ${
+              range.map(d => d.color).join(",")
+            })`,
+            marginBottom: 6
+          }}
+        />
+
+        <div style={{
           display: "flex",
           justifyContent: "space-between",
           width: "100%",
           fontSize: 11,
-          color: "#555",
-        }}
-      >
-        <span>-15%</span>
-        <span>0%</span>
-        <span>+15%</span>
-      </div>
-    </div>
-  );
-};
+          color: "#555"
+        }}>
+          <span>{formatValue ? formatValue(domain[0]) : domain[0]}</span>
 
+          {dataField === "growthRates" && (
+            <span style={{ textAlign: "center", flex: 1 }}>0%</span>
+          )}          
+          <span>{formatValue ? formatValue(domain[1]) : domain[1]}</span>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div style={{ position: "relative", width: "100%", height: "100%" }}>
       <div ref={mapContainerRef} style={{ width: "100%", height: "100%", borderRadius: 8 }} />
-      <Legend />
+      <Legend 
+        colorScale={colorScale ?? defaultColorScale} 
+        valueLabel={valueLabel} 
+        formatValue={(v) => {
+          if (dataField === "growthRates") {
+            const rawValue = Math.sign(v) * (v * v); // reverse sqrt
+            const percent = (rawValue * 100).toFixed(0);
+            return percent === "0" ? "0%" : `${percent > 0 ? "+" : ""}${percent}%`;
+          }
+          return formatValue ? formatValue(v) : v;
+        }}
+      />
     </div>
   );
 
