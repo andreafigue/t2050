@@ -159,7 +159,7 @@ const Population: React.FC = () => {
 
     const container = popChartContainerRef.current;
     const svg = d3.select(svgRef.current);
-    const margin = { top: 40, right: 20, bottom: 50, left: 60 };
+    const margin = { top: 6, right: 12, bottom: 18, left: 45 };
 
     const render = () => {
 
@@ -282,17 +282,17 @@ const Population: React.FC = () => {
           const population = d.y.toLocaleString() ?? "Unknown";
           const year = d.x ?? "N/A";
 
-          d3.select("#line-tooltip")
+          d3.select("#tooltip")
             .style("display", "block")
             .html(`<strong>${year}</strong>: ${population}`);
         }) 
         .on("mousemove", (event) => {
-          d3.select("#line-tooltip")
+          d3.select("#tooltip")
             .style("left", `${event.pageX + 10}px`)
             .style("top", `${event.pageY - 28}px`);
         })
         .on("mouseout", () => {
-          d3.select("#line-tooltip").style("display", "none");
+          d3.select("#tooltip").style("display", "none");
         })
         .on("click", function(event, d) {
           // Smoothly animate the year update over 200ms
@@ -344,7 +344,7 @@ const Population: React.FC = () => {
 
     const container = growthChartContainerRef.current;
     const svg = d3.select("#growthChart");
-    const margin = { top: 40, right: 20, bottom: 50, left: 60 };
+    const margin = { top: 5, right: 12, bottom: 17, left: 55 };
 
     const render = () => {
       const data = stateData
@@ -470,7 +470,6 @@ const Population: React.FC = () => {
         exit => exit.remove()
       );
 
-
       svg.selectAll("text.y-label").data([0]).join("text")
         .attr("class", "y-label")
         .attr("text-anchor", "middle")
@@ -490,17 +489,17 @@ const Population: React.FC = () => {
               ? `<span style="color:red;">🠋</span>`
               : "";
 
-          d3.select("#line-tooltip")
+          d3.select("#tooltip")
             .style("display", "block")
             .html(`<strong>${year}</strong>: ${growthRate} <strong>${arrow}</strong>`);
         }) 
         .on("mousemove", (event) => {
-          d3.select("#line-tooltip")
+          d3.select("#tooltip")
             .style("left", `${event.pageX + 10}px`)
             .style("top", `${event.pageY - 28}px`);
         })
         .on("mouseout", () => {
-          d3.select("#line-tooltip").style("display", "none");
+          d3.select("#tooltip").style("display", "none");
         })  
         .on("click", function(event, d) {
           // Smoothly animate the year update over 200ms
@@ -549,11 +548,28 @@ const Population: React.FC = () => {
     ).sort((a, b) => a - b);
   }, [stateData]);
 
+  // --- Tooltip setup ---
+  useEffect(() => {
+    let tooltip = d3.select("body").select("#tooltip");
+    if (tooltip.empty()) {
+      tooltip = d3.select("body")
+        .append("div")
+        .attr("id", "tooltip")
+        .style("position", "absolute")
+        .style("background", "white")
+        .style("padding", "5px")
+        .style("border", "1px solid #ccc")
+        .style("border-radius", "5px")
+        .style("display", "none")
+        .style("pointer-events", "none");
+    }
+  }, []);
+
   return (
-    <div className = "flex gap-4" style={{ width:"100%", height: "95vh", margin:0}}>
+    <div className = "flex gap-4" style={{ width:"100%", height: "100vh", margin:0}}>
       
       {/* Map Section */}
-      <div className = "w-3/5 border rounded-lg shadow-md flex relative h-full">
+      <div className = "w-3/5 border rounded-lg shadow-md flex relative m-0" style={{ height: "100%" }}>
         
         {/* Slider */}  
         <div 
@@ -753,13 +769,13 @@ const Population: React.FC = () => {
       </div>
 
       {/* Right Column for Charts */}
-      <div className = "flex flex-col relative w-2/5 h-full">
+      <div className = "w-2/5 flex flex-col h-full">
 
-        <div
+{/*        <div
           id="line-tooltip"
           style={{
             position: "absolute",
-            display: "none",
+            display: "block",
             padding: "6px 10px",
             backgroundColor: "white",
             border: "1px solid #ccc",
@@ -768,51 +784,30 @@ const Population: React.FC = () => {
             fontSize: "12px",
             zIndex: 1000
           }}
-        />
+        />*/}
 
         
         {/* Population Chart */}
-        <div className="border items-center shadow-md rounded-lg flex flex-col mb-4 p-4 h-full"
+        <div className="border items-center shadow-md rounded-lg flex-1 flex flex-col mb-4 p-4 h-full"
         style={{background: "#f4f4f4"}}>
-{/*        <div className="border" style={{ 
-          flex: "0 0 50%", 
-          background: "#f4f4f4", 
-          borderRadius: "8px", 
-          border: "gray", 
-          padding: "15px", 
-          marginBottom: "20px", 
-          boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-          overflow: "hidden",
-          display: "flex",
-          flexDirection: "column"
-        }}>*/}
           <h4 style={{ fontSize: "15pt", fontWeight: "bold" }}>
             Population Over Time {selectedCounties.size > 0 && "(selected counties)"}
           </h4>
 
-          <div ref={popChartContainerRef} className="w-full h-full">
-            <svg ref={svgRef} style={{ width: "100%", height: "100%" }} />
+          <div ref={popChartContainerRef} className="w-full flex-1 relative">
+            <svg ref={svgRef} className = "absolute inset-0 w-full h-full" />
           </div>
         </div>
 
         {/* Growth Rate Chart */}
-        <div className="border items-center shadow-md rounded-lg flex flex-col p-4 h-full bg-gray " style={{background: "#f4f4f4"}}>
-        {/*<div className="border" style={{ 
-          flex: "1 1 0", 
-          background: "#f4f4f4", 
-          borderRadius: "8px", 
-          padding: "15px", 
-          boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-          overflow: "hidden",
-          display: "flex",
-          flexDirection: "column"
-        }}>*/}
+        <div className="border items-center shadow-md rounded-lg flex-1 flex flex-col p-4 h-full bg-gray " 
+        style={{background: "#f4f4f4"}}>
           <h4 style={{ fontSize: "15pt", fontWeight: "bold" }}>
             Population Growth Rate {selectedCounties.size > 0 && "(selected counties)"}
           </h4>
 
-          <div ref={growthChartContainerRef} className = "w-full h-full">
-            <svg id="growthChart"  />
+          <div ref={growthChartContainerRef} className = "w-full flex-1 relative">
+            <svg id="growthChart" className = "absolute inset-0 w-full h-full" />
           </div>
         </div>
       </div>

@@ -437,17 +437,6 @@ const WashingtonMapWithLineGraphs: React.FC<FreightProps> = ({
 
   const getCountyKey = useCallback((f: GeoJSON.Feature) => f.properties?.GEOID, []);
 
-  // const dynamicTonsScale = useMemo(() => {
-  //   // build from your full county-by-year map (or freightCSVData)…
-  //   const vals = Object.values(mapFreightCountyData)
-  //     .map(cd => cd.tons[choroplethYear] || 0)
-  //     .filter(isFinite);
-  //   const min = d3.min(vals) ?? 0;
-  //   const max = d3.max(vals) ?? 1;
-  //   return d3.scaleSequential(d3.interpolateBlues)
-  //            .domain([min, max]);
-  // }, [mapFreightCountyData, choroplethYear]);
-
   // Build color scale from the FULL county‐data (so map always shows colors)
   const dynamicTonsScale = useMemo(() => {
     const vals = Object.values(mapFreightCountyData)
@@ -696,7 +685,7 @@ const WashingtonMapWithLineGraphs: React.FC<FreightProps> = ({
       </div>
 
       {/* Right Column for Charts */}
-      <div className="w-5/12 flex flex-col relative h-full" >
+      <div className="w-5/12 flex flex-col h-full" >
         
         {/* Filters */}
         <div className="p-4 border rounded-lg shadow-md bg-white mb-4 items-center flex flex-col ">
@@ -724,11 +713,11 @@ const WashingtonMapWithLineGraphs: React.FC<FreightProps> = ({
         </div>
         
         {/* Tons Chart */}
-        <div className="border items-center shadow-md rounded-lg flex flex-col p-4 mb-4 h-full bg-white">
+        <div className="border items-center shadow-md rounded-lg flex-1 flex flex-col p-4 mb-4 bg-white">
           <h4 style={{ fontSize: "15pt", fontWeight: "bold" }}>
             Tons over Years {selectedCounties.size > 0 && "(selected counties)"}
           </h4>
-          <div className="h-full w-full" style={{ overflow: "visible" }}>
+          <div className="w-full flex-1 relative" style={{ overflow: "visible" }}>
             <svg
               ref={lineGraph1Ref}
             />
@@ -736,11 +725,11 @@ const WashingtonMapWithLineGraphs: React.FC<FreightProps> = ({
         </div>
 
         {/* Value Chart */}
-        <div className="border items-center shadow-md rounded-lg flex flex-col p-4 h-full bg-white ">
+        <div className="border items-center shadow-md rounded-lg flex-1 flex flex-col p-4 bg-white ">
           <h4 style={{ fontSize: "15pt", fontWeight: "bold" }}>
             Value over Years {selectedCounties.size > 0 && "(selected counties)"}
           </h4>
-          <div className="h-full w-full" >
+          <div className="w-full flex-1 relative" >
             <svg
               ref={lineGraph2Ref}
             />

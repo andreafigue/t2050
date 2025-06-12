@@ -422,7 +422,7 @@ const MapboxChoroplethMap: React.FC<Props> = ({
 
   return (
     <div style={{ position: "relative", width: "100%", height: "100%" }}>
-      <div ref={mapContainerRef} style={{ width: "100%", height: "100%", borderRadius: 8 }} />
+      <div className = "rounded-lg" ref={mapContainerRef} style={{ width: "100%", height: "100%" }} />
       <Legend 
         colorScale={colorScale ?? defaultColorScale} 
         valueLabel={valueLabel} 
