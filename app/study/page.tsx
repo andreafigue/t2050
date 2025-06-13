@@ -53,7 +53,7 @@ export default function ChoroplethPage() {
           3. Trade Map of WA State
         </h3>
 
-        <div className="container " style={{  width: '1300px', height: '520px'}}>
+        <div className="container " style={{  width: '1300px', height: '750px'}}>
           <DynamicWashingtonMapWithLineGraphs/>
         </div>
 
@@ -87,7 +87,9 @@ export default function ChoroplethPage() {
           6. Map of Population Growth
         </h3><br/>
 
-        <Population />
+        <div >
+          <Population/>
+        </div>
        
         <br/><br/><hr/>
 

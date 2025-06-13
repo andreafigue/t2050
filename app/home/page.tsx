@@ -203,11 +203,7 @@ const Page = () => {
               />
               <strong>Explore:</strong> See how much longer a trip will take in 2050 if we don’t plan for future growth.
             </p>
-
-            <div className="container mb-16">
-              <DynamicMapRoute />
-            </div>
-
+            <DynamicMapRoute />
             <br/>
           </div>
           <div className="mt-12 p-6 bg-gray-100 border" style={{borderRadius: 8}}>

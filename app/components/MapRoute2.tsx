@@ -6,6 +6,10 @@ import "mapbox-gl/dist/mapbox-gl.css";
 import dynamic from "next/dynamic";
 import "../globals2.css";
 
+import { point, booleanPointInPolygon } from '@turf/turf'
+//import booleanPointInPolygon from "@turf/boolean-point-in-polygon";
+//import { point, FeatureCollection, Polygon } from "@turf/helpers";
+
 const SearchBox = dynamic(
   () => import("@mapbox/search-js-react").then((mod) => mod.SearchBox as any),
   { ssr: false }
@@ -42,19 +46,39 @@ const MapRoute: React.FC = () => {
   const destinationForecastMarkerRef = useRef<mapboxgl.Marker | null>(null);
 
   // County selection state – if empty, no county outlines are shown.
-  const [selectedCountyOption, setSelectedCountyOption] = useState<string>("");
+  const [selectedCountyOption, setSelectedCountyOption] = useState<string>("psrc"); // or "trpc"
+
+  // Ref to hold the selected region GeoJSON
+  const [regionGeoJSON, setRegionGeoJSON] = useState<any>(null);
+
+  const [suppressAutoZoom, setSuppressAutoZoom] = useState(false);
+
+  const originInputRef = useRef<HTMLInputElement | null>(null);
+  const destinationInputRef = useRef<HTMLInputElement | null>(null);
+
 
   // Vehicle mode state for the new select box.
-  const [vehicleMode, setVehicleMode] = useState<string>("");
-
-  // County options by key. Adjust county names if needed.
-  const countyOptions: { [key: string]: string[] } = {
-    option1: ["Thurston", "Pierce", "Lewis", "Mason", "Grays Harbor"],
-    option2: ["King", "Kitsap", "Pierce", "Snohomish"],
-  };
+  //const [vehicleMode, setVehicleMode] = useState<string>("");
 
   // State for holding the county GeoJSON data from /public/wa_counties.geojson
   const [countyData, setCountyData] = useState<any>(null);
+
+  const isPointInRegion = (coords: [number, number], region: any): boolean => {
+    if (!region || !region.features) return false;
+
+    const pt = point(coords);
+
+    // If region is a FeatureCollection, check against all features
+    return region.features.some((feature: any) => {
+      try {
+        return booleanPointInPolygon(pt, feature);
+      } catch (err) {
+        console.warn("Invalid geometry in region feature:", err);
+        return false;
+      }
+    });
+  };
+
 
   // Fetch county GeoJSON data when the component mounts.
   useEffect(() => {
@@ -94,54 +118,102 @@ const MapRoute: React.FC = () => {
     };
   }, []);
 
-  // Update county outlines on maps when a county option is selected.
   useEffect(() => {
-    if (!mapLoaded || !mapForecastLoaded || !countyData) return;
+    if (!mapLoaded || !mapForecastLoaded || !selectedCountyOption) return;
 
-    const updateCountyLayerOnMap = (map: mapboxgl.Map) => {
-      // Remove existing county outline layer and source, if any.
-      if (map.getLayer("county-outline")) map.removeLayer("county-outline");
-      if (map.getSource("county-outline")) map.removeSource("county-outline");
+    const geojsonPath =
+      selectedCountyOption === "psrc"
+        ? "/data/psrc/psrc_outline.geojson"
+        : "/data/trpc/trpc_outline.geojson";
 
-      // If no county option is selected, exit.
-      if (!selectedCountyOption) return;
+    fetch(geojsonPath)
+      .then((response) => response.json())
+      .then((geojsonData) => {
 
-      // Filter county features based on the selected option.
-      const selectedCountyNames = countyOptions[selectedCountyOption];
-      const filteredCounties = {
-        type: "FeatureCollection",
-        features: countyData.features.filter(
-          (feature: any) =>
-            selectedCountyNames.includes(feature.properties.NAME)
-        ),
-      };
+        setRegionGeoJSON(geojsonData);
 
-      // Add the filtered counties as a source.
-      map.addSource("county-outline", {
-        type: "geojson",
-        // @ts-ignore
-        data: filteredCounties,
-      });
+        const updateLayer = (map: mapboxgl.Map, layerId: string) => {
+          if (map.getLayer(layerId)) map.removeLayer(layerId);
+          if (map.getSource(layerId)) map.removeSource(layerId);
 
-      // Add a layer to show the county outlines.
-      map.addLayer({
-        id: "county-outline",
-        type: "line",
-        source: "county-outline",
-        layout: {},
-        paint: {
-          "line-color": "#FF0000",
-          "line-width": 2,
-          "line-opacity": 0.5
-        },
-      });
-    };
+          map.addSource(layerId, {
+            type: "geojson",
+            data: geojsonData,
+          });
 
-    if (mapInstanceRef.current) updateCountyLayerOnMap(mapInstanceRef.current);
-    if (mapForecastInstanceRef.current) updateCountyLayerOnMap(mapForecastInstanceRef.current);
-  }, [selectedCountyOption, mapLoaded, mapForecastLoaded, countyData]);
+          map.addLayer({
+            id: layerId,
+            type: "line",
+            source: layerId,
+            layout: {},
+            paint: {
+              "line-color": "#FF0000",
+              "line-width": 2,
+              "line-opacity": 0.5,
+            },
+          });
 
-  // Example helper function for congestion adjustments (unchanged).
+          
+
+          // Fit map to outline bounds
+          const bounds = new mapboxgl.LngLatBounds();
+          geojsonData.features.forEach((feature: any) => {
+            const coords = feature.geometry.coordinates.flat(Infinity);
+            for (let i = 0; i < coords.length; i += 2) {
+              bounds.extend([coords[i], coords[i + 1]]);
+            }
+          });
+          map.fitBounds(bounds, { padding: 50 });
+        };
+
+        if (mapInstanceRef.current) updateLayer(mapInstanceRef.current, "county-outline");
+        if (mapForecastInstanceRef.current) updateLayer(mapForecastInstanceRef.current, "county-outline");
+      })
+      .catch((err) => console.error("Error loading selected county outline:", err));
+  }, [selectedCountyOption, mapLoaded, mapForecastLoaded]);
+
+  useEffect(() => {
+    if (!mapInstanceRef.current || !mapForecastInstanceRef.current) return;
+
+    // Reset inputs
+    setOrigin("");
+    setDestination("");
+    setOriginCoords(null);
+    setDestinationCoords(null);
+    setTravelTime(null);
+    setForecastTravelTime(null);
+
+    // Remove markers
+    originMarkerRef.current?.remove();
+    originForecastMarkerRef.current?.remove();
+    destinationMarkerRef.current?.remove();
+    destinationForecastMarkerRef.current?.remove();
+
+    // Remove route layers/sources
+    ["route", "route-forecast"].forEach((id) => {
+      if (mapInstanceRef.current?.getLayer(id)) {
+        mapInstanceRef.current.removeLayer(id);
+      }
+      if (mapInstanceRef.current?.getSource(id)) {
+        mapInstanceRef.current.removeSource(id);
+      }
+      if (mapForecastInstanceRef.current?.getLayer(id)) {
+        mapForecastInstanceRef.current.removeLayer(id);
+      }
+      if (mapForecastInstanceRef.current?.getSource(id)) {
+        mapForecastInstanceRef.current.removeSource(id);
+      }
+    });
+
+    // Optionally reset the maps’ views (or you can let the outline fitBounds do this)
+    //mapInstanceRef.current.jumpTo({ center: [-122.3505, 47.6206], zoom: 12 });
+    //mapForecastInstanceRef.current.jumpTo({ center: [-122.3505, 47.6206], zoom: 12 });
+
+  }, [selectedCountyOption]);
+
+
+
+  // Helper function for congestion adjustments (unchanged).
   const worsenCongestion = (
     currentType: string,
     previousType: string,
@@ -167,6 +239,27 @@ const MapRoute: React.FC = () => {
     }
     return congestionLevels[Math.min(Math.max(Math.ceil(index), 0), congestionLevels.length - 1)];
   };
+
+  const fetchMultiplier = async (
+    originCoords: [number, number],
+    destinationCoords: [number, number],
+    region: string
+  ): Promise<number | null> => {
+    try {
+      const endpoint =
+        region === "psrc" ? "/api/psrc-multiplier" : "/api/trpc-multiplier";
+      const url = `${endpoint}?originLat=${originCoords[1]}&originLng=${originCoords[0]}&destinationLat=${destinationCoords[1]}&destinationLng=${destinationCoords[0]}`;
+      const res = await fetch(url)
+      const data = await res.json()
+      console.log('TAZs:', data.originTaz, data.destinationTaz)
+      console.log('Multiplier:', data.multiplier)
+      return data.multiplier ?? null
+    } catch (err) {
+      console.error("Error fetching multiplier:", err)
+      return null
+    }
+  }
+
 
   // Your getRoute function remains unchanged.
   const getRoute = async (
@@ -227,7 +320,16 @@ const MapRoute: React.FC = () => {
         stops.push(progress, color);
       }
 
-      const congestionFactor = 1.4;
+      //const congestionFactor = 1.4; //default value
+
+      const multiplier = await fetchMultiplier(originCoords, destinationCoords, selectedCountyOption);
+      if (multiplier === null) {
+        console.error("Could not fetch multiplier; aborting route rendering.")
+        return
+      }
+      const congestionFactor = multiplier
+
+
       const forecastedTimeMinutes = estimatedTimeMinutes * congestionFactor;
       setForecastTravelTime(Number(forecastedTimeMinutes.toFixed(1)));
       const adjustedCongestion: string[] = [];
@@ -314,128 +416,50 @@ const MapRoute: React.FC = () => {
       const bounds = new mapboxgl.LngLatBounds();
       bounds.extend(originCoords);
       bounds.extend(destinationCoords);
-      mapInstanceRef.current.fitBounds(bounds, { padding: 50 });
-      mapForecastInstanceRef.current.fitBounds(bounds, { padding: 50 });
+      mapInstanceRef.current.fitBounds(bounds, { 
+        padding: {
+          top: 120,     // increase this based on height of your box
+          bottom: 50,
+          left: 50,
+          right: 50
+        } 
+      });
+      mapForecastInstanceRef.current.fitBounds(bounds, { 
+        padding: {
+          top: 120,     // increase this based on height of your box
+          bottom: 50,
+          left: 50,
+          right: 50
+        } 
+      });
     } catch (error) {
       console.error("Error fetching route:", error);
     }
   };
 
   return (
-  <>
+  <div className="flex gap-4 w-full h-[500px] p-0 m-0">
     {/* Top Controls Row: Search Inputs + Filters */}
-    <div className="flex flex-wrap gap-4 items-start justify-center mb-4">
-      {/* Search Box Container */}
-
-      <div className="p-4 bg-white border rounded-md max-w-md w-full sm:w-[360px] min-h-[210px]">
-        {mapLoaded ? (
-          <>
-            <div className="mb-4">
-              <label htmlFor="vehicle-mode-select" className="block font-medium mb-2 p-1">
-                Origin & Destination
-              </label>
-              <SearchBox
-                // @ts-ignore
-                accessToken={mapboxgl.accessToken}
-                map={mapInstanceRef.current}
-                mapboxgl={mapboxgl}
-                placeholder="Enter origin address"
-                options={{ language: "en", country: "US", proximity: [-122.3505, 47.6206] }}
-                onChange={(d) => setOrigin(d)}
-                onRetrieve={(res) => {
-                  if (res.features?.[0]) {
-                    const coords = res.features[0].geometry.coordinates as [number, number];
-                    setOriginCoords(coords);
-                    setOrigin(res.features[0].properties.name);
-                    if (destinationCoords) getRoute(coords, destinationCoords);
-                    if (mapInstanceRef.current) {
-                      originMarkerRef.current?.remove();
-                      originMarkerRef.current = new mapboxgl.Marker({ color: "blue" })
-                        .setLngLat(coords)
-                        .addTo(mapInstanceRef.current);
-                    }
-                    if (mapForecastInstanceRef.current) {
-                      originForecastMarkerRef.current?.remove();
-                      originForecastMarkerRef.current = new mapboxgl.Marker({ color: "blue" })
-                        .setLngLat(coords)
-                        .addTo(mapForecastInstanceRef.current);
-                      mapForecastInstanceRef.current.easeTo({
-                        center: coords,
-                        // @ts-ignore
-                        zoom: mapInstanceRef.current.getZoom(),
-                      });
-                    }
-                  }
-                }}
-                value={origin}
-              />
-            </div>
-
-            <div>
-              <SearchBox
-                // @ts-ignore
-                accessToken={mapboxgl.accessToken}
-                map={mapInstanceRef.current}
-                mapboxgl={mapboxgl}
-                placeholder="Enter destination address"
-                options={{ language: "en", country: "US", proximity: [-122.3505, 47.6206] }}
-                onChange={(d) => setDestination(d)}
-                onRetrieve={(res) => {
-                  if (res.features?.[0]) {
-                    const coords = res.features[0].geometry.coordinates as [number, number];
-                    setDestinationCoords(coords);
-                    setDestination(res.features[0].properties.name);
-                    if (originCoords) getRoute(originCoords, coords);
-                    if (mapInstanceRef.current) {
-                      destinationMarkerRef.current?.remove();
-                      destinationMarkerRef.current = new mapboxgl.Marker({ color: "#EA4335" })
-                        .setLngLat(coords)
-                        .addTo(mapInstanceRef.current);
-                      mapInstanceRef.current.setCenter(coords);
-                    }
-                    if (mapForecastInstanceRef.current) {
-                      destinationForecastMarkerRef.current?.remove();
-                      destinationForecastMarkerRef.current = new mapboxgl.Marker({ color: "#EA4335" })
-                        .setLngLat(coords)
-                        .addTo(mapForecastInstanceRef.current);
-                      mapForecastInstanceRef.current.easeTo({
-                        center: coords,
-                        // @ts-ignore
-                        zoom: mapInstanceRef.current.getZoom(),
-                        duration: 300,
-                      });
-                    }
-                  }
-                }}
-                value={destination}
-              />
-            </div>
-          </>
-        ) : (
-          <div className="text-center text-gray-500">Loading map and inputs…</div>
-        )}
-      </div>
+    <div className="flex flex-col gap-4 w-3/12 h-full">
 
       {/* Filters on the Right */}
-      <div className="p-4 bg-white border rounded-md w-full sm:w-[480px]">
-        <div className="mb-4">
-          <label htmlFor="county-select" className="block font-medium mb-2">
-            Select Counties:
+      <div className="p-3 bg-white border rounded-lg shadow-md w-full ">
+          <label htmlFor="county-select" className="block text-lg font-semibold mb-2">
+            Select Model
           </label>
           <div className="flex items-center gap-2">
             <select
               id="county-select"
-              className="flex-1 border rounded px-2 py-1"
+              className="w-full rounded-sm p-2"
               value={selectedCountyOption}
+              //defaultValue="psrc"
               onChange={(e) => setSelectedCountyOption(e.target.value)}
-            >
-              <option value="">-- None --</option>
-              <option value="option1">Thurston, Pierce, Lewis, Mason, Grays Harbor</option>
-              <option value="option2">King, Kitsap, Pierce, Snohomish</option>
+            >              
+              <option value="psrc">Puget Sound Regional Council</option>
+              <option value="trpc">Thurston Regional Planning Council</option>
             </select>
-          </div>
         </div>
-        <div>
+        {/*<div>
           <label htmlFor="vehicle-mode-select" className="block font-medium mb-2">
             Select Vehicle Mode:
           </label>
@@ -455,38 +479,157 @@ const MapRoute: React.FC = () => {
               <option value="heavy truck">Heavy Truck</option>
             </select>
           </div>
-        </div>
+        </div>*/}
       </div>
+      {/* Search Box Container */}
+      <div className="p-3 bg-white border rounded-lg shadow-md w-full min-h-[150px]">
+        {mapLoaded ? (
+          <>
+            <div className="mb-2">
+              <label htmlFor="vehicle-mode-select" className="block text-lg font-semibold mb-2">
+                Origin & Destination
+              </label>
+              <SearchBox
+                // @ts-ignore
+                accessToken={mapboxgl.accessToken}
+                //map={!suppressAutoZoom ? mapInstanceRef.current : null}
+                mapboxgl={mapboxgl}
+                placeholder="Enter origin address"
+                options={{ language: "en", country: "US", proximity: [-122.3505, 47.6206] }}
+                onChange={(d) => setOrigin(d)}
+                onRetrieve={(res) => {
+                  if (res.features?.[0]) {
+                    const coords = res.features[0].geometry.coordinates as [number, number];
+                    const isValid = isPointInRegion(coords, regionGeoJSON);
+                    setSuppressAutoZoom(!isValid);
+
+                    if (!isValid) {
+                      alert("Selected location is outside the selected region.");
+                      setOrigin("");
+                      return;
+                    }
+                    setOriginCoords(coords);
+                    setOrigin(res.features[0].properties.name);
+                    if (destinationCoords) getRoute(coords, destinationCoords);
+                    if (mapInstanceRef.current) {
+                      originMarkerRef.current?.remove();
+                      originMarkerRef.current = new mapboxgl.Marker({ color: "blue" })
+                        .setLngLat(coords)
+                        .addTo(mapInstanceRef.current);
+                    }
+                    if (mapForecastInstanceRef.current) {
+                      originForecastMarkerRef.current?.remove();
+                      originForecastMarkerRef.current = new mapboxgl.Marker({ color: "blue" })
+                        .setLngLat(coords)
+                        .addTo(mapForecastInstanceRef.current);
+                      const currentZoom = mapInstanceRef.current?.getZoom() ?? 12;
+                      mapInstanceRef.current?.easeTo({ center: coords, zoom: currentZoom });
+                      mapForecastInstanceRef.current?.easeTo({ center: coords, zoom: currentZoom });
+
+                    }
+                  }
+                }}
+                value={origin}
+              />
+            </div>
+
+            <div>
+              <SearchBox
+                // @ts-ignore
+                accessToken={mapboxgl.accessToken}
+                //map={!suppressAutoZoom ? mapInstanceRef.current : null}
+                mapboxgl={mapboxgl}
+                placeholder="Enter destination address"
+                options={{ language: "en", country: "US", proximity: [-122.3505, 47.6206] }}
+                onChange={(d) => setDestination(d)}
+                onRetrieve={(res) => {
+                  if (res.features?.[0]) {
+                    const coords = res.features[0].geometry.coordinates as [number, number];
+
+                    const isValid = isPointInRegion(coords, regionGeoJSON);
+                    setSuppressAutoZoom(!isValid);
+
+                    if (!isValid) {
+                      alert("Selected location is outside the selected region.");
+                      setDestination("");
+                      return;
+                    }
+
+                    setDestinationCoords(coords);
+                    setDestination(res.features[0].properties.name);
+                    if (originCoords) getRoute(originCoords, coords);
+                    if (mapInstanceRef.current) {
+                      destinationMarkerRef.current?.remove();
+                      destinationMarkerRef.current = new mapboxgl.Marker({ color: "#EA4335" })
+                        .setLngLat(coords)
+                        .addTo(mapInstanceRef.current);
+                      mapInstanceRef.current.setCenter(coords);
+                    }
+                    if (mapForecastInstanceRef.current) {
+                      destinationForecastMarkerRef.current?.remove();
+                      destinationForecastMarkerRef.current = new mapboxgl.Marker({ color: "#EA4335" })
+                        .setLngLat(coords)
+                        .addTo(mapForecastInstanceRef.current);
+                      const currentZoom = mapInstanceRef.current?.getZoom() ?? 12;
+                      mapInstanceRef.current?.easeTo({ center: coords, zoom: currentZoom });
+                      mapForecastInstanceRef.current?.easeTo({ center: coords, zoom: currentZoom, duration: 300 });
+
+                    }
+                  }
+                }}
+                value={destination}
+              />
+            </div>
+          </>
+        ) : (
+          <div className="text-center text-gray-500">Loading map and inputs…</div>
+        )}
+      </div>
+
+      
     </div>
 
     {/* Map Containers */}
-    <div className="row" style={{ height: 600 }}>
-      <div className="column" style={{ width: "50%", padding: "20px" }}>
-        <h3 style={{ textAlign: "center" }}>Current Traffic Levels</h3>
-        <p style={{ textAlign: "center", height: "32px" }}>
-          {travelTime ? <>Estimated travel time: <strong>{travelTime} min</strong></> : ""}
-        </p>
+    <div className="flex-1 flex gap-4 w-9/12 h-full">
+
+      <div className="flex-1 relative rounded-lg shadow-md border h-full" >
+        <div className="absolute top-2 left-2 bg-white bg-opacity-90 p-2 rounded text-sm font-medium shadow z-10">
+          <h4 className="text-lg font-semibold mb-0">Current Traffic</h4>
+          {travelTime && (
+            <span className="text-sm font-normal">
+              {`Estimated time: ${travelTime} min`}
+            </span>
+          )}
+        </div>
         <div
           id="map-container"
           ref={mapContainerRef}
           style={{ height: "100%", borderRadius: 8 }}
-          className="column"
+          className="absolute inset-0 h-full rounded-lg border"
         />
       </div>
-      <div className="column" style={{ width: "50%", padding: "20px" }}>
-        <h3 style={{ textAlign: "center" }}>Projected 2050 Traffic</h3>
-        <p style={{ textAlign: "center", height: "32px" }}>
-          {forecastTravelTime ? <>Estimated travel time: <strong>{forecastTravelTime} min</strong></> : ""}
-        </p>
+
+      <div className="flex-1 relative rounded-lg shadow-md h-full" >
+        <div className="absolute top-2 left-2 bg-white bg-opacity-90 p-2 rounded text-sm font-medium shadow z-10">
+          <h4 className="text-lg font-semibold mb-0">2050 Forecast</h4>
+          {forecastTravelTime && travelTime && (
+            <span className="text-sm font-normal">
+              {`Estimated time: ${forecastTravelTime} min `} 
+              {forecastTravelTime > travelTime && (
+                <span style={{ color: "#ff0000" }}>🠉</span>
+              )}            
+            </span>
+          )}
+        </div>
         <div
           id="map-forecast-container"
           ref={mapForecastContainerRef}
           style={{ height: "100%", borderRadius: 8 }}
-          className="column"
+          className="absolute inset-0 h-full rounded-lg border"
         />
       </div>
     </div>
-  </>
+  </div>
 );
 
 

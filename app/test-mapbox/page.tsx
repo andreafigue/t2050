@@ -4,7 +4,7 @@ import MapRoute from '../components/MapRoute2';
 
 const HomePage: React.FC = () => {
   return (
-    <div style={{ padding: '4rem 2rem' }}>
+    <div className="">
       <MapRoute />
     </div>
   );
