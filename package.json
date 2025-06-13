@@ -40,8 +40,8 @@
     "next": "^15.2.1",
     "papaparse": "^5.5.2",
     "plotly.js": "^3.0.0",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
     "react-plotly.js": "^2.6.0",
     "react-select": "^5.10.1",
     "shapefile": "^0.6.6"
