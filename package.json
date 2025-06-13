@@ -36,7 +36,6 @@
     "lodash": "^4.17.21",
     "lucide-react": "^0.475.0",
     "mapbox-gl": "^3.9.4",
-    "mapbox-viz": "file:./public/lib/mapbox-viz",
     "motion": "^12.4.7",
     "next": "^15.2.1",
     "papaparse": "^5.5.2",
@@ -63,9 +62,6 @@
     "typescript": "^5"
   },
   "overrides": {
-    "mapbox-viz": {
-      "react-dom": "19.0.0"
-    },
     "@mapbox/search-js-react": {
       "react-dom": "19.0.0"
     },
