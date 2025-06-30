@@ -104,7 +104,7 @@ const MapComponent = () => {
       map.current.fitBounds(bounds, { padding: 100 });
     }
 
-    const csv = await d3Fetch.csv("/data/2020&2045_ InterstateTravelTimes_RTC.csv", d => {
+    const csv = await d3Fetch.csv("/data/2020&2045_InterstateTravelTimes_RTC.csv", d => {
       return {
         Highway: d["Highway"].trim(),
         County: d["County"].trim(),
