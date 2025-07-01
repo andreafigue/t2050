@@ -22,10 +22,24 @@ export default function ChoroplethPage() {
       <div className="container mx-auto px-4 py-8 mt-4 mb-0" 
         style={{ margin: '0px', width: '1200px', fontFamily: "Encode Sans Compressed, sans-serif"}}>
         <h1 className="text-3xl font-bold mb-6">Challenge 2050: The Future in Motion</h1>
-        
-        <br/><br/>
+
+        <br/>
+
         <h3 className="text-3xl mb-6">
-          1. Map of Projected Traffic Levels
+          1. Map of Population Growth
+        </h3><br/>
+
+        <div >
+          <Population style={{height: "700px"}}/>
+        </div>
+
+        <br/>
+       
+        <hr/>
+        
+        <br/>
+        <h3 className="text-3xl mb-6">
+          2. Map of Projected Traffic Levels
         </h3>
         <br/>
        
@@ -33,12 +47,52 @@ export default function ChoroplethPage() {
           <DynamicMapRoute />
         </div>
 
-        <br/><br/><br/>
+        <br/><br/><hr/>
 
+        <h3 className="text-3xl mb-6">
+          3. Map of Travel Times in Clark County
+        </h3>
+
+        <div className="container mt-12" style={{  width: '1300px', height: '450px'}}>
+          <DynamicMapComponent/>
+        </div>
+
+        <hr/>
+
+        <h3 className="text-3xl mb-6">
+          4. TSA Wait Times
+        </h3>
+
+        <br/>
+
+        <div style={{width: "80%" }}>
+          <AirportQueue />
+        </div>
+
+        <br/><br/><hr/>
+        <br/>
+
+        <h3 className="text-3xl mb-6">
+          5. Trade Map of WA State
+        </h3>
+
+        <div className="container " style={{  width: '1300px', height: '750px'}}>
+          <DynamicWashingtonMapWithLineGraphs/>
+        </div>
+        <br/><br/>
         <hr/>
         <br/>
         <h3 className="text-3xl mb-6">
-          2. Traffic Mode Travel Times
+          6. Map of Bridge Conditions
+        </h3>
+        <div style={{ padding: '1rem 1rem' }}>
+          <BridgeNeedsMap />
+        </div>
+
+        <br/><hr/>
+
+        <h3 className="text-3xl mb-6">
+          7. Traffic Mode Travel Times
         </h3>
         <div className="mb-4" style={{ padding: '1rem 1rem', width: "100%", height: "330px" }}>
           <DynamicChartComponent />
@@ -47,60 +101,9 @@ export default function ChoroplethPage() {
           </p>
         </div>
 
-        <br/><br/><hr/>
-        <br/>
-        <h3 className="text-3xl mb-6">
-          3. Trade Map of WA State
-        </h3>
-
-        <div className="container " style={{  width: '1300px', height: '750px'}}>
-          <DynamicWashingtonMapWithLineGraphs/>
-        </div>
-
-        <br/><br/><br/><hr/>
-        <br/>
-        <h3 className="text-3xl mb-6">
-          4. Map of Bridge Conditions
-        </h3>
-        <div style={{ padding: '1rem 1rem' }}>
-          <BridgeNeedsMap />
-        </div>
-
-        <br/><hr/>
-        <br/>
-
-        <h3 className="text-3xl mb-6">
-          5. TSA Wait Times
-        </h3>
-
-        <br/>
-
-        <div style={{width: "80%"}}>
-          <AirportQueue />
-        </div>
-
-        <br/><br/><hr/>
-
-        <br/>
-
-        <h3 className="text-3xl mb-6">
-          6. Map of Population Growth
-        </h3><br/>
-
-        <div >
-          <Population/>
-        </div>
-       
-        <br/><br/><hr/>
-
-        <br/>
-        <h3 className="text-3xl mb-6">
-          7. Map of Travel Times in Clark County
-        </h3>
-
-        <div className="container mt-12" style={{  width: '1300px', height: '700px'}}>
-          <DynamicMapComponent/>
-        </div>
+        <br/><br/>
+        
+        
 
       </div>
     </div>

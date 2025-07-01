@@ -185,7 +185,7 @@ const AirportQueueViz = () => {
  );
 
  return (
- <div className="flex gap-8 justify-center">
+ <div className="flex gap-8 justify-center" >
  <QueueCard swapped={false} showPreCheck={false} showStandard={true} />
  <QueueCard swapped={true} showPreCheck={true} showStandard={false} />
  </div>
