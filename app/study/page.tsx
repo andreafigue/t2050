@@ -30,7 +30,7 @@ export default function ChoroplethPage() {
         </h3><br/>
 
         <div >
-          <Population style={{height: "700px"}}/>
+          <Population />
         </div>
 
         <br/>
