@@ -1,0 +1,13 @@
+.active-car {
+  offset-path: path('M120,0 L500,0');
+  position: absolute;
+}
+
+/* Add spacing between cars based on their index */
+.car-0 { animation-delay: 0s; }
+.car-1 { animation-delay: -1s; }
+.car-2 { animation-delay: -2s; }
+.car-3 { animation-delay: -3s; }
+.car-4 { animation-delay: -4s; }
+.car-5 { animation-delay: -5s; }
+/* Add more if needed */ 
