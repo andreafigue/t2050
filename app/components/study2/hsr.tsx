@@ -40,9 +40,12 @@ const travelTimes = {
   },
 };
 
+
 const ChartComponent = () => {
   const [origin, setOrigin] = useState("Vancouver");
   const [destination, setDestination] = useState("Seattle");
+
+
   const chartRef = useRef(null);
 
   const routeKey = `${origin}-${destination}`;
@@ -59,6 +62,8 @@ const ChartComponent = () => {
       const margin = { top: 20, right: 30, bottom: 10, left: 150 };
       const width = 600 - margin.left - margin.right;
       const height = 200;
+
+
 
       // const x = d3.scaleLinear().domain([0, d3.max(data, (d) => d.time) * 1.1]).range([0, width]);
       const maxTime = Math.max(
@@ -220,11 +225,16 @@ const ChartComponent = () => {
                 <li
                   key={city}
                   className={`cursor-pointer px-3 py-2 text-center rounded-md border ${
-                    origin === city
-                      ? "bg-blue-600 text-white font-bold"
-                      : "bg-gray-100 hover:bg-gray-200"
-                  } ${city === destination ? "opacity-50 pointer-events-none" : ""}`}
-                  onClick={() => city !== destination && setOrigin(city)}
+                    origin === city ? "bg-blue-600 text-white font-bold" : "bg-gray-100 hover:bg-gray-200"
+                  }`}
+                  onClick={() => {
+                    setOrigin(city);
+                    if (city === destination) {
+                      // pick the first available "To" that isn't the new origin
+                      const nextTo = cities.find((c) => c !== city)!; // cities is already defined above
+                      setDestination(nextTo);
+                    }
+                  }}
                 >
                   {city}
                 </li>
