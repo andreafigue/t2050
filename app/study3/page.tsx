@@ -155,7 +155,7 @@ const Page = () => {
               <strong>Explore:</strong> Learn how cargo moves around the state and how it is expected to grow to meet the increased demand of a growing population.
               Cargo that can’t get to overseas markets harms our state’s economy, including the 1 in 4 jobs dependent on international trade.
             </p>
-            <div className="w-full">
+            <div className="w-full" style={{height:"670px"}}>
               <DynamicWashingtonMapWithLineGraphs/>
             </div>
           </div>
