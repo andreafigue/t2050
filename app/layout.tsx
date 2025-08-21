@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import "azure-maps-control/dist/atlas.min.css";
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { AppRouterCacheProvider } from '@mui/material-nextjs/v15-appRouter';
 

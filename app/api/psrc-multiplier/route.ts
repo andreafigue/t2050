@@ -85,11 +85,32 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: `Destination TAZ ${destTaz} not found` }, { status: 404 });
     }
 
+    // Load source multiplier (same logic, different folder)
+    const sourceBatchPath = path.join(process.cwd(), "public", "data/psrc/sources", batchFile);
+
+    if (!fs.existsSync(sourceBatchPath)) {
+      return NextResponse.json({ error: "Source batch file not found" }, { status: 404 });
+    }
+
+    const sourceRaw = fs.readFileSync(sourceBatchPath, "utf8");
+    const sourceData = JSON.parse(sourceRaw);
+
+    const sourceRow = sourceData[originTaz.toString()];
+    if (!sourceRow) {
+      return NextResponse.json({ error: `Origin TAZ ${originTaz} not in source batch` }, { status: 404 });
+    }
+
+    const sourceMultiplier = sourceRow[destTaz.toString()];
+    if (sourceMultiplier === undefined) {
+      return NextResponse.json({ error: `Destination TAZ ${destTaz} not found in source data` }, { status: 404 });
+    }
+
 
     return NextResponse.json({
       originTaz,
       destinationTaz: destTaz,
       multiplier,
+      sourceMultiplier,
     })
   } catch (error) {
     console.error(error)

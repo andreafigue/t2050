@@ -623,7 +623,7 @@ const Population: React.FC = () => {
   }, []);
 
   return (
-    <div className = "flex gap-4" style={{ width:"100%", height: "100vh", margin:0}}>
+    <div className = "flex gap-4" style={{ width:"100%", height: "75vh", margin:0}}>
       
       {/* Map Section */}
       <div className = "w-3/5 border rounded-lg shadow-md flex relative m-0" style={{ height: "100%" }}>

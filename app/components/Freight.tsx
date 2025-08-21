@@ -467,8 +467,8 @@ const WashingtonMapWithLineGraphs: React.FC<FreightProps> = ({
 
 
   return (
-    <div className="flex gap-4" style={{ width:'100%', height:"100vh", margin:0 }}>
-      
+    <div className="flex gap-4" style={{ width:'100%', height:"85vh", margin:0 }}>
+    
       {/*Mapbox section*/}
       <div className="w-7/12 border rounded-lg shadow-md flex relative" style={{ height: "100%" }}>
 
@@ -685,10 +685,10 @@ const WashingtonMapWithLineGraphs: React.FC<FreightProps> = ({
       </div>
 
       {/* Right Column for Charts */}
-      <div className="w-5/12 flex flex-col h-full" >
+      <div className="w-5/12 flex flex-col h-100" >
         
         {/* Filters */}
-        <div className="p-4 border rounded-lg shadow-md bg-white mb-4 items-center flex flex-col ">
+        <div className="p-3 border rounded-lg shadow-md bg-white mb-4 items-center flex flex-col ">
           <h4 style={{ fontSize: "15pt", fontWeight: "bold" }}>Filters</h4>
           <div className="flex flex-wrap gap-4 w-full">
             {Object.keys(selectedFilters).map(key => (
@@ -713,7 +713,7 @@ const WashingtonMapWithLineGraphs: React.FC<FreightProps> = ({
         </div>
         
         {/* Tons Chart */}
-        <div className="border items-center shadow-md rounded-lg flex-1 flex flex-col p-4 mb-4 bg-white">
+        <div className="border items-center shadow-md rounded-lg flex-1 flex flex-col p-3 mb-4 bg-white">
           <h4 style={{ fontSize: "15pt", fontWeight: "bold" }}>
             Tons over Years {selectedCounties.size > 0 && "(selected counties)"}
           </h4>
@@ -725,7 +725,7 @@ const WashingtonMapWithLineGraphs: React.FC<FreightProps> = ({
         </div>
 
         {/* Value Chart */}
-        <div className="border items-center shadow-md rounded-lg flex-1 flex flex-col p-4 bg-white ">
+        <div className="border items-center shadow-md rounded-lg flex-1 flex flex-col p-3 bg-white ">
           <h4 style={{ fontSize: "15pt", fontWeight: "bold" }}>
             Value over Years {selectedCounties.size > 0 && "(selected counties)"}
           </h4>

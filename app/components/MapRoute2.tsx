@@ -38,6 +38,7 @@ const MapRoute: React.FC = () => {
   // Travel time estimates
   const [travelTime, setTravelTime] = useState<number | null>(null);
   const [forecastTravelTime, setForecastTravelTime] = useState<number | null>(null);
+  const [peakTime, setPeakTime] = useState<number | null>(null);
 
   // Marker refs
   const originMarkerRef = useRef<mapboxgl.Marker | null>(null);
@@ -56,6 +57,20 @@ const MapRoute: React.FC = () => {
   const originInputRef = useRef<HTMLInputElement | null>(null);
   const destinationInputRef = useRef<HTMLInputElement | null>(null);
 
+  const time_slots = {
+    "5to6.h5" : "Peak time: 5 AM to 6 AM",
+    "6to7.h5" : "Peak time: 6 AM to 7 AM",
+    "7to8.h5" : "Peak time: 7 AM to 8 AM",
+    "8to9.h5" : "Peak time: 8 AM to 9 AM",
+    "9to10.h5" : "Peak time: 9 AM to 10 AM",
+    "10to14.h5" : "Peak time: 10 AM to 2 PM",
+    "14to15.h5" : "Peak time: 2 PM to 3 PM",
+    "15to16.h5" : "Peak time: 3 PM to 4 PM",
+    "16to17.h5" : "Peak time: 4 PM to 5 PM",
+    "17to18.h5" : "Peak time: 5 PM to 6 PM",
+    "18to20.h5" : "Peak time: 6 PM to 8 PM",
+    "20to5.h5" : "Peak time: 8 PM to 5 AM"
+}
 
   // Vehicle mode state for the new select box.
   //const [vehicleMode, setVehicleMode] = useState<string>("");
@@ -253,6 +268,8 @@ const MapRoute: React.FC = () => {
       const data = await res.json()
       console.log('TAZs:', data.originTaz, data.destinationTaz)
       console.log('Multiplier:', data.multiplier)
+      console.log('Source Multiplier:', data.sourceMultiplier)
+      data.sourceMultiplier ? setPeakTime(time_slots[data.sourceMultiplier]) : setPeakTime(null);
       return data.multiplier ?? null
     } catch (err) {
       console.error("Error fetching multiplier:", err)
@@ -459,27 +476,7 @@ const MapRoute: React.FC = () => {
               <option value="trpc">Thurston Regional Planning Council</option>
             </select>
         </div>
-        {/*<div>
-          <label htmlFor="vehicle-mode-select" className="block font-medium mb-2">
-            Select Vehicle Mode:
-          </label>
-          <div className="flex items-center gap-2">
-            <select
-              id="vehicle-mode-select"
-              className="w-full border rounded px-2 py-1"
-              value={vehicleMode}
-              onChange={(e) => setVehicleMode(e.target.value)}
-            >
-              <option value="">-- Select Mode --</option>
-              <option value="SOV">SOV</option>
-              <option value="LOV">LOV</option>
-              <option value="HOV">HOV</option>
-              <option value="light truck">Light Truck</option>
-              <option value="medium truck">Medium Truck</option>
-              <option value="heavy truck">Heavy Truck</option>
-            </select>
-          </div>
-        </div>*/}
+
       </div>
       {/* Search Box Container */}
       <div className="p-3 bg-white border rounded-lg shadow-md w-full min-h-[150px]">
@@ -594,7 +591,14 @@ const MapRoute: React.FC = () => {
 
       <div className="flex-1 relative rounded-lg shadow-md border h-full" >
         <div className="absolute top-2 left-2 bg-white bg-opacity-90 p-2 rounded text-sm font-medium shadow z-10">
-          <h4 className="text-lg font-semibold mb-0">Current Traffic</h4>
+          <h4 className="text-lg font-semibold mb-0">
+            Current Traffic
+          </h4>
+          {peakTime && (
+            <div className="text-sm font-normal">
+              {`${peakTime}`}
+            </div>
+          )}
           {travelTime && (
             <span className="text-sm font-normal">
               {`Estimated time: ${travelTime} min`}

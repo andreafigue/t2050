@@ -6,18 +6,18 @@ import dynamic from 'next/dynamic';
 import { useScroll, useTransform, motion } from 'framer-motion';
 import { useRef } from 'react';
 
-import Population from '../components/study2/Population';
-import BridgeNeedsMap from '../components/BridgeMap2';
-//import InteractiveGame from '../components/InteractiveGame';
-//import AirportQueue from '../components/AirportQueue';
-import Airport from '../components/Airport';
+import Population from './components/Population';
+import BridgeNeedsMap from './components/BridgeMap2';
+//import InteractiveGame from './components/InteractiveGame';
+//import AirportQueue from './components/AirportQueue';
+import Airport from './components/Airport';
 
 
-const DynamicMapRoute = dynamic(() => import('../components/MapRoute2'), { loading: () => <p>Loading commute map…</p> });
-const DynamicWashingtonMapWithLineGraphs = dynamic(() => import('../components/Freight'), { loading: () => <p>Loading freight trends…</p> });
-const DynamicChartComponent = dynamic(() => import('../components/hsr2'), { loading: () => <p>Loading HSR chart…</p> });
-//const DynamicMapComponent = dynamic(() => import('../components/interstate'), { loading: () => <p>Loading freight map…</p> });
-const DynamicDashboard = dynamic(() => import('../components/Dashboard'), { loading: () => <p>Loading dashboard…</p> });
+const DynamicMapRoute = dynamic(() => import('./components/study2/MapRoute'), { loading: () => <p>Loading commute map…</p> });
+const DynamicWashingtonMapWithLineGraphs = dynamic(() => import('./components/Freight'), { loading: () => <p>Loading freight trends…</p> });
+const DynamicChartComponent = dynamic(() => import('./components/hsr2'), { loading: () => <p>Loading HSR chart…</p> });
+//const DynamicMapComponent = dynamic(() => import('./components/interstate'), { loading: () => <p>Loading freight map…</p> });
+const DynamicDashboard = dynamic(() => import('./components/Dashboard'), { loading: () => <p>Loading dashboard…</p> });
 
 const Page = () => {
 
@@ -342,7 +342,7 @@ const Page = () => {
               <strong>Explore:</strong> Learn how cargo moves around the state and how it is expected to grow to meet the increased demand of a growing population.
               Cargo that can’t get to overseas markets harms our state’s economy, including the 1 in 4 jobs dependent on international trade.
             </p>
-            <div className="w-full">
+            <div className="w-full" style={{height:"670px"}}>
               <DynamicWashingtonMapWithLineGraphs/>
             </div>
           </div>

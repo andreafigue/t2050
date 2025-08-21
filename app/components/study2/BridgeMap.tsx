@@ -964,7 +964,7 @@ useEffect(() => {
 }, []);
 
   return (
-    <div style={{ height: "95vh", display: "flex", background: "#f4f4f4", borderRadius: 8 }}>
+    <div style={{ height: "70vh", display: "flex", background: "#f4f4f4", borderRadius: 8 }}>
     
       {/* Map Container with Legend Overlay */}
 
