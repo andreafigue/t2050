@@ -13,7 +13,7 @@ import BridgeNeedsMap from './components/BridgeMap2';
 import Airport from './components/Airport';
 
 
-const DynamicMapRoute = dynamic(() => import('./components/study2/MapRoute'), { loading: () => <p>Loading commute map…</p> });
+const DynamicMapRoute = dynamic(() => import('./components/MapRoute2'), { loading: () => <p>Loading commute map…</p> });
 const DynamicWashingtonMapWithLineGraphs = dynamic(() => import('./components/Freight'), { loading: () => <p>Loading freight trends…</p> });
 const DynamicChartComponent = dynamic(() => import('./components/hsr2'), { loading: () => <p>Loading HSR chart…</p> });
 //const DynamicMapComponent = dynamic(() => import('./components/interstate'), { loading: () => <p>Loading freight map…</p> });
