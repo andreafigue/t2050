@@ -467,10 +467,10 @@ const WashingtonMapWithLineGraphs: React.FC<FreightProps> = ({
 
 
   return (
-    <div className="flex gap-4" style={{ width:'100%', height:"70vh", margin:0 }}>
+    <div className="flex gap-4" style={{ width:'100%', height:"75vh", margin:0 }}>
     
       {/*Mapbox section*/}
-      <div className="w-7/12 border rounded-lg shadow-md flex relative" style={{ height: "100%" }}>
+      <div className="flex  w-7/12 border rounded-lg shadow-md h-100 relative m-0 border" >
 
         {/* Slider */}       
         <div 
