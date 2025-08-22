@@ -116,7 +116,7 @@ const detourBucketColors: Record<string, string> = {
   "21–50 mi": "#2171b5",
   "6–20 mi": "#6baed6",
   "0–5 mi": "#c6dbef",
-  "No Detour": "#f0f0f0"
+  "No Detour": "#7a7a7a"
 };
 
 // Helper functions for detour thresholds and colors (0–5: Good, 5–10: Fair, >10: Poor)
@@ -729,7 +729,7 @@ const BridgeNeedsMap = () => {
 
     const color = d3.scaleOrdinal<string, string>()
     .domain(buckets)
-    .range(["#08306b", "#2171b5", "#6baed6", "#c6dbef", "#f0f0f0"]);
+    .range(["#08306b", "#2171b5", "#6baed6", "#c6dbef", "#7a7a7a"]);
 
 
     const tooltip = d3.select("body").select(".d3-tooltip").empty()
@@ -964,12 +964,12 @@ useEffect(() => {
 }, []);
 
   return (
-    <div style={{ height: "95vh", display: "flex", background: "#f4f4f4", borderRadius: 8 }}>
+    <div className="gap-4" style={{ height: "70vh", display: "flex"}}>
     
       {/* Map Container with Legend Overlay */}
 
 
-      <div style={{ width: "65%", position: "relative"}}>
+      <div className="border shadow-md" style={{ width: "65%", position: "relative",  borderRadius: "8px"}}>
 
         {/* County filter */}     
         <div
@@ -1129,7 +1129,7 @@ useEffect(() => {
                   { label: "21–50 mi", color: "#2171b5" },
                   { label: "6–20 mi", color: "#6baed6" },
                   { label: "0–5 mi", color: "#c6dbef" },
-                  { label: "No Detour", color: "#f0f0f0" }
+                  { label: "No Detour", color: "#7a7a7a" }
                 ].map(({ label, color }) => (
                   <div key={label} style={{ display: "flex", alignItems: "center", marginBottom: "4px" }}>
                     <div
@@ -1173,12 +1173,11 @@ useEffect(() => {
         width: "35%", 
         display: "flex", 
         flexDirection: "column", 
-        padding: "20px", 
         height: "100%",
         minHeight: 0 
       }}>
         <div style={{ display: "flex", gap: "10px", flex: "0 0 20%" }}>
-          <div style={{ ...cardStyle, flex: 1, textAlign: "center" }}>
+          <div className="border" style={{ ...cardStyle, flex: 1, textAlign: "center", backgroundColor: "#f4f4f4" }}>
             <div style={{ fontSize: "11pt", marginBottom: "10px", fontFamily: "Encode Sans Compressed, sans-serif" }}>
               Total Bridges
             </div>
@@ -1187,7 +1186,7 @@ useEffect(() => {
             </div>
           </div>
 
-          <div style={{ ...cardStyle, flex: 1, textAlign: "center" }}>
+          <div className="border" style={{ ...cardStyle, flex: 1, textAlign: "center", backgroundColor: "#f4f4f4" }}>
             <div style={{ fontSize: "11pt", marginBottom: "10px", fontFamily: "Encode Sans Compressed, sans-serif" }}>
               Total Improvement Cost
             </div>
@@ -1198,13 +1197,14 @@ useEffect(() => {
         </div>
 
         
-        <div style={{
+        <div className="border" style={{
           ...cardStyle, 
           flex: "1 1 0", 
           width: "100%", 
           display:"flex", 
           flexDirection: "column",
-          minHeight: 0 
+          minHeight: 0, 
+          backgroundColor: "#f4f4f4"
         }}>
           {/* Insert Condition Chart */}
           <h4 style={{ fontSize: "13pt", marginBottom: "8px", fontWeight: "bold", fontFamily: "Encode Sans Compressed, sans-serif"}}>
@@ -1220,17 +1220,18 @@ useEffect(() => {
             <div id="condition-bar-chart" style={{ width: "100%", height: "100%" }}/>
           </div>
         </div>
-        <div style={{
+        <div className="border mb-0" style={{
           ...cardStyle, 
           flex: "1 1 0", 
           width: "100%", 
           display:"flex", 
           flexDirection: "column",
-          minHeight: 0 
+          minHeight: 0 , 
+          backgroundColor: "#f4f4f4"
         }}>
           {/* Insert Detour Chart */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <h4 style={{ fontSize: "13pt", marginBottom: "8px", fontWeight: "bold", fontFamily: "Encode Sans Compressed, sans-serif"}}>Detour Distance </h4>
+          <h4 style={{ fontSize: "13pt", fontWeight: "bold", fontFamily: "Encode Sans Compressed, sans-serif"}}>Detour Distance </h4>
           <div
             title="No Detour: Ground level bypass is available at the structure site for the inventory route."
             style={{

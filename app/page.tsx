@@ -115,6 +115,10 @@ const Page = () => {
             <a href="https://https://www.washington.edu//" target="_blank" rel="noopener noreferrer">
               <Image src="/logos/Signature_Stacked_White.png" alt="UW" width={250} height={67} />
             </a>
+            <br/><br/>
+            <a href="https://https://www.washington.edu//" target="_blank" rel="noopener noreferrer">
+              <Image src="/logos/mic.png" alt="UW" width={250} height={67} />
+            </a>
           </motion.div>
         </div>
       </section>
