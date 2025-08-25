@@ -3,7 +3,7 @@ import fs from 'fs'
 import path from 'path'
 import { point, booleanPointInPolygon } from '@turf/turf'
 import type { Feature, Polygon } from 'geojson';
-
+import { Client } from 'pg';
 
 export async function GET(req: NextRequest) {
   const url = new URL(req.url)
@@ -11,6 +11,14 @@ export async function GET(req: NextRequest) {
   const oLng = parseFloat(url.searchParams.get('originLng') || '')
   const dLat = parseFloat(url.searchParams.get('destinationLat') || '')
   const dLng = parseFloat(url.searchParams.get('destinationLng') || '')
+
+  const client = new Client({
+    user: process.env.PGUSER,
+    host: process.env.PGHOST,
+    database: process.env.PGDATABASE,
+    password: process.env.PGPASSWORD,
+    port: Number(process.env.PGPORT),
+  });
 
   if ([oLat, oLng, dLat, dLng].some(isNaN)) {
     return NextResponse.json({ error: 'Invalid coordinates' }, { status: 400 })
@@ -47,71 +55,86 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'One or both TAZs not found' }, { status: 404 })
     }
 
-    // Load multiplier matrix
-    // const matrixPath = path.join(process.cwd(), 'public', 'data/psrc/psrc_sov.json')
-    // const matrixRaw = fs.readFileSync(matrixPath, 'utf8')
-    // const matrix = JSON.parse(matrixRaw)
+    // Connection to DB
+    try {
+      await client.connect();
 
-    // const rowIndex = matrix.index.indexOf(originTaz)
-    // console.log("ROW INDEX: ", rowIndex)
-    // const colIndex = matrix.columns.indexOf(destTaz)
-    // console.log("COL INDEX: ", colIndex)
+      const result_multiplier = await client.query(
+        "SELECT multiplier FROM psrc_multiplier WHERE origin_taz = $1 AND destination_taz = $2",
+        [originTaz, destTaz]
+      );
+      const result_source = await client.query(
+        "SELECT source_text FROM psrc_source WHERE origin_taz = $1 AND destination_taz = $2",
+        [originTaz, destTaz]
+      );
 
-    // if (rowIndex === -1 || colIndex === -1) {
-    //   return NextResponse.json({ error: 'TAZ ID not found in matrix' }, { status: 404 })
-    // }
+      await client.end();
 
-    // const multiplier = matrix.data?.[rowIndex]?.[colIndex] ?? null
+      const multiplier = result_multiplier.rows[0]["multiplier"]
+      const sourceMultiplier = result_source.rows[0]["source_text"]
 
-    const batchSize = 100;
-    const batchIndex = Math.floor(originTaz / batchSize);
-    const batchFile = `batch_${batchIndex.toString().padStart(3, "0")}.json`;
-    const batchPath = path.join(process.cwd(), "public", "data/psrc/batches", batchFile);
+      return NextResponse.json({
+        originTaz,
+        destinationTaz: destTaz,
+        multiplier,
+        sourceMultiplier,
+      })
+    } catch (err) {
+      console.error('PostgreSQL error:', err);
+      //return new NextResponse(null, { status: 500 });
 
-    if (!fs.existsSync(batchPath)) {
-      return NextResponse.json({ error: "Batch file not found" }, { status: 404 });
+      // If DB not available fallback to batch files
+
+      const batchSize = 100;
+      const batchIndex = Math.floor(originTaz / batchSize);
+      const batchFile = `batch_${batchIndex.toString().padStart(3, "0")}.json`;
+      const batchPath = path.join(process.cwd(), "public", "data/psrc/batches", batchFile);
+
+      if (!fs.existsSync(batchPath)) {
+        return NextResponse.json({ error: "Batch file not found" }, { status: 404 });
+      }
+
+      const batchRaw = fs.readFileSync(batchPath, "utf8");
+      const batchData = JSON.parse(batchRaw);
+
+      const originRow = batchData[originTaz.toString()];
+      if (!originRow) {
+        return NextResponse.json({ error: `Origin TAZ ${originTaz} not in batch` }, { status: 404 });
+      }
+
+      const multiplier = originRow[destTaz.toString()];
+      if (multiplier === undefined) {
+        return NextResponse.json({ error: `Destination TAZ ${destTaz} not found` }, { status: 404 });
+      }
+
+      // Load source multiplier (same logic, different folder)
+      const sourceBatchPath = path.join(process.cwd(), "public", "data/psrc/sources", batchFile);
+
+      if (!fs.existsSync(sourceBatchPath)) {
+        return NextResponse.json({ error: "Source batch file not found" }, { status: 404 });
+      }
+
+      const sourceRaw = fs.readFileSync(sourceBatchPath, "utf8");
+      const sourceData = JSON.parse(sourceRaw);
+
+      const sourceRow = sourceData[originTaz.toString()];
+      if (!sourceRow) {
+        return NextResponse.json({ error: `Origin TAZ ${originTaz} not in source batch` }, { status: 404 });
+      }
+
+      const sourceMultiplier = sourceRow[destTaz.toString()];
+      if (sourceMultiplier === undefined) {
+        return NextResponse.json({ error: `Destination TAZ ${destTaz} not found in source data` }, { status: 404 });
+      }
+      return NextResponse.json({
+        originTaz,
+        destinationTaz: destTaz,
+        multiplier,
+        sourceMultiplier,
+      })
     }
 
-    const batchRaw = fs.readFileSync(batchPath, "utf8");
-    const batchData = JSON.parse(batchRaw);
-
-    const originRow = batchData[originTaz.toString()];
-    if (!originRow) {
-      return NextResponse.json({ error: `Origin TAZ ${originTaz} not in batch` }, { status: 404 });
-    }
-
-    const multiplier = originRow[destTaz.toString()];
-    if (multiplier === undefined) {
-      return NextResponse.json({ error: `Destination TAZ ${destTaz} not found` }, { status: 404 });
-    }
-
-    // Load source multiplier (same logic, different folder)
-    const sourceBatchPath = path.join(process.cwd(), "public", "data/psrc/sources", batchFile);
-
-    if (!fs.existsSync(sourceBatchPath)) {
-      return NextResponse.json({ error: "Source batch file not found" }, { status: 404 });
-    }
-
-    const sourceRaw = fs.readFileSync(sourceBatchPath, "utf8");
-    const sourceData = JSON.parse(sourceRaw);
-
-    const sourceRow = sourceData[originTaz.toString()];
-    if (!sourceRow) {
-      return NextResponse.json({ error: `Origin TAZ ${originTaz} not in source batch` }, { status: 404 });
-    }
-
-    const sourceMultiplier = sourceRow[destTaz.toString()];
-    if (sourceMultiplier === undefined) {
-      return NextResponse.json({ error: `Destination TAZ ${destTaz} not found in source data` }, { status: 404 });
-    }
-
-
-    return NextResponse.json({
-      originTaz,
-      destinationTaz: destTaz,
-      multiplier,
-      sourceMultiplier,
-    })
+    
   } catch (error) {
     console.error(error)
     return NextResponse.json({ error: 'Server error' }, { status: 500 })
