@@ -1,0 +1,42 @@
+.tooltip {
+  position: relative;
+  display: inline-flex;
+  cursor: help;
+  color: #555;
+}
+
+/* Show on hover OR keyboard focus */
+.tooltip:hover::after,
+.tooltip:focus-visible::after,
+.tooltip:hover::before,
+.tooltip:focus-visible::before {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Bubble */
+.tooltip::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 15;                       /* align vertically with icon */
+  right: calc(100%);        /* place fully to the left of icon */
+  background: rgba(97, 97, 97, 0.92);
+  color: #fff;
+  font-size: 12px;
+  line-height: 1.4;
+  padding: 6px 8px;
+  border-radius: 4px;
+  z-index: 1000;
+
+  /* fixed width, wrap text */
+  width: 220px;
+  white-space: pre-line;
+  word-wrap: break-word;
+  text-align: left;
+
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 120ms ease, visibility 120ms ease;
+  pointer-events: none;
+}
+

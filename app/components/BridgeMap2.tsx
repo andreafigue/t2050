@@ -11,6 +11,10 @@ import ClientOnly from "./ClientOnly";
 import { debounce } from "lodash";
 import { useCallback } from "react";
 
+import { Info } from "lucide-react";
+import styles from "./Tooltip.module.css";
+
+
 const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN!;
 const colorScale = d3.interpolateViridis
 
@@ -294,6 +298,8 @@ const BridgeNeedsMap = () => {
           Latitude,
           BridgeNumber,
           BridgeName,
+          YearBuilt,
+          YearRebuilt,
           ScourCondition,
           CulvertCondition,
           BridgeOverallConditionState,
@@ -355,6 +361,12 @@ const BridgeNeedsMap = () => {
                 <div><b>County:</b> ${bridge.CountyName || "N/A"}</div>
                 <div><b>Length (ft):</b> ${PrpsedImprvStructureLgthByFT || "N/A"}</div>
                 <div><b>Width (ft):</b> ${PrpsedImprvRoadwayWdthByFT || "N/A"}</div>
+                <div><b>Year Built:</b> ${YearBuilt || "N/A"}</div>
+                ${
+                  YearRebuilt
+                    ? `<div><b>Year Rebuilt:</b> ${YearRebuilt}</div>`
+                    : ""
+                }
               </div>
 
               <hr style="margin: 8px 0; border: none; border-top: 1px solid #ddd;" />
@@ -501,7 +513,7 @@ const BridgeNeedsMap = () => {
       d => d.BridgeOverallConditionState
     );
 
-    const order = ["Poor", "Fair", "Good"];
+    const order = ["Good", "Fair", "Poor"];
     const orderedData = order.map(label => ({
       label,
       count: counts.find(([k]) => k === label)?.[1] || 0
@@ -1206,10 +1218,21 @@ useEffect(() => {
           minHeight: 0, 
           backgroundColor: "#f4f4f4"
         }}>
-          {/* Insert Condition Chart */}
-          <h4 style={{ fontSize: "13pt", marginBottom: "8px", fontWeight: "bold", fontFamily: "Encode Sans Compressed, sans-serif"}}>
-            Overall Condition Breakdown
-          </h4>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            {/* Insert Condition Chart */}
+            <h4 style={{ fontSize: "13pt", marginBottom: "8px", fontWeight: "bold", fontFamily: "Encode Sans Compressed, sans-serif"}}>
+              Overall Condition Breakdown
+            </h4>
+            <span
+              className={styles.tooltip}
+              data-tooltip={`• Good: Good condition\n• Fair: Some maintenance required\n• Poor: Advanced deficiencies, major maintenance required`}
+              tabIndex={0}
+              aria-label="More info"
+              style={{ marginLeft: 8, fontSize: 18 }}
+            >
+              <Info size={18} />
+            </span>
+          </div>
           <div style={{ 
             flex: 1, 
             display: "flex", 
@@ -1231,19 +1254,17 @@ useEffect(() => {
         }}>
           {/* Insert Detour Chart */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <h4 style={{ fontSize: "13pt", fontWeight: "bold", fontFamily: "Encode Sans Compressed, sans-serif"}}>Detour Distance </h4>
-          <div
-            title="No Detour: Ground level bypass is available at the structure site for the inventory route."
-            style={{
-              marginLeft: "8px",
-              cursor: "help",
-              fontSize: "16px",
-              color: "#555"
-            }}
-          >
-            ℹ️
+            <h4 style={{ fontSize: "13pt", fontWeight: "bold", fontFamily: "Encode Sans Compressed, sans-serif"}}>Detour Distance </h4>
+            <span
+              className={styles.tooltip}
+              data-tooltip="No Detour: Ground level bypass is available at the structure site for the inventory route."
+              tabIndex={0}
+              aria-label="More info"
+              style={{ marginLeft: 8, fontSize: 18 }}
+            >
+              <Info size={18} />
+            </span>
           </div>
-        </div>
           <div style={{ 
             flex: 1, 
             display: "flex", 
@@ -1252,9 +1273,9 @@ useEffect(() => {
             overflow: "hidden"
           }}>
             <div id="detour-distribution-chart" style={{ width: "100%", height: "100%" }}/>
+            </div>
           </div>
-        </div>
-      </div> 
+        </div> 
 
     <style
       dangerouslySetInnerHTML={{
