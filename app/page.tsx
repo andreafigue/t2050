@@ -155,9 +155,17 @@ const Page = () => {
               <strong>Explore:</strong> See how our state’s population has changed since 1961 and is predicted to continue to grow over the next 25 years.
             </p>
 
-      <Population />
-          </div>
+            <Population />
 
+            <div className="pl-3" style={{ marginTop: "0.5rem", fontSize: "0.9rem", color: "#4b5563" }}>
+              <ol style={{ margin: "1rem 0 0 0rem", padding: 0, listStyleType: "decimal" }}>
+                <li>
+                  Washington State Office of Financial Management (OFM),
+                  <em> Growth Management Act Population Projections for Counties: 2020–2050</em>.
+                </li>
+              </ol>
+            </div>
+          </div>
         </div>
       </motion.section>
 
@@ -206,6 +214,18 @@ const Page = () => {
             </p>
             <DynamicMapRoute />
             <br/>
+            <div className="pl-3" style={{ marginTop: "0.5rem", fontSize: "0.9rem", color: "#4b5563" }}>
+              <ol style={{ margin: "0rem 0 0 1.25rem", padding: 0, listStyleType: "decimal" }}>
+                <li>
+                  Puget Sound Regional Council (PSRC),
+                  <em> Vision 2050 – Regional Transportation Model</em>.
+                </li>
+                <li>
+                  Spokane Regional Transportation Council (SRTC),
+                  <em> Metropolitan Transportation Plan – 2050 Transportation Model</em>.
+                </li>
+              </ol>
+            </div>
           </div>
           {/*Commenting on Aug 20*/}
           {/*<div className="mt-12 p-6 bg-gray-100 border" style={{borderRadius: 8}}>
@@ -272,6 +292,15 @@ const Page = () => {
 
             <div style={{width: "100%", height: "600px" }}>
              <Airport />
+            </div>
+
+            <div className="pl-2" style={{ marginTop: "1rem", fontSize: "0.9rem", color: "#4b5563" }}>
+              <ol style={{ margin: "0rem 0 0 1rem", padding: 0, listStyleType: "decimal" }}>
+                <li>
+                  Federal Aviation Administration (FAA),
+                  <em>Passenger Boarding (Enplanement) Data (ACAIS)</em>.
+                </li>             
+              </ol>
             </div>
           </div>
 
@@ -343,6 +372,15 @@ const Page = () => {
             <div className="w-full" >
               <DynamicWashingtonMapWithLineGraphs/>
             </div>
+
+            <div className="pl-0" style={{ marginTop: "0.5rem", fontSize: "0.9rem", color: "#4b5563" }}>
+              <ol style={{ margin: "0rem 0 0 1rem", padding: 0, listStyleType: "decimal" }}>
+                <li>
+                  U.S. Department of Transportation, Federal Highway Administration &amp; Bureau of Transportation Statistics,
+                  <em>Freight Analysis Framework Version 5 (FAF5)</em>.
+                </li>              
+              </ol>
+            </div>
           </div>
         </div>
       </motion.section>
@@ -396,7 +434,7 @@ const Page = () => {
               <BridgeNeedsMap />
             </div>
 
-            <div className="pl-3" style={{ marginTop: "0.5rem", fontSize: "0.75rem", color: "#4b5563" }}>
+            <div className="pl-3" style={{ marginTop: "0.5rem", fontSize: "0.9rem", color: "#4b5563" }}>
               <ol style={{ margin: "0.25rem 0 0 1rem", padding: 0, listStyleType: "decimal" }}>
                 <li>
                   Washington State Department of Transportation (WSDOT), 
@@ -451,14 +489,24 @@ const Page = () => {
               redefining what it means to live and work in the Pacific Northwest.
             </p>
 
-            <div className="mb-4" style={{ padding: '1rem 1rem', width: "100%", height: "330px" }}>
-              <div className="max-w-5xl w-full h-full">
+            <div className="mb-4" style={{ padding: '1rem 1rem', width: "100%", height: "320px" }}>
+              <div className=" w-full h-full">
                 <DynamicChartComponent />
               </div>
-              <p style={{fontStyle: 'italic', paddingRight: "5px", textAlign: "left", marginTop: "5px"}}>
-              Note: High-speed rail is defined as speeds between 160 to 250 miles per hour. Travel time is based on seat time and does not include airport security screening. High-speed rail times are based on projections from feasibility studies and are subject to change as the project develops.
-              </p>
             </div>
+
+            <div style={{ marginTop: "0rem", marginLeft: "1rem", fontSize: "0.9rem", color: "#4b5563" }}>
+              <ol style={{ margin: "2rem 0 0 0.5rem", padding: 0, listStyleType: "decimal" }}>
+                <li>
+                  Washington State Department of Transportation (WSDOT),
+                  <em>Ultra-High-Speed Ground Transportation Study — Business Case Analysis(2019)</em>.
+                </li>            
+              </ol>
+              <p style={{fontStyle: 'italic', fontSize: "0.9rem", color: "#4b5563", paddingRight: "5px", textAlign: "left", marginTop: "5px"}}>
+            Note: High-speed rail is defined as speeds between 160 to 250 miles per hour. Travel time is based on seat time and does not include airport security screening. High-speed rail times are based on projections from feasibility studies and are subject to change as the project develops.
+            </p>
+            </div>
+                
           </div>
         </div>
       </motion.section>
