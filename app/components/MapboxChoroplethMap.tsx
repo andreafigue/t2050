@@ -147,6 +147,8 @@ const MapboxChoroplethMap: React.FC<Props> = ({
       zoom: 5.6,
     });
 
+    mapRef.current.addControl(new mapboxgl.NavigationControl(), "right");
+
     if (!popupRef.current) {
       popupRef.current = new mapboxgl.Popup({ closeButton: false, closeOnClick: false });
     }

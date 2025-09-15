@@ -9,7 +9,6 @@ import * as d3 from "d3";
 // ---------------------------
 const passengerData = [
   { year: 2017, forecast: 22.45, capacity: 23.05 },
-  // { year: 2022, forecast: 25.4, capacity: 25.655 },
   { year: 2019, forecast: 25.4, capacity: 25.655 },
   { year: 2020, forecast: 9.6, capacity: 25.655 },
   { year: 2021, forecast: 17.5, capacity: 25.655 },

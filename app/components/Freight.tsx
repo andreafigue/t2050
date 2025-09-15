@@ -86,30 +86,49 @@ const WashingtonMapWithLineGraphs: React.FC<FreightProps> = ({
 
   useEffect(() => {
 
-    d3.json<FreightData[]>('/data/freight/aggregated.json').then(data => {
-      const processed = data.map(d => ({
-        ...d,
-        "Trade Type": String(d["Trade Type"]),
-        "Mode": String(d["Mode"]),
-        "Origin County": String(d["Origin County"])
-      }));
-      setFreightCSVData(processed);
-    });
+    const loadFreight = async () => {
+      try {
+        // 1) Try DB/API
+        const res = await fetch('/api/freight');
+        if (!res.ok) throw new Error('api failed');
+
+        const dbRows = await res.json();
+        const processed: FreightData[] = dbRows.map((r: any) => ({
+          Year: Number(r.year),
+          "Origin County": String(r.origin_county),        // match JSON key
+          "Commodity Group": String(r.commodity_group),
+          "Trade Type": String(r.trade_type),
+          Mode: String(r.mode),
+          Tons: Number(r.tons),
+          Value: Number(r.value),
+        }));
+
+        //console.log("loaded from DB ")
+
+        setFreightCSVData(processed);
+      } catch (e) {
+        // 2) Fallback to local JSON
+
+        //console.log("loaded from json ", e)
+        d3.json<FreightData[]>('/data/freight/aggregated.json').then(data => {
+          const processed = data.map(d => ({
+            ...d,
+            "Trade Type": String(d["Trade Type"]),
+            Mode: String(d["Mode"]),
+            "Origin County": String(d["Origin County"]),
+          }));
+          setFreightCSVData(processed);
+        });
+      }
+    };
+
+    loadFreight();
 
     // Load & draw counties once
     d3.json('/data/freight/counties.geojson').then((geojson: any) => {
       setGeoJsonData(geojson);
 
       const features = geojson.features.filter((f:any) => f.properties.STATEFP === '53');
-      //geojsonRef.current = features;
-
-      // Build mapping for filtering
-      // const mapping: Record<string,string> = {};
-      // features.forEach((f:any) => {
-      //   mapping[f.properties.NAME] =
-      //     f.properties.GEOID ?? (f.properties.STATEFP + f.properties.COUNTYFP);
-      // });
-      // setWaCountyMapping(mapping);
      
     });
   }, []);
@@ -219,9 +238,6 @@ const WashingtonMapWithLineGraphs: React.FC<FreightProps> = ({
   //   countyDataRef.current = mapFreightCountyData;
   // }, [mapFreightCountyData]);
 
-
-
-
   // --- Line chart logic ---
   const lineGraph1Ref = useRef<SVGSVGElement>(null);
   const lineGraph2Ref = useRef<SVGSVGElement>(null);
@@ -246,6 +262,15 @@ const WashingtonMapWithLineGraphs: React.FC<FreightProps> = ({
 
       const w = container.clientWidth;
       const h = container.clientHeight;
+
+
+      if (!Number.isFinite(w) || !Number.isFinite(h) || w <= 0 || h <= 0) return;
+
+      // Bail if data isn’t ready
+      if (!data || data.length === 0) {
+        d3.select(svgRef.current!).selectAll("*").remove();
+        return;
+      }
 
       const svg = d3.select(svgRef.current!)
         .attr("width",  w)
@@ -430,7 +455,7 @@ const WashingtonMapWithLineGraphs: React.FC<FreightProps> = ({
       next.has(countyName) ? next.delete(countyName) : next.add(countyName);
       selectedCountiesRef.current = next;
       onCountySelectionChange(next);
-      console.log("Clicked county:", countyName);
+      //console.log("Clicked county:", countyName);
       return next;
     });
   }, [onCountySelectionChange]);
@@ -470,7 +495,7 @@ const WashingtonMapWithLineGraphs: React.FC<FreightProps> = ({
     <div className="flex gap-4" style={{ width:'100%', height:"75vh", margin:0 }}>
     
       {/*Mapbox section*/}
-      <div className="flex  w-7/12 border rounded-lg shadow-md h-100 relative m-0 border" >
+      <div className="flex  w-7/12 border rounded-lg shadow-md h-full relative m-0 border" >
 
         {/* Slider */}       
         <div 
@@ -685,7 +710,7 @@ const WashingtonMapWithLineGraphs: React.FC<FreightProps> = ({
       </div>
 
       {/* Right Column for Charts */}
-      <div className="w-5/12 flex flex-col h-100" >
+      <div className="w-5/12 flex flex-col h-full min-h-0" >
         
         {/* Filters */}
         <div className="p-3 border rounded-lg shadow-md bg-white mb-4 items-center flex flex-col ">
@@ -713,11 +738,11 @@ const WashingtonMapWithLineGraphs: React.FC<FreightProps> = ({
         </div>
         
         {/* Tons Chart */}
-        <div className="border items-center shadow-md rounded-lg flex-1 flex flex-col p-3 mb-4 bg-white">
+        <div className="border items-center shadow-md rounded-lg flex-1 flex flex-col p-3 mb-4 bg-white min-h-0">
           <h4 style={{ fontSize: "15pt", fontWeight: "bold" }}>
             Tons over Years {selectedCounties.size > 0 && "(selected counties)"}
           </h4>
-          <div className="w-full flex-1 relative" style={{ overflow: "visible" }}>
+          <div className="w-full h-full flex-1 relative min-h-0" style={{ overflow: "visible" }}>
             <svg
               ref={lineGraph1Ref}
             />
@@ -725,11 +750,11 @@ const WashingtonMapWithLineGraphs: React.FC<FreightProps> = ({
         </div>
 
         {/* Value Chart */}
-        <div className="border items-center shadow-md rounded-lg flex-1 flex flex-col p-3 bg-white ">
+        <div className="border items-center shadow-md rounded-lg flex-1 flex flex-col p-3 bg-white min-h-0">
           <h4 style={{ fontSize: "15pt", fontWeight: "bold" }}>
             Value over Years {selectedCounties.size > 0 && "(selected counties)"}
           </h4>
-          <div className="w-full flex-1 relative" >
+          <div className="w-full h-full inset-0 flex-1 relative min-h-0" >
             <svg
               ref={lineGraph2Ref}
             />

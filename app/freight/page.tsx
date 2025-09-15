@@ -3,7 +3,7 @@ import WashingtonMapWithLineGraphs from '../components/Freight';
 
 export default function Home() {
   return (
-    <div style={{ width: '100%'}}>
+    <div style={{ padding: '1rem 1rem' }}>
       <WashingtonMapWithLineGraphs/>
     </div>
   );

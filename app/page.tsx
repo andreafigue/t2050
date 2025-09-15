@@ -51,8 +51,8 @@ const Page = () => {
           <Image
             src="/img/link.jpg"
             alt="Background"
-            layout="fill"
-            objectFit="cover"
+            fill
+            style={{ objectFit: "cover" }}
             className="z-0"
           />
           <motion.div

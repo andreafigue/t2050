@@ -1092,11 +1092,7 @@ const BridgeNeedsMap = () => {
   }, []);
 
   return (
-    <div className="gap-4" style={{ height: "70vh", display: "flex"}}>
-    
-      {/* Map Container with Legend Overlay */}
-
-
+    <div className="flex gap-4" style={{ width:'100%', height:"75vh", margin:0 }}>
       <div className="border shadow-md" style={{ width: "65%", position: "relative",  borderRadius: "8px"}}>
 
         {/* County filter */}     
