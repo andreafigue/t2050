@@ -401,6 +401,15 @@ const Page = () => {
             <div style={{ padding: '1rem 1rem' }}>
               <BridgeNeedsMap />
             </div>
+
+            <div className="pl-3" style={{ marginTop: "0.5rem", fontSize: "0.75rem", color: "#4b5563" }}>
+              <ol style={{ margin: "0.25rem 0 0 1rem", padding: 0, listStyleType: "decimal" }}>
+                <li>
+                  Washington State Department of Transportation (WSDOT), 
+                  <em> Bridge Needs</em>. Accessed Oct 31, 2024. 
+                </li>
+              </ol>
+            </div>
           </div>
         </div>
       </motion.section>
