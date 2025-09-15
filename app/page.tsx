@@ -8,16 +8,10 @@ import { useRef } from 'react';
 
 import Population from './components/Population';
 import BridgeNeedsMap from './components/BridgeMap2';
-//import InteractiveGame from './components/InteractiveGame';
-//import AirportQueue from './components/AirportQueue';
 import Airport from './components/Airport';
-
-
 const DynamicMapRoute = dynamic(() => import('./components/MapRoute2'), { loading: () => <p>Loading commute map…</p> });
 const DynamicWashingtonMapWithLineGraphs = dynamic(() => import('./components/Freight'), { loading: () => <p>Loading freight trends…</p> });
 const DynamicChartComponent = dynamic(() => import('./components/hsr2'), { loading: () => <p>Loading HSR chart…</p> });
-//const DynamicMapComponent = dynamic(() => import('./components/interstate'), { loading: () => <p>Loading freight map…</p> });
-const DynamicDashboard = dynamic(() => import('./components/Dashboard'), { loading: () => <p>Loading dashboard…</p> });
 
 const Page = () => {
 
