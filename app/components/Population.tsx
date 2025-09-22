@@ -121,7 +121,7 @@ const Population: React.FC = () => {
         if (!res.ok) throw new Error('DB fetch failed');
         const rows: CountyCsvRow[] = await res.json();
 
-        console.log("Loaded from DB", rows.length, "rows");
+        //console.log("Loaded from DB", rows.length, "rows");
         processCountyData(rows);
       } catch (error) {
         console.warn("Falling back to local CSV", error);

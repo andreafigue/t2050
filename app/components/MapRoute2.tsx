@@ -51,6 +51,11 @@ const MapRoute: React.FC = () => {
   // County selection state – if empty, no county outlines are shown.
   const [selectedCountyOption, setSelectedCountyOption] = useState<string>("psrc"); // or "trpc"
 
+  // which routes were returned & which one we’re showing
+  const [routes, setRoutes] = useState<any[]>([]);
+  const [selectedRouteIdx, setSelectedRouteIdx] = useState(0);
+  const [forecastMultiplier, setForecastMultiplier] = useState<number | null>(null);
+
   // Ref to hold the selected region GeoJSON
   const [regionGeoJSON, setRegionGeoJSON] = useState<any>(null);
 
@@ -58,6 +63,8 @@ const MapRoute: React.FC = () => {
 
   const originInputRef = useRef<HTMLInputElement | null>(null);
   const destinationInputRef = useRef<HTMLInputElement | null>(null);
+
+  const map_layer = "road-label";
 
   const time_slots = {
     "5to6.h5" : "Peak time: 5 AM to 6 AM",
@@ -89,7 +96,6 @@ const MapRoute: React.FC = () => {
     "20to5.h5" : "00:30"
   }
 
-  // Put this near the top (below other helpers)
   const formatMinutes = (mins?: number | null) => {
     if (mins == null) return "";
     const h = Math.floor(mins / 60);
@@ -99,7 +105,6 @@ const MapRoute: React.FC = () => {
     return `${h} hr${h > 1 ? "s" : ""} ${m} min`;
   };
 
-  // 0 = Sun ... 4 = Thu ... 6 = Sat
   const getNextWeeksThursday = (): string => {
     const d = new Date();
     const day = d.getDay();
@@ -117,11 +122,105 @@ const MapRoute: React.FC = () => {
     return `${y}-${m}-${dd}`;
   };
 
+  // Congestion colors
+  const CURRENT_CONGESTION_COLORS: Record<string, string> = {
+    unknown: "#B2B2B2",
+    low: "#78B24A",
+    moderate: "#FF9619",
+    heavy: "#EB7360",
+    severe: "#A82D19",
+  };
 
+  // build gradient for "current" (original palette)
+  function gradientFromAnnotation(annotation: any) {
+    const COLORS = {
+      unknown: "#B2B2B2",
+      low: "#78B24A",
+      moderate: "#FF9619",
+      heavy: "#EB7360",
+      severe: "#A82D19",
+    } as const;
 
+    const levels: string[] = annotation?.congestion || [];
+    if (!levels.length) return ["literal", COLORS.unknown];
 
-  // Vehicle mode state for the new select box.
-  //const [vehicleMode, setVehicleMode] = useState<string>("");
+    let stops: [string, ...any[]] = ["interpolate", ["linear"], ["line-progress"]];
+    const n = levels.length;
+    for (let i = 0; i < n; i++) {
+      let p = n === 1 ? 1 : i / (n - 1);
+      if (stops.length >= 4 && p <= stops[stops.length - 2]) p += 0.0001;
+      stops.push(p, COLORS[levels[i] as keyof typeof COLORS] ?? COLORS.unknown);
+    }
+    return stops;
+  }
+
+  function gradientFromAdjusted(adjusted: string[]) {
+    const COLORS = {
+      unknown: "#B2B2B2",
+      low: "#78B24A",
+      moderate: "#FF9619",
+      heavy: "#EB7360",
+      severe: "#A82D19",
+    } as const;
+
+    if (!adjusted.length) return ["literal", COLORS.unknown];
+    let stops: [string, ...any[]] = ["interpolate", ["linear"], ["line-progress"]];
+    const n = adjusted.length;
+    for (let i = 0; i < n; i++) {
+      let p = n === 1 ? 1 : i / (n - 1);
+      if (stops.length >= 4 && p <= stops[stops.length - 2]) p += 0.0001;
+      stops.push(p, COLORS[adjusted[i] as keyof typeof COLORS] ?? COLORS.unknown);
+    }
+    return stops;
+  }
+
+  function selectRoute(idx: number) {
+    const map = mapInstanceRef.current;
+    const mapF = mapForecastInstanceRef.current;
+    if (!map || !mapF) return;
+
+    routes.forEach((_, i) => {
+      const vis = i === idx ? "visible" : "none";
+      if (map.getLayer(`route-current-line-${i}`)) {
+        map.setLayoutProperty(`route-current-line-${i}`, "visibility", vis);
+      }
+      if (mapF.getLayer(`route-forecast-line-${i}`)) {
+        mapF.setLayoutProperty(`route-forecast-line-${i}`, "visibility", vis);
+      }
+    });
+
+    const r = routes[idx];
+    setSelectedRouteIdx(idx);
+    const eta = Math.round(r.duration / 60);
+    setTravelTime(eta);
+
+    if (forecastMultiplier != null) {
+      setForecastTravelTime(Math.round(eta * Math.max(1, forecastMultiplier)));
+    }
+  }
+
+  function cleanupAllRoutes(mp: mapboxgl.Map | null) {
+    if (!mp) return;
+    if (!mp.isStyleLoaded()) {
+      // Delay cleanup until style is ready
+      mp.once("styledata", () => cleanupAllRoutes(mp));
+      return;
+    }
+
+    const layers = mp.getStyle().layers || [];
+    for (const layer of layers) {
+      if (layer.id.startsWith("route-")) {
+        if (mp.getLayer(layer.id)) mp.removeLayer(layer.id);
+      }
+    }
+    const sources = mp.getStyle().sources || {};
+    for (const id in sources) {
+      if (id.startsWith("route-")) {
+        if (mp.getSource(id)) mp.removeSource(id);
+      }
+    }
+  }
+
 
   // State for holding the county GeoJSON data from /public/wa_counties.geojson
   const [countyData, setCountyData] = useState<any>(null);
@@ -141,7 +240,6 @@ const MapRoute: React.FC = () => {
       }
     });
   };
-
 
   // Fetch county GeoJSON data when the component mounts.
   useEffect(() => {
@@ -214,7 +312,7 @@ const MapRoute: React.FC = () => {
               "line-width": 2,
               "line-opacity": 0.5,
             },
-          });
+          }, map_layer);
 
           
 
@@ -252,28 +350,23 @@ const MapRoute: React.FC = () => {
     destinationMarkerRef.current?.remove();
     destinationForecastMarkerRef.current?.remove();
 
-    // Remove route layers/sources
-    ["route", "route-forecast"].forEach((id) => {
-      if (mapInstanceRef.current?.getLayer(id)) {
-        mapInstanceRef.current.removeLayer(id);
-      }
-      if (mapInstanceRef.current?.getSource(id)) {
-        mapInstanceRef.current.removeSource(id);
-      }
-      if (mapForecastInstanceRef.current?.getLayer(id)) {
-        mapForecastInstanceRef.current.removeLayer(id);
-      }
-      if (mapForecastInstanceRef.current?.getSource(id)) {
-        mapForecastInstanceRef.current.removeSource(id);
-      }
-    });
+    cleanupAllRoutes(mapInstanceRef.current);
+    cleanupAllRoutes(mapForecastInstanceRef.current);
+
+    // clear route UI state so the header/toggle don’t show stale values
+    setRoutes([]);
+    setSelectedRouteIdx(0);
+    setForecastMultiplier(null);
+    setTravelTime(null);
+    setForecastTravelTime(null);
+    setPeakTime(null);
+
 
     // Optionally reset the maps’ views (or you can let the outline fitBounds do this)
     //mapInstanceRef.current.jumpTo({ center: [-122.3505, 47.6206], zoom: 12 });
     //mapForecastInstanceRef.current.jumpTo({ center: [-122.3505, 47.6206], zoom: 12 });
 
   }, [selectedCountyOption]);
-
 
 
   // Helper function for congestion adjustments (unchanged).
@@ -314,9 +407,9 @@ const MapRoute: React.FC = () => {
       const url = `${endpoint}?originLat=${originCoords[1]}&originLng=${originCoords[0]}&destinationLat=${destinationCoords[1]}&destinationLng=${destinationCoords[0]}`;
       const res = await fetch(url)
       const data = await res.json()
-      console.log('TAZs:', data.originTaz, data.destinationTaz)
-      console.log('Multiplier:', data.multiplier)
-      console.log('Source Multiplier:', data.sourceMultiplier)
+      //console.log('TAZs:', data.originTaz, data.destinationTaz)
+      //console.log('Multiplier:', data.multiplier)
+      //console.log('Source Multiplier:', data.sourceMultiplier)
       if (region === "psrc" && data.sourceMultiplier) {
         setPeakTime(time_slots[data.sourceMultiplier]);
         setDepartAtTime(depart_at[data.sourceMultiplier]);
@@ -327,206 +420,140 @@ const MapRoute: React.FC = () => {
       }
       return data.multiplier ?? null
     } catch (err) {
-      console.error("Error fetching multiplier:", err)
+      //console.error("Error fetching multiplier:", err)
       return null
     }
   }
 
-  // Your getRoute function remains unchanged.
-  const getRoute = async (
+  const getRoutesCurrentOnly = async (
     originCoords: [number, number],
-    destinationCoords: [number, number],
+    destinationCoords: [number, number]
   ) => {
-    if (!mapInstanceRef.current || !mapForecastInstanceRef.current) return;
+    const map = mapInstanceRef.current;
+    const mapF = mapForecastInstanceRef.current;
+    if (!map || !mapF) return;
 
-    // Use stored departAtTime if available
-    // Ensure we have a time; default to 5pm if not yet set
+    // --- depart_at (same as your original) ---
     const timePart = departAtTime || "17:00";
-    const datePart = getNextWeeksThursday(); // e.g., "2025-08-28"
+    const datePart = getNextWeeksThursday();
     const departAtParam = `&depart_at=${encodeURIComponent(`${datePart}T${timePart}`)}`;
 
     const url =
       `https://api.mapbox.com/directions/v5/mapbox/driving-traffic/` +
       `${originCoords[0]},${originCoords[1]};${destinationCoords[0]},${destinationCoords[1]}` +
       `?geometries=geojson&overview=full&steps=true&annotations=congestion,distance` +
-      `${departAtParam}&access_token=${mapboxgl.accessToken}`;
-    
+      `&alternatives=true` +
+      `${departAtParam}` +
+      `&access_token=${mapboxgl.accessToken}`;
+
+    // fetch once
+    let data: any;
     try {
-      const response = await fetch(url);
-      const data = await response.json();
-
-      if (!data.routes || data.routes.length === 0) {
-        console.error("No route found");
-        return;
-      }
-
-      const route = data.routes[0];
-      const geometry = route.geometry;
-      const annotation = route.legs[0].annotation;
-      const estimatedTimeMinutes = Math.round(route.duration / 60);
-      setTravelTime(estimatedTimeMinutes);
-
-      // Remove existing route layers/sources on both maps.
-      ["route", "route-forecast"].forEach((id) => {
-        if (mapInstanceRef.current?.getLayer(id)) {
-          mapInstanceRef.current.removeLayer(id);
-        }
-        if (mapInstanceRef.current?.getSource(id)) {
-          mapInstanceRef.current.removeSource(id);
-        }
-        if (mapForecastInstanceRef.current?.getLayer(id)) {
-          mapForecastInstanceRef.current.removeLayer(id);
-        }
-        if (mapForecastInstanceRef.current?.getSource(id)) {
-          mapForecastInstanceRef.current.removeSource(id);
-        }
-      });
-
-      const congestionLevels: Record<string, string> = {
-        unknown: "#B2B2B2",
-        low: "#78B24A",
-        moderate: "#FF9619",
-        heavy: "#EB7360",
-        severe: "#A82D19",
-      };
-
-      if (!annotation.congestion || annotation.congestion.length === 0) {
-        console.error("No congestion data available.");
-        return;
-      }
-
-      let stops: [string, ...any[]] = ["interpolate", ["linear"], ["line-progress"]];
-      for (let i = 0; i < annotation.congestion.length; i++) {
-        const progress = i / (annotation.congestion.length - 1);
-        const congestionType = annotation.congestion[i];
-        const color = congestionLevels[congestionType] || congestionLevels.unknown;
-        stops.push(progress, color);
-      }
-
-      //const congestionFactor = 1.4; //default value
-
-      const multiplier = await fetchMultiplier(originCoords, destinationCoords, selectedCountyOption);
-      if (multiplier === null) {
-        console.error("Could not fetch multiplier; aborting route rendering.")
-        return
-      }
-      const congestionFactor = multiplier
-
-
-      const forecastedTimeMinutes = estimatedTimeMinutes * congestionFactor;
-      setForecastTravelTime(Number(forecastedTimeMinutes.toFixed(1)));
-      const adjustedCongestion: string[] = [];
-      for (let i = 0; i < annotation.congestion.length; i++) {
-        const currentType = annotation.congestion[i];
-        const isHighway = annotation.distance[i] > 800;
-        const forecastType = worsenCongestion(
-          currentType,
-          annotation.congestion[i - 1],
-          isHighway,
-          annotation.distance[i],
-          congestionFactor
-        );
-        adjustedCongestion.push(forecastType);
-      }
-      let forecastStops: [string, ...any[]] = ["interpolate", ["linear"], ["line-progress"]];
-      for (let i = 0; i < adjustedCongestion.length; i++) {
-        let progress = i / (adjustedCongestion.length - 1);
-        if (i > 0 && progress <= forecastStops[forecastStops.length - 2]) {
-          progress += 0.0001;
-        }
-        const color = congestionLevels[adjustedCongestion[i]] || congestionLevels.unknown;
-        forecastStops.push(progress, color);
-      }
-
-      mapInstanceRef.current.addSource("route", {
-        type: "geojson",
-        lineMetrics: true,
-        data: {
-          type: "FeatureCollection",
-          features: [
-            {
-              type: "Feature",
-              geometry: geometry,
-              properties: {},
-            },
-          ],
-        },
-      });
-      mapInstanceRef.current.addLayer({
-        id: "route",
-        type: "line",
-        source: "route",
-        layout: {
-          "line-join": "round",
-          "line-cap": "round",
-        },
-        paint: {
-          "line-gradient": stops,
-          "line-width": 5,
-          "line-opacity": 0.8,
-        },
-      });
-
-      mapForecastInstanceRef.current.addSource("route-forecast", {
-        type: "geojson",
-        lineMetrics: true,
-        data: {
-          type: "FeatureCollection",
-          features: [
-            {
-              type: "Feature",
-              geometry: geometry,
-              properties: {},
-            },
-          ],
-        },
-      });
-      mapForecastInstanceRef.current.addLayer({
-        id: "route-forecast",
-        type: "line",
-        source: "route-forecast",
-        layout: {
-          "line-join": "round",
-          "line-cap": "round",
-        },
-        paint: {
-          "line-gradient": forecastStops,
-          "line-width": 5,
-          "line-opacity": 0.8,
-        },
-      });
-
-      const bounds = new mapboxgl.LngLatBounds();
-      bounds.extend(originCoords);
-      bounds.extend(destinationCoords);
-      mapInstanceRef.current.fitBounds(bounds, { 
-        padding: {
-          top: 120,     // increase this based on height of your box
-          bottom: 50,
-          left: 50,
-          right: 50
-        } 
-      });
-      mapForecastInstanceRef.current.fitBounds(bounds, { 
-        padding: {
-          top: 120,     // increase this based on height of your box
-          bottom: 50,
-          left: 50,
-          right: 50
-        } 
-      });
-    } catch (error) {
-      console.error("Error fetching route:", error);
+      const res = await fetch(url);
+      data = await res.json();
+    } catch (e) {
+      console.error("Directions fetch failed", e);
+      return;
     }
+    if (!data?.routes?.length) { setRoutes([]); return; }
+
+    // fetch multiplier once (also sets peakTime/departAtTime inside your helper)
+    const mult = await fetchMultiplier(originCoords, destinationCoords, selectedCountyOption);
+    setForecastMultiplier(mult ?? null);
+
+    // cleanup previous route layers/sources on both maps
+    const cleanup = (mp: mapboxgl.Map) => {
+      mp.getStyle().layers?.forEach(l => {
+        if (l.id.startsWith("route-current-line-") || l.id.startsWith("route-forecast-line-")) {
+          mp.removeLayer(l.id);
+        }
+      });
+      Object.keys((mp.getStyle() as any).sources || {}).forEach(sid => {
+        if (sid.startsWith("route-current-src-") || sid.startsWith("route-forecast-src-")) {
+          mp.removeSource(sid);
+        }
+      });
+    };
+    cleanup(map);
+    cleanup(mapF);
+
+    // draw all routes once
+    data.routes.forEach((route: any, i: number) => {
+      const geometry = route.geometry;
+      const annotation = route.legs?.[0]?.annotation || {};
+
+      // CURRENT map
+      map.addSource(`route-current-src-${i}`, {
+        type: "geojson",
+        lineMetrics: true,
+        data: { type: "FeatureCollection", features: [{ type: "Feature", geometry, properties: {} }] },
+      });
+      map.addLayer({
+        id: `route-current-line-${i}`,
+        type: "line",
+        source: `route-current-src-${i}`,
+        layout: { "line-join": "round", "line-cap": "round", visibility: i === 0 ? "visible" : "none" },
+        paint: {
+          "line-gradient": gradientFromAnnotation(annotation),
+          "line-width": 5,
+          "line-opacity": 0.8,
+        },
+      }, map_layer);
+
+      // FORECAST map (adjusted congestion using your worsenCongestion + multiplier)
+      let adjusted: string[] = [];
+      if (mult != null) {
+        const base = annotation.congestion || [];
+        const dists = annotation.distance || [];
+        for (let k = 0; k < base.length; k++) {
+          const cur = base[k];
+          const prev = k > 0 ? base[k - 1] : cur;
+          const isHighway = (dists?.[k] ?? 0) > 800;
+          adjusted.push(worsenCongestion(cur, prev, isHighway, dists?.[k] ?? 0, mult));
+        }
+      }
+
+      mapF.addSource(`route-forecast-src-${i}`, {
+        type: "geojson",
+        lineMetrics: true,
+        data: { type: "FeatureCollection", features: [{ type: "Feature", geometry, properties: {} }] },
+      });
+      mapF.addLayer({
+        id: `route-forecast-line-${i}`,
+        type: "line",
+        source: `route-forecast-src-${i}`,
+        layout: { "line-join": "round", "line-cap": "round", visibility: i === 0 ? "visible" : "none" },
+        paint: {
+          "line-gradient": mult != null ? gradientFromAdjusted(adjusted) : gradientFromAnnotation(annotation),
+          "line-width": 5,
+          "line-opacity": 0.8,
+        },
+      }, map_layer);
+    });
+
+    // store routes + set ETAs for route 0
+    setRoutes(data.routes);
+    setSelectedRouteIdx(0);
+
+    const eta0 = Math.round(data.routes[0].duration / 60);
+    setTravelTime(eta0);
+    if (mult != null) setForecastTravelTime(Math.round(eta0 * Math.max(1, mult)));
+
+    // fit both maps to O/D
+    const bounds = new mapboxgl.LngLatBounds();
+    bounds.extend(originCoords).extend(destinationCoords);
+    map.fitBounds(bounds, { padding: { top: 120, bottom: 50, left: 50, right: 50 } });
+    mapF.fitBounds(bounds, { padding: { top: 120, bottom: 50, left: 50, right: 50 } });
   };
 
-  return (
-  <div className="flex gap-4 w-full h-[500px] p-0 m-0">
-    {/* Top Controls Row: Search Inputs + Filters */}
-    <div className="flex flex-col gap-4 w-3/12 h-full">
 
-      {/* Filters on the Right */}
-      <div className="p-3 bg-white border rounded-lg shadow-md w-full ">
+  return (
+    <div className="flex gap-4 w-full h-[500px] p-0 m-0">
+      {/* Top Controls Row: Search Inputs + Filters */}
+      <div className="flex flex-col gap-4 w-3/12 h-full">
+
+        {/* Filters on the Right */}
+        <div className="p-3 bg-white border rounded-lg shadow-md w-full ">
           <label htmlFor="county-select" className="block text-lg font-semibold mb-2">
             Select Model
           </label>
@@ -541,9 +568,8 @@ const MapRoute: React.FC = () => {
               <option value="psrc">Puget Sound Regional Council</option>
               <option value="trpc">Thurston Regional Planning Council</option>
             </select>
+          </div>
         </div>
-
-      </div>
       {/* Search Box Container */}
       <div className="p-3 bg-white border rounded-lg shadow-md w-full min-h-[150px]">
         {mapLoaded ? (
@@ -552,48 +578,51 @@ const MapRoute: React.FC = () => {
               <label htmlFor="vehicle-mode-select" className="block text-lg font-semibold mb-2">
                 Origin & Destination
               </label>
-              <SearchBox
-                // @ts-ignore
-                accessToken={mapboxgl.accessToken}
-                //map={!suppressAutoZoom ? mapInstanceRef.current : null}
-                mapboxgl={mapboxgl}
-                placeholder="Enter origin address"
-                options={{ language: "en", country: "US", proximity: [-122.3505, 47.6206] }}
-                onChange={(d) => setOrigin(d)}
-                onRetrieve={(res) => {
-                  if (res.features?.[0]) {
-                    const coords = res.features[0].geometry.coordinates as [number, number];
-                    const isValid = isPointInRegion(coords, regionGeoJSON);
-                    setSuppressAutoZoom(!isValid);
+              <form autoComplete="off">
+                <SearchBox
+                  // @ts-ignore
+                  accessToken={mapboxgl.accessToken}
+                  //map={!suppressAutoZoom ? mapInstanceRef.current : null}
+                  mapboxgl={mapboxgl}
+                  placeholder="Enter origin address"
+                  options={{ language: "en", country: "US", proximity: [-122.3505, 47.6206] }}
+                  onChange={(d) => setOrigin(d)}
+                  autoComplete="off"
+                  onRetrieve={(res) => {
+                    if (res.features?.[0]) {
+                      const coords = res.features[0].geometry.coordinates as [number, number];
+                      const isValid = isPointInRegion(coords, regionGeoJSON);
+                      setSuppressAutoZoom(!isValid);
 
-                    if (!isValid) {
-                      alert("Selected location is outside the selected region.");
-                      setOrigin("");
-                      return;
-                    }
-                    setOriginCoords(coords);
-                    setOrigin(res.features[0].properties.name);
-                    if (destinationCoords) getRoute(coords, destinationCoords);
-                    if (mapInstanceRef.current) {
-                      originMarkerRef.current?.remove();
-                      originMarkerRef.current = new mapboxgl.Marker({ color: "blue" })
-                        .setLngLat(coords)
-                        .addTo(mapInstanceRef.current);
-                    }
-                    if (mapForecastInstanceRef.current) {
-                      originForecastMarkerRef.current?.remove();
-                      originForecastMarkerRef.current = new mapboxgl.Marker({ color: "blue" })
-                        .setLngLat(coords)
-                        .addTo(mapForecastInstanceRef.current);
-                      const currentZoom = mapInstanceRef.current?.getZoom() ?? 12;
-                      mapInstanceRef.current?.easeTo({ center: coords, zoom: currentZoom });
-                      mapForecastInstanceRef.current?.easeTo({ center: coords, zoom: currentZoom });
+                      if (!isValid) {
+                        alert("Selected location is outside the selected region.");
+                        setOrigin("");
+                        return;
+                      }
+                      setOriginCoords(coords);
+                      setOrigin(res.features[0].properties.name);
+                      if (destinationCoords) getRoutesCurrentOnly(coords, destinationCoords);
+                      if (mapInstanceRef.current) {
+                        originMarkerRef.current?.remove();
+                        originMarkerRef.current = new mapboxgl.Marker({ color: "blue" })
+                          .setLngLat(coords)
+                          .addTo(mapInstanceRef.current);
+                      }
+                      if (mapForecastInstanceRef.current) {
+                        originForecastMarkerRef.current?.remove();
+                        originForecastMarkerRef.current = new mapboxgl.Marker({ color: "blue" })
+                          .setLngLat(coords)
+                          .addTo(mapForecastInstanceRef.current);
+                        const currentZoom = mapInstanceRef.current?.getZoom() ?? 12;
+                        mapInstanceRef.current?.easeTo({ center: coords, zoom: currentZoom });
+                        mapForecastInstanceRef.current?.easeTo({ center: coords, zoom: currentZoom });
 
+                      }
                     }
-                  }
-                }}
-                value={origin}
-              />
+                  }}
+                  value={origin}
+                />
+              </form>
             </div>
 
             <div>
@@ -620,7 +649,7 @@ const MapRoute: React.FC = () => {
 
                     setDestinationCoords(coords);
                     setDestination(res.features[0].properties.name);
-                    if (originCoords) getRoute(originCoords, coords);
+                    if (originCoords) getRoutesCurrentOnly(originCoords, coords);
                     if (mapInstanceRef.current) {
                       destinationMarkerRef.current?.remove();
                       destinationMarkerRef.current = new mapboxgl.Marker({ color: "#EA4335" })
@@ -657,19 +686,46 @@ const MapRoute: React.FC = () => {
 
       <div className="flex-1 relative rounded-lg shadow-md border h-full" >
         <div className="absolute top-2 left-2 bg-white bg-opacity-90 p-2 rounded text-sm font-medium shadow z-10">
-          <h4 className="text-lg font-semibold mb-0">
-            Current Traffic
-          </h4>
-          {peakTime && (
-            <div className="text-sm font-normal">
-              {`${peakTime}`}
-            </div>
-          )}
-          {travelTime && (
-            <span className="text-sm font-normal">
-              {`Estimated time: ${formatMinutes(travelTime)}`}
-            </span>
-          )}
+
+          <div className={`flex items-center gap-3 ${routes.length > 1 ? "justify-between" : ""}`}>
+            <h4 className="text-lg font-semibold mb-0">
+              Current Traffic
+            </h4>
+
+            {/* Route toggle */}
+            {routes.length > 1 && (
+              <div className="ml-auto flex items-center rounded-full border border-gray-300 overflow-hidden">
+                {[...Array(routes.length)].map((_, i) => {
+                  const active = i === selectedRouteIdx;
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => selectRoute(i)}
+                      disabled={active}
+                      className={[
+                        "px-2 h-6 text-[11px] font-semibold",
+                        "focus:outline-none transition",
+                        active
+                          ? "bg-white text-black"
+                          : "bg-gray-200/80 text-gray-700 hover:bg-gray-200",
+                      ].join(" ")}
+                      style={{ lineHeight: 1 }}
+                      aria-pressed={active}
+                      aria-label={`Show route ${i + 1} of ${routes.length}`}
+                      title={`Show route ${i + 1}`}
+                    >
+                      {`${i + 1}`}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <div className="mt-1 text-sm font-normal text-gray-700">
+            {peakTime && <span className="mr-2">{peakTime}</span>}
+            {travelTime != null && <span><br/>Estimated time: {formatMinutes(travelTime)}</span>}
+          </div>
         </div>
         <div
           id="map-container"
@@ -686,7 +742,26 @@ const MapRoute: React.FC = () => {
             <span className="text-sm font-normal">
               {`Estimated time: ${formatMinutes(forecastTravelTime)} `} 
               {forecastTravelTime > travelTime && (
-                <span style={{ color: "#ff0000" }}>🠉</span>
+                <span
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    color: "#ff0000",
+                    fontSize: "1em",
+                  }}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    viewBox="0 0 16 16"
+                    width="1em"
+                    height="0.8em"
+                    fill="currentColor"
+                    style={{ marginBottom: "0.1em" }}
+                  >
+                    <path d="M8 15V3M8 3l-4 4m4-4l4 4" stroke="currentColor" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                </span>
+
               )}            
             </span>
           )}

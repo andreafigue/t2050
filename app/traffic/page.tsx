@@ -4,7 +4,7 @@ import MapRoute from '../components/MapRoute2';
 
 const HomePage: React.FC = () => {
   return (
-    <div className="">
+    <div className="p-4">
       <MapRoute />
     </div>
   );
