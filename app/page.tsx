@@ -43,7 +43,7 @@ const Page = () => {
          <div className="sticky top-0 h-screen w-full overflow-hidden z-10">
           {/* Background image */}
           <Image
-            src="/img/link.jpg"
+            src="/img/background.jpg"
             alt="Background"
             fill
             style={{ objectFit: "cover" }}

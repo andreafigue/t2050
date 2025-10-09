@@ -63,14 +63,21 @@ export async function GET(req: NextRequest) {
         [originTaz, destTaz]
       );
 
+      const result_source = await client.query(
+        "SELECT src_label FROM trpc_source WHERE origin_taz = $1 AND destination_taz = $2",
+        [originTaz, destTaz]
+      );
+
       await client.end();
 
       const multiplier = result_multiplier.rows[0]["multiplier"]
+      const sourceMultiplier = result_source.rows[0]["src_label"]
 
       return NextResponse.json({
         originTaz,
         destinationTaz: destTaz,
         multiplier,
+        sourceMultiplier
       })
     } catch (err) {
       console.error('PostgreSQL error:', err);
