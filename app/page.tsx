@@ -6,6 +6,7 @@ import dynamic from 'next/dynamic';
 import { useScroll, useTransform, motion } from 'framer-motion';
 import { useRef } from 'react';
 
+
 import Population from './components/Population';
 import BridgeNeedsMap from './components/BridgeMap2';
 import Airport from './components/Airport';
@@ -87,12 +88,17 @@ const Page = () => {
                 with the vast majority settling in the already-bustling central Puget Sound region.
               </p>
               <p className="text-xl mb-4">
-                Such growth poses profound questions for the state’s future. Chief among them: <strong>How will Washingtonians move?</strong>
+                Washington’s future hinges on one critical question: <strong>How will 10 million people move safely and efficiently across our state?</strong>
               </p>
               <p className="text-xl mb-4">
                 As roads, bridges, ferries, railways, and airports strain under increased demand, state and regional leaders
                 face a stark choice—invest boldly and strategically now, or face the rising costs of inaction: clogged highways,
                 delayed flights, and a quality of life diminished by congestion.
+              </p>
+              <p className="text-xl mb-4">
+                Challenge 2050 is a data-driven initiative to help Washingtonians understand and prepare for the transportation 
+                challenges of a rapidly growing state. Explore the trends, impacts, and choices we face—and discover how informed 
+                decisions today can shape a better tomorrow. 
               </p>
             </div>
           </motion.div>
@@ -146,7 +152,7 @@ const Page = () => {
           <div className="mt-12 bg-white p-6 border" style={{borderRadius: 8}}>
             <p className="text-2xl mb-4">
               <Image
-                src="/img/search2.png" // adjust this path to match your public folder
+                src="/img/search2.png" 
                 alt="Explore icon"
                 width={35}
                 height={35} 
@@ -190,39 +196,42 @@ const Page = () => {
             <div>
               <h2 className="text-3xl md:text-4xl font-semibold mb-4">The Commute, Reimagined</h2>
               <p className="text-lg mb-4">
-                This growth is more than abstract data—it affects everyday lives. More cars on the road mean
-                longer commutes, greater stress, and fewer hours at home. Without preservation of our existing
-                roads and bridges and new investments, average travel times could stretch well beyond tolerable limits.
+                This growth is more than abstract data—it affects everyday lives. Longer commutes mean less time with family, 
+                more stress, and higher costs. Without action, travel times will exceed tolerable limits.
               </p>
               <p className="text-lg mb-4 font-semibold">Did you know?</p>
               <ul className="list-disc list-inside text-lg mb-4 space-y-2">
-                <li>In 2022, the average commuter spent 82 hours stuck in traffic at an annual cost of $1,874.</li>
-                <li>Congestion contributes 621,000 metric tons of excess carbon dioxide emissions annually, contributing to climate change.</li>
+                <li>In 2022, the average commuter in Central Puget Sound spent 82 hours stuck in traffic at an annual cost of $1,874.</li>
+                <li>Congestion contributes 621,000 metric tons of excess carbon dioxide emissions annually in Central Puget Sound, contributing to climate change.</li>
               </ul>           
             </div>
           </div>
           <div className="mt-12 p-6 border bg-gray-100" style={{borderRadius: 8}}>
             <p className="text-2xl mb-4">
               <Image
-                src="/img/search2.png" // adjust this path to match your public folder
+                src="/img/search2.png" 
                 alt="Explore icon"
                 width={35}
                 height={35} 
                 className="inline-block opacity-90 mr-2"
               />
-              <strong>Explore:</strong> See how much longer a trip will take in 2050 if we don’t plan for future growth.
+              <strong>Explore:</strong> See how much trips will change in the years ahead.
             </p>
             <DynamicMapRoute />
             <br/>
             <div className="pl-3" style={{ marginTop: "0.5rem", fontSize: "0.9rem", color: "#4b5563" }}>
               <ol style={{ margin: "0rem 0 0 1.25rem", padding: 0, listStyleType: "decimal" }}>
                 <li>
-                  Puget Sound Regional Council (PSRC),
-                  <em> Vision 2050 – Regional Transportation Model</em>.
+                  Current peak-time travel conditions using Mapbox Directions API. 
                 </li>
                 <li>
-                  Spokane Regional Transportation Council (SRTC),
-                  <em> Metropolitan Transportation Plan – 2050 Transportation Model</em>.
+                  Puget Sound Regional Council (PSRC),
+                  <em> Vision 2050 – Regional Transportation Model, assumes the build out of Transit 3.</em>
+                </li>
+
+                <li>
+                  Thurston Regional Planning Council (TRPC),
+                  <em> 2022 South Sound Travel Study – Travel Demand Modeling</em>.
                 </li>
               </ol>
             </div>
@@ -231,7 +240,7 @@ const Page = () => {
           {/*<div className="mt-12 p-6 bg-gray-100 border" style={{borderRadius: 8}}>
             <p className="text-2xl mb-4">
               <Image
-                src="/img/search2.png" // adjust this path to match your public folder
+                src="/img/search2.png" 
                 alt="Explore icon"
                 width={35}
                 height={35} 
@@ -268,7 +277,7 @@ const Page = () => {
                 TSA wait times could soar—especially during holidays and peak seasons—slowing both leisure travelers and the cargo planes that carry Washington’s exports abroad.
               </p>
               <p className="text-lg mb-4">
-                Without serious investment in airport capacity, delays and bottlenecks will become more than an inconvenience—they’ll be an impediment to commerce and global connectivity.
+                Without expanded airport capacity, delays will hinder both travel and trade—affecting everything from holiday plans to Washington’s global exports. 
               </p>
               <p className="text-lg mb-4 font-semibold">Did you know?</p>
               <ul className="list-disc list-inside text-lg mb-4 space-y-2">
@@ -281,7 +290,7 @@ const Page = () => {
           <div className="mt-12 bg-white p-6 border" style={{borderRadius: 8}}>
             <p className="text-2xl mb-4">
               <Image
-                src="/img/search2.png" // adjust this path to match your public folder
+                src="/img/search2.png" 
                 alt="Explore icon"
                 width={35}
                 height={35} 
@@ -308,7 +317,7 @@ const Page = () => {
           {/*<div className="mt-12 bg-white p-6 border" style={{borderRadius: 8}}>
             <p className="text-2xl mb-4">
               <Image
-                src="/img/search2.png" // adjust this path to match your public folder
+                src="/img/search2.png" 
                 alt="Explore icon"
                 width={35}
                 height={35} 
@@ -347,12 +356,14 @@ const Page = () => {
             <div>
               <h2 className="text-3xl md:text-4xl font-semibold mb-4">Freight and the Backbone of Commerce</h2>
               <p className="text-lg mb-4">
-                Goods movement is no less essential. As Washington’s economy grows, so will the demand on freight corridors—by highway, rail, sea, and air.
+                Freight is the lifeblood of Washington’s economy. With a 45% increase in cargo expected by 2050, 
+                our infrastructure must keep pace—or risk losing billions in trade and thousands of jobs. 
+                As Washington’s economy grows, so will the demand on freight corridors—by highway, rail, sea, and air.
               </p>
               <p className="text-lg mb-4 font-semibold">Did you know?</p>
               <ul className="list-disc list-inside text-lg mb-4 space-y-2">
-                <li>Freight transported within Washington is forecast to increase by more than 40%, and imports and exports by more than 50%.</li>
-                <li>The number of truck miles traveled per day is forecast to increase by 27%.</li>
+                <li>In 2022, over 600 million tons of freight moved through Washington state, with a total value of just over $700 billion.</li>
+                <li>By 2050, freight movements in Washington are forecast to increase 45%, from 603 million tons of cargo to 872 million tons.</li>
               </ul>
               
             </div>
@@ -360,7 +371,7 @@ const Page = () => {
           <div className="mt-12 bg-gray-100 p-6 border" style={{borderRadius: 8}}>
             <p className="text-2xl mb-4">
               <Image
-                src="/img/search2.png" // adjust this path to match your public folder
+                src="/img/search2.png" 
                 alt="Explore icon"
                 width={35}
                 height={35} 
@@ -411,7 +422,7 @@ const Page = () => {
               </p>
               <p className="text-lg mb-4 font-semibold">Did you know?</p>
               <ul className="list-disc list-inside text-lg mb-4 space-y-2">
-                <li>More than 55% of bridges across the state are in only fair condition and inching ever closer to falling into poor condition.</li>
+                <li>Over half of Washington’s bridges are aging into poor condition.</li>
                 <li>In April 2025, WSDOT permanently closed the 103-year old SR 165 Carbon River/Fairfax Bridge because it was no longer safe to drive on, cutting off access to Mount Rainier recreation areas and requiring a 9-mile emergency access detour.</li>
                 <li>Preservation funding is only 40% of what is needed to keep our infrastructure in a state of good repair.</li>
               </ul>
@@ -421,7 +432,7 @@ const Page = () => {
           <div className="mt-12 bg-white p-6 border" style={{borderRadius: 8}}>
             <p className="text-2xl mb-4">
               <Image
-                src="/img/search2.png" // adjust this path to match your public folder
+                src="/img/search2.png" 
                 alt="Explore icon"
                 width={35}
                 height={35} 
@@ -479,7 +490,7 @@ const Page = () => {
           <div className="mt-12 bg-gray-100 p-6 border" style={{borderRadius: 8}}>
             <p className="text-2xl mb-4">
               <Image
-                src="/img/search2.png" // adjust this path to match your public folder
+                src="/img/search2.png" 
                 alt="Explore icon"
                 width={35}
                 height={35} 
@@ -533,7 +544,7 @@ const Page = () => {
           <div className="mt-12 bg-white p-6 border" style={{borderRadius: 8}}>
             <p className="text-2xl mb-4">
               <Image
-                src="/img/search2.png" // adjust this path to match your public folder
+                src="/img/search2.png" 
                 alt="Explore icon"
                 width={35}
                 height={35} 
@@ -572,7 +583,7 @@ const Page = () => {
           </a>
         </div>
         <p className="text-s text-gray-500">
-          © {new Date().getFullYear()} Challenge 2050 • The Future in Motion
+          © {new Date().getFullYear()} Challenge 2050 • The Future in Motion • <a href="mailto:mobility@uw.edu">Contact us</a>
         </p>
       </footer>
 
