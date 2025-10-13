@@ -34,6 +34,26 @@ export default function Airport() {
   const capacityCountRef = useRef(0);
   const unmetCountRef = useRef(0);
 
+  useEffect(() => {
+    let tip = d3.select("body").select("#tooltip");
+    if (tip.empty()) {
+      tip = d3.select("body")
+        .append("div")
+        .attr("id", "tooltip")
+        .style("position", "absolute")
+        .style("background", "white")
+        .style("padding", "5px 8px")
+        .style("border", "1px solid #ccc")
+        .style("border-radius", "5px")
+        .style("display", "none")
+        .style("pointer-events", "none")
+        .style("box-shadow", "0 2px 6px rgba(0,0,0,0.15)")
+        .style("font-size", "12px")
+        .style("color", "#1e293b");
+    }
+  }, []);
+
+
   // ---------------------------
   // Draw effect (runs on index change)
   // ---------------------------
@@ -147,6 +167,92 @@ export default function Airport() {
       .attr("transform", `translate(${margin.left}, ${margin.top})`)
       .attr("d", lineCapacity);
 
+    // ------- Tooltip/hover group (cleans old on redraw)
+    svg.selectAll(".hover-layer, .focus-group").remove();
+
+    const hoverG = svg.append("g").attr("class", "hover-layer");
+    const focusG = svg.append("g").attr("class", "focus-group");
+
+    // vertical guide
+    const guide = focusG.append("line")
+      .attr("class", "guide-line")
+      .attr("stroke", "#94a3b8")
+      .attr("stroke-dasharray", "4 4")
+      .attr("stroke-width", 1.25)
+      .style("opacity", 0);
+
+    // focus dots (forecast + capacity)
+    const fDot = focusG.append("circle")
+      .attr("r", 5).attr("fill", "#1e40af").attr("stroke", "#fff").attr("stroke-width", 1.5)
+      .style("opacity", 0);
+
+    const cDot = focusG.append("circle")
+      .attr("r", 5).attr("fill", "#94a3b8").attr("stroke", "#fff").attr("stroke-width", 1.5)
+      .style("opacity", 0);
+
+    // overlay for mouse capture
+    hoverG.append("rect")
+      .attr("class", "overlay")
+      .attr("x", margin.left)
+      .attr("y", margin.top)
+      .attr("width", innerWidth)
+      .attr("height", innerHeight)
+      .style("fill", "transparent")
+      .style("pointer-events", "all")
+      .on("mousemove", (event) => {
+        const [mx, my] = d3.pointer(event);
+        const year = xScale.invert(mx - margin.left);
+
+        // nearest record by year (same pattern you used)
+        const bisect = d3.bisector((d: any) => d.year).left;
+        const i = bisect(passengerData, year);
+        const d0 = passengerData[Math.max(0, i - 1)];
+        const d1 = passengerData[Math.min(passengerData.length - 1, i)];
+        const d = (year - d0.year > (d1?.year ?? d0.year) - year && i < passengerData.length) ? d1 : d0;
+
+        const x = margin.left + xScale(d.year);
+        const yF = margin.top + yScale(d.forecast);
+        const yC = margin.top + yScale(d.capacity);
+
+        // position focus elements
+        guide
+          .attr("x1", x).attr("x2", x)
+          .attr("y1", margin.top).attr("y2", margin.top + innerHeight)
+          .style("opacity", 1);
+
+        fDot.attr("cx", x).attr("cy", yF).style("opacity", 1);
+        cDot.attr("cx", x).attr("cy", yC).style("opacity", 1);
+
+        // update tooltip (same global #tooltip as Population)
+        d3.select("#tooltip")
+          .style("display", "block")
+          .html(
+            `<strong>${d.year}</strong><br/>
+             Forecast: ${d.forecast.toFixed(1)}M<br/>
+             Capacity: ${d.capacity.toFixed(3)}M`
+          )
+          .style("left", `${event.pageX + 10}px`)
+          .style("top", `${event.pageY - 28}px`);
+      })
+      .on("mouseout", () => {
+        d3.select("#tooltip").style("display", "none");
+        guide.style("opacity", 0);
+        fDot.style("opacity", 0);
+        cDot.style("opacity", 0);
+      })
+      .on("click", (event) => {
+        // snap the UI slider to the hovered year
+        const [mx] = d3.pointer(event);
+        const yVal = xScale.invert(mx - margin.left);
+        const bisect = d3.bisector((d: any) => d.year).left;
+        const i = bisect(passengerData, yVal);
+        const d0 = passengerData[Math.max(0, i - 1)];
+        const d1 = passengerData[Math.min(passengerData.length - 1, i)];
+        const d = (yVal - d0.year > (d1?.year ?? d0.year) - yVal && i < passengerData.length) ? d1 : d0;
+        setIndex(passengerData.findIndex(p => p.year === d.year));
+      });
+
+
     // Highlights for selected year
     const highlight = passengerData[index];
     svg
@@ -183,8 +289,8 @@ export default function Airport() {
 
     // --- layout constants for buckets
     const iconPerRow = 5;
-    const cell = chartW * 0.07;     // grid step
-    const icon = cell *0.8 ;     // icon visual size
+    const cell = chartW * 0.06;     // grid step
+    const icon = cell *0.85 ;     // icon visual size
     const bucketPad = cell * 0.3; // inner padding
     //const bucketY = 60;  // top of bucket content area
 
@@ -594,7 +700,7 @@ export default function Airport() {
             justifyContent: "center",
             width: "50%",
             background: "#f4f4f4",
-            padding: 12,
+            padding: 10,
           }}
         >
           <svg ref={chartRef} width="100%" height="100%" preserveAspectRatio="xMidYMid meet"></svg>
