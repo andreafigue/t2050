@@ -8,6 +8,7 @@ import dynamic from "next/dynamic";
 import "../globals2.css";
 import { worsenRoute } from "./worsenRoute"; // adjust path
 
+import * as turf from "@turf/turf";
 
 import { point, booleanPointInPolygon } from '@turf/turf'
 //import booleanPointInPolygon from "@turf/boolean-point-in-polygon";
@@ -18,7 +19,6 @@ const SearchBox = dynamic(
   { ssr: false }
 );
 
-// Set the access token from your environment variables
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN!;
 
 const MapRoute: React.FC = () => {
@@ -62,7 +62,6 @@ const MapRoute: React.FC = () => {
   // store no-traffic routes returned by the 'driving' profile
   const [routesNoTraffic, setRoutesNoTraffic] = useState<any[]>([]);
 
-
   // Marker refs
   const originMarkerRef = useRef<mapboxgl.Marker | null>(null);
   const originForecastMarkerRef = useRef<mapboxgl.Marker | null>(null);
@@ -84,6 +83,21 @@ const MapRoute: React.FC = () => {
 
   //const originInputRef = useRef<HTMLInputElement | null>(null);
   const destinationInputRef = useRef<HTMLInputElement | null>(null);
+
+  // --- Lazy baseline (no-traffic) cache & inflight tracking ---
+  const baselineCacheRef = useRef<Map<number, { duration: number }>>(new Map());
+  const baselineInflightRef = useRef<Map<number, AbortController>>(new Map());
+  const [baselineLoadingIdx, setBaselineLoadingIdx] = useState<number | null>(null);
+
+  // --- Current-traffic loading state ---
+  const [trafficLoading, setTrafficLoading] = useState(false);
+
+
+  const isBaselineLoading =
+    currentTrafficView === "none" &&
+    baselineLoadingIdx != null &&
+    baselineLoadingIdx === selectedRouteIdx;
+
 
   const map_layer = "road-label";
 
@@ -167,67 +181,6 @@ const MapRoute: React.FC = () => {
     return `${y}-${m}-${dd}`;
   };
 
-
-
-
-
-  // useEffect(() => {
-  //   if (!mapForecastInstanceRef.current || !routes.length || forecastMultiplier == null) return;
-
-  //   const mapF = mapForecastInstanceRef.current;
-
-  //   routes.forEach((route, i) => {
-  //     const annotation = route.legs?.[0]?.annotation || {};
-  //     const base = annotation.congestion || [];
-  //     const dists = annotation.distance || [];
-
-  //     let adjusted: string[] = [];
-  //     for (let k = 0; k < base.length; k++) {
-  //       const cur = base[k];
-  //       const prev = k > 0 ? base[k - 1] : cur;
-  //       const isHighway = (dists?.[k] ?? 0) > 800;
-  //       adjusted.push(
-  //         worsenCongestion(cur, prev, isHighway, dists?.[k] ?? 0, forecastMultiplier, {
-  //           sensitivity: yearSensitivity[forecastYear],
-  //         })
-  //       );
-  //     }
-
-  //     // update paint with new gradient
-  //     if (mapF.getLayer(`route-forecast-line-${i}`)) {
-  //       mapF.setPaintProperty(
-  //         `route-forecast-line-${i}`,
-  //         "line-gradient",
-  //         gradientFromAdjusted(adjusted)
-  //       );
-  //     }
-  //   });
-  // }, [forecastYear, routes, forecastMultiplier]);
-
-  // useEffect(() => {
-  //   if (!mapForecastInstanceRef.current || !routes.length) return;
-  //   if (travelTime == null || forecastTravelTime == null) return;
-
-  //   const deltaMin = Math.max(0, Math.round(forecastTravelTime - travelTime));
-  //   const mapF = mapForecastInstanceRef.current;
-
-  //   routes.forEach((route, i) => {
-  //     const wr = worsenRoute(route, {
-  //       targetDeltaMinutes: deltaMin,
-  //     });
-
-  //     const adjusted = wr.adjustedLevels;
-
-  //     if (mapF.getLayer(`route-forecast-line-${i}`)) {
-  //       mapF.setPaintProperty(
-  //         `route-forecast-line-${i}`,
-  //         "line-gradient",
-  //         gradientFromAdjusted(adjusted)
-  //       );
-  //     }
-  //   });
-  // }, [routes, travelTime, forecastTravelTime]);
-
   useEffect(() => {
     const mapF = mapForecastInstanceRef.current;
     if (!mapF || !routes.length || forecastTravelTime == null) return;
@@ -266,9 +219,13 @@ const MapRoute: React.FC = () => {
     return out;
   }
 
-  // Map-match the traffic route's geometry using the *driving* profile
-  // Returns a baseline (no-traffic) route-like object aligned to the same path
-  async function matchBaselineForSamePath(route: any, accessToken: string) {
+  // Map-match the traffic route's geometry using the *driving* profile (no traffic).
+  // Returns an object with { duration } (seconds) computed on the SAME path.
+  async function matchBaselineForSamePath(
+    route: any,
+    accessToken: string,
+    signal?: AbortSignal
+  ) {
     const coords: [number, number][] = route?.geometry?.coordinates || [];
     if (!coords.length) return null;
 
@@ -277,29 +234,106 @@ const MapRoute: React.FC = () => {
 
     const url =
       `https://api.mapbox.com/matching/v5/mapbox/driving/${path}` +
-      `?geometries=geojson&overview=false&annotations=duration,distance&tidy=true` +
+      `?geometries=geojson&overview=false&annotations=duration&tidy=true` +
       `&access_token=${accessToken}`;
 
-    const res = await fetch(url);
-    if (!res.ok) return null;
+    let res: Response | null = null;
+    try {
+      res = await fetch(url, { signal });
+    } catch (e: any) {
+      // swallow aborts; rethrow real errors
+      if (e?.name === "AbortError" || /aborted/i.test(String(e?.message))) {
+        return null;
+      }
+      throw e;
+    }
+    if (!res || !res.ok) return null;
     const json = await res.json();
+
     const m = json?.matchings?.[0];
     if (!m) return null;
 
-    // Build a minimal route-shaped object so your code can reuse it easily
-    return {
-      duration: m.duration,  // seconds
-      distance: m.distance,  // meters
-      legs: (m.legs || []).map((leg: any) => ({
-        annotation: {
-          duration: leg?.annotation?.duration || [],
-          distance: leg?.annotation?.distance || [],
-        },
-      })),
-      geometry: route.geometry, // keep original geometry (already what you render)
-    };
+    // Keep geometry unchanged for drawing; we only need baseline time.
+    return { duration: m.duration ?? null };
   }
 
+  function abortBaseline(index: number) {
+    const ac = baselineInflightRef.current.get(index);
+    if (!ac) return;
+    if (!ac.signal.aborted) {
+      try {
+        ac.abort(new Error("baseline-canceled")); 
+      } catch {
+        // some environments can still complain; ignore
+      }
+    }
+    baselineInflightRef.current.delete(index);
+  }
+
+
+
+  async function ensureBaselineForIndex(idx: number, routeOverride?: any) {
+    const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN!;
+    const route = routeOverride ? routeOverride : routes[idx];
+    if (!route || !token) return;
+
+    if (baselineInflightRef.current.has(idx)) {
+      return; // <-- prevents "self-cancel"
+    }
+
+    // cached?
+    const cached = baselineCacheRef.current.get(idx);
+    if (cached?.duration != null) {
+      // make sure routesNoTraffic[idx] reflects cached duration
+      setRoutesNoTraffic((prev) => {
+        const next = [...prev];
+        next[idx] = { duration: cached.duration };
+        return next;
+      });
+      return;
+    }
+
+    // cancel any inflight for this idx
+    //abortBaseline(idx);
+
+    const ac = new AbortController();
+    baselineInflightRef.current.set(idx, ac);
+    setBaselineLoadingIdx(idx);
+
+    try {
+      const res = await matchBaselineForSamePath(route, token, ac.signal);
+      baselineInflightRef.current.delete(idx);
+      setBaselineLoadingIdx((cur) => (cur === idx ? null : cur));
+
+      if (res?.duration != null) {
+        // cache + state (sparse array, aligned by index)
+        baselineCacheRef.current.set(idx, { duration: res.duration });
+        setRoutesNoTraffic((prev) => {
+          const next = [...prev];
+          next[idx] = { duration: res.duration };
+          return next;
+        });
+
+        // If we're currently showing "No Traffic" *for this same route*, update the ETA
+        if (currentTrafficView === "none" && selectedRouteIdx === idx) {
+          setTravelTime(Math.round(res.duration / 60));
+          setBaseTrafficTime(Math.round(res.duration / 60));
+        }
+      }
+    } catch (e: any) {
+
+      if (e?.name !== "AbortError" && !/aborted/i.test(String(e?.message))) {
+        console.error("MapMatch baseline failed:", e);
+      }
+      // aborted or failed — clear loading state for this idx
+      //baselineInflightRef.current.delete(idx);
+      //setBaselineLoadingIdx((cur) => (cur === idx ? null : cur));
+      //console.error("MapMatch baseline failed:", e);
+    }finally {
+      baselineInflightRef.current.delete(idx);
+      setBaselineLoadingIdx((cur) => (cur === idx ? null : cur));
+    }
+  }
 
   const CONGESTION_COLORS = {
     unknown: "#B2B2B2",
@@ -308,6 +342,14 @@ const MapRoute: React.FC = () => {
     heavy: "#EB7360",
     severe: "#A82D19",
   };
+
+  useEffect(() => {
+    if (currentTrafficView !== "none" && baselineLoadingIdx != null) {
+      //abortBaseline(baselineLoadingIdx);
+      setBaselineLoadingIdx(null);
+    }
+  }, [currentTrafficView]);
+
 
   // build gradient for "current" (original palette)
   function gradientFromAnnotation(annotation: any) {
@@ -354,6 +396,27 @@ const MapRoute: React.FC = () => {
     map.setPaintProperty(id, prop, value);
   }
 
+  useEffect(() => {
+    // If user is in "No Traffic", make sure we fetch the baseline for the selected route
+    if (currentTrafficView !== "none") return;
+    if (!routes.length) return;
+
+    const idx = selectedRouteIdx;
+
+    if (baselineInflightRef.current.has(idx)) return;
+
+    const hasBaseline =
+      !!baselineCacheRef.current.get(idx) ||
+      !!(routesNoTraffic[idx]?.duration);
+
+    if (!hasBaseline) {
+      // optional: show "…" immediately for ETA while we compute
+      setTravelTime(null);
+      ensureBaselineForIndex(idx);
+    }
+  }, [currentTrafficView, routes, selectedRouteIdx]);
+
+
 
 
   function selectRoute(idx: number) {
@@ -361,13 +424,7 @@ const MapRoute: React.FC = () => {
     const mapF = mapForecastInstanceRef.current;
     if (!map || !mapF) return;
 
-    // routes.forEach((_, i) => {
-    //   // forecast
-    //   mapF.setLayoutProperty(`route-forecast-line-${i}`, "visibility", i === idx ? "visible" : "none");
-    //   // current (traffic + no-traffic)
-    //   map.setLayoutProperty(`route-current-line-${i}`, "visibility", (i === idx && currentTrafficView === "current") ? "visible" : "none");
-    //   map.setLayoutProperty(`route-current-none-line-${i}`, "visibility", (i === idx && currentTrafficView === "none") ? "visible" : "none");
-    // });
+
 
     routes.forEach((_, i) => {
       // forecast
@@ -380,17 +437,7 @@ const MapRoute: React.FC = () => {
 
     setSelectedRouteIdx(idx);
 
-    // ETA depending on the left view
-    // if (currentTrafficView === "current") {
-    //   const eta = Math.round(routes[idx].duration / 60);
-    //   setBaseTrafficTime(eta);
-    //   if (forecastMultiplier != null) {
-    //     setForecastTravelTime(Math.round(eta * Math.max(1, forecastMultiplier)));
-    //   }
-    // } else if (routesNoTraffic[idx]) {
-    //   const eta = Math.round(routesNoTraffic[idx].duration / 60);
-    //   setTravelTime(eta);
-    // }
+
 
     // Always (re)set the true baseline for the selected route
     const baselineRoute = routesNoTraffic[idx] || null;
@@ -403,23 +450,18 @@ const MapRoute: React.FC = () => {
       setTravelTime(Math.round(baselineRoute.duration / 60));
     }
 
+    // If user is in "No Traffic" mode and we don't have this route's baseline yet, fetch it
+    if (currentTrafficView === "none") {
+      const cached = baselineCacheRef.current.get(idx);
+      if (!cached?.duration) {
+        // fire-and-forget; the loading indicator will show
+        ensureBaselineForIndex(idx);
+      }
+    }
+
+
   }
 
-  // useEffect(() => {
-  //   const map = mapInstanceRef.current;
-  //   if (!map || !routes.length) return;
-  //   routes.forEach((_, i) => {
-  //     map.setLayoutProperty(`route-current-line-${i}`, "visibility", (i === selectedRouteIdx && currentTrafficView === "current") ? "visible" : "none");
-  //     map.setLayoutProperty(`route-current-none-line-${i}`, "visibility", (i === selectedRouteIdx && currentTrafficView === "none") ? "visible" : "none");
-  //   });
-
-  //   // update ETA when switching view
-  //   if (currentTrafficView === "current" && routes[selectedRouteIdx]) {
-  //     setTravelTime(Math.round(routes[selectedRouteIdx].duration / 60));
-  //   } else if (currentTrafficView === "none" && routesNoTraffic[selectedRouteIdx]) {
-  //     setTravelTime(Math.round(routesNoTraffic[selectedRouteIdx].duration / 60));
-  //   }
-  // }, [currentTrafficView, selectedRouteIdx, routes, routesNoTraffic]);
 
   useEffect(() => {
     const map = mapInstanceRef.current;
@@ -454,7 +496,7 @@ const MapRoute: React.FC = () => {
     for (const layer of layers) {
       if (
         layer.id.startsWith("route-current-line-") ||
-        layer.id.startsWith("route-current-none-line-") || // add this
+        layer.id.startsWith("route-current-none-line-") || 
         layer.id.startsWith("route-forecast-line-")
       ) {
         if (mp.getLayer(layer.id)) mp.removeLayer(layer.id);
@@ -465,13 +507,64 @@ const MapRoute: React.FC = () => {
     for (const id in sources) {
       if (
         id.startsWith("route-current-src-") ||
-        id.startsWith("route-current-none-src-") || // add this
+        id.startsWith("route-current-none-src-") || 
         id.startsWith("route-forecast-src-")
       ) {
         if (mp.getSource(id)) mp.removeSource(id);
       }
     }
   }
+
+  // Clear all route layers/sources + route-related state on BOTH maps
+  // Remove all route layers/sources and route-related state — DO NOT touch pins/addresses
+  function clearRoutesOnly() {
+    // cancel any baseline in-flight
+    if (baselineInflightRef?.current?.size) {
+      baselineInflightRef.current.forEach((ac) => ac.abort());
+      baselineInflightRef.current.clear();
+    }
+    baselineCacheRef?.current?.clear?.();
+
+    // remove polylines from both maps
+    cleanupAllRoutes?.(mapInstanceRef?.current || null);
+    cleanupAllRoutes?.(mapForecastInstanceRef?.current || null);
+
+    // reset route state/UI only
+    setRoutes([]);
+    setRoutesNoTraffic([]);
+    setSelectedRouteIdx(0);
+    setTravelTime(null);
+    setForecastTravelTime(null);
+    setBaseTrafficTime(null);
+    setPeakTime(null);
+  }
+
+
+  // Clear origin marker + state
+  function clearOriginSide() {
+    originMarkerRef.current?.remove();
+    originMarkerRef.current = null;
+    originForecastMarkerRef.current?.remove();
+    originForecastMarkerRef.current = null;
+
+    setOrigin("");
+    setOriginCoords(null);
+
+    clearRoutesOnly();
+  }
+
+  // Clear destination marker + state
+  function clearDestinationSide() {
+    destinationMarkerRef.current?.remove();
+    destinationMarkerRef.current = null;
+    destinationForecastMarkerRef.current?.remove();
+    destinationForecastMarkerRef.current = null;
+
+    setDestination("");
+    setDestinationCoords(null);
+    clearRoutesOnly();
+  }
+
 
 
 
@@ -494,13 +587,7 @@ const MapRoute: React.FC = () => {
     });
   };
 
-  // Fetch county GeoJSON data when the component mounts.
-  // useEffect(() => {
-  //   fetch("/wa_counties.geojson")
-  //     .then((response) => response.json())
-  //     .then((data) => setCountyData(data))
-  //     .catch((err) => console.error("Error fetching county data:", err));
-  // }, []);
+
 
   // Initialize maps when container refs are available.
   useEffect(() => {
@@ -567,8 +654,6 @@ const MapRoute: React.FC = () => {
             },
           }, map_layer);
 
-          
-
           // Fit map to outline bounds
           const bounds = new mapboxgl.LngLatBounds();
           geojsonData.features.forEach((feature: any) => {
@@ -586,15 +671,22 @@ const MapRoute: React.FC = () => {
       .catch((err) => console.error("Error loading selected county outline:", err));
   }, [selectedCountyOption, mapLoaded, mapForecastLoaded]);
 
+
+
   useEffect(() => {
     if (!mapInstanceRef.current || !mapForecastInstanceRef.current) return;
+
+    baselineInflightRef.current.forEach((ac) => ac.abort());
+    baselineInflightRef.current.clear();
+    baselineCacheRef.current.clear();
+    setRoutesNoTraffic([]);        // <<< important
+    setBaselineLoadingIdx(null);
 
     // Reset inputs
     setOrigin("");
     setDestination("");
     setOriginCoords(null);
     setDestinationCoords(null);
-    setTravelTime(null);
     setForecastTravelTime(null);
 
     // Remove markers
@@ -617,108 +709,6 @@ const MapRoute: React.FC = () => {
 
 
   }, [selectedCountyOption]);
-
-
-  // Helper function for congestion adjustments (unchanged).
-
-// const worsenCongestion = (
-//   currentType: string,
-//   previousType: string,
-//   isHighway: boolean,
-//   distance: number, // meters
-//   factor: number,   // 0.7 – 4.46 (avg ~1.13)
-//   options?: {
-//     // tuning knobs
-//     sensitivity?: number;   // global multiplier (use your yearSensitivity here)
-//     seedOrangeOnLow?: number; // baseline chance to seed orange when all low (0..1)
-//     growOrangeBias?: number;  // how strongly orange extends (0..1)
-//     embedRedBias?: number;    // how often red is embedded inside orange (0..1)
-//     persistBase?: number;     // base persistence to keep same color in runs (0..1)
-//   }
-// ): string => {
-//   // IMPORTANT: keep only the four levels you already color
-//   const levels = ["low", "moderate", "heavy", "severe"] as const;
-
-//   let idx = levels.indexOf(currentType as any);
-//   const prevIdx = levels.indexOf(previousType as any);
-//   if (idx === -1) return currentType;
-
-//   const {
-//     sensitivity = 2.0,
-//     seedOrangeOnLow = 0.12,   // seed orange on highways/entrances when factor > ~1.05
-//     growOrangeBias  = 0.75,   // orange stretches tend to extend
-//     embedRedBias    = 0.35,   // embed red inside orange (middle of runs), not too often
-//     persistBase     = 0.89    // keep stretches continuous
-//   } = options || {};
-
-//   // Map factor → pressure to worsen/improve.
-//   // Use log so 1.1–1.2 still produce noticeable push; clamp for stability.
-//   const pressure = Math.max(-1, Math.min(1, Math.log(Math.max(0.7, Math.min(4.46, factor))) * sensitivity));
-//   const worsenPush  = Math.max(0,  pressure); // 0..~something
-//   const improvePush = Math.max(0, -pressure);
-
-//   // Distance & facility effects: highways and longer segments build longer stretches.
-//   let persistence = persistBase + (isHighway ? 0.15 : 0) + (distance > 500 ? 0.10 : 0) + (distance > 2000 ? 0.10 : 0);
-//   persistence = Math.min(0.95, persistence);
-
-//   // Slight, *small* randomness to avoid perfect stripes, but not speckling.
-//   const jitter = (Math.random() - 0.5) * 0.06; // ±0.03
-
-//   let newIdx = idx;
-
-//   // 1) Seed orange when everything is low and factor indicates worsening
-//   if (idx === 0 && worsenPush > 0.05) {
-//     // highways or long-ish segments are likeliest to sprout initial orange
-//     const seedChance = seedOrangeOnLow * (isHighway ? 2.2 : 1.0) * (distance > 400 ? 1.4 : 1.0) * (0.85 + worsenPush);
-//     if (Math.random() < seedChance) {
-//       newIdx = 2; // heavy (orange)
-//     }
-//   }
-
-//   // 2) Extend existing orange runs; embed red in the middle of orange runs
-//   if (idx === 2 && worsenPush > 0) {
-//     // Extend orange if previous was orange OR pressure is decent
-//     const extendOrange = (prevIdx === 2 ? 0.9 : 0) + growOrangeBias * (0.6 + worsenPush) + jitter;
-//     if (extendOrange > 0.65) newIdx = 2; // remain orange → makes block longer
-
-//     // Embed red inside orange: only on sufficiently long segments and with pressure
-//     const canEmbed = distance > 300 && (prevIdx === 2 || Math.random() < persistence);
-//     const embedChance = canEmbed ? embedRedBias * (0.45 + 0.8 * worsenPush) + jitter : 0;
-//     if (embedChance > 0.55) newIdx = Math.max(newIdx, 3); // bump to red (severe)
-//   }
-
-//   // 3) If already red, extend it; avoid flicker back to orange under worsening
-//   if (idx === 3 && worsenPush > 0) {
-//     const holdRed = (prevIdx === 3 ? 0.95 : 0) + 0.5 * (isHighway ? 1 : 0) + 0.4 * worsenPush + (distance > 500 ? 0.1 : 0) + jitter;
-//     if (holdRed > 0.55) newIdx = 3; // extend red stretch
-//   }
-
-//   // 4) Moderate may escalate to orange under mild worsening (e.g. 1.1–1.2)
-//   if (idx === 1 && worsenPush > 0) {
-//     const escalate = 0.25 + 0.6 * worsenPush + (prevIdx >= 1 ? 0.1 : 0) + jitter;
-//     if (escalate > 0.45) newIdx = 2;
-//   }
-
-//   // 5) Improvements if factor < 1: step down cautiously, strongest from red → orange first
-//   if (improvePush > 0 && idx > 0) {
-//     const easeChance =
-//       (idx === 3 ? 0.30 : idx === 2 ? 0.22 : 0.15) * (0.9 + improvePush) *
-//       (isHighway ? 0.8 : 1.0) * (distance > 600 ? 0.85 : 1.0) + jitter;
-//     if (easeChance > 0.28) newIdx = Math.max(0, idx - 1);
-//   }
-
-//   // 6) Distance-weighted persistence to produce long, realistic blocks
-//   if (prevIdx >= 0 && Math.abs(newIdx - prevIdx) === 1) {
-//     if (Math.random() < persistence) {
-//       newIdx = prevIdx; // continue the stretch
-//     }
-//   }
-
-//   newIdx = Math.max(0, Math.min(levels.length - 1, newIdx));
-//   return levels[newIdx];
-// };
-
-
 
   const fetchMultiplier = async (
     originCoords: [number, number],
@@ -767,64 +757,35 @@ const MapRoute: React.FC = () => {
     setTravelTime(null);
     setForecastTravelTime(null);
     setPeakTime(null);
+    setBaseTrafficTime(null);
+    setRoutesNoTraffic([]);        // <<< important
+    setBaselineLoadingIdx(null);
 
 
-    // --- depart_at (same as your original) ---
     const timePart = departAtTime || "17:00";
     const datePart = getNextWeeksThursday();
     const departAtParam = `&depart_at=${encodeURIComponent(`${datePart}T${timePart}`)}`;
 
-    const baseQS = `?geometries=geojson&overview=full&steps=true&alternatives=true&access_token=${mapboxgl.accessToken}`;
+    const baseQS = `?geometries=geojson&overview=full&steps=false&alternatives=true&access_token=${mapboxgl.accessToken}`;
 
     const urlTraffic =
       `https://api.mapbox.com/directions/v5/mapbox/driving-traffic/` +
       `${originCoords[0]},${originCoords[1]};${destinationCoords[0]},${destinationCoords[1]}` +
-      `${baseQS}&annotations=congestion,distance,duration${departAtParam}`;
+      `${baseQS}&annotations=congestion,duration,distance${departAtParam}`;
 
-    // const urlNoTraffic =
-    //   `https://api.mapbox.com/directions/v5/mapbox/driving/` +
-    //   `${originCoords[0]},${originCoords[1]};${destinationCoords[0]},${destinationCoords[1]}` +
-    //   `${baseQS}`; // no annotations here; we’ll color as all "low"
 
-    // const url =
-    //   `https://api.mapbox.com/directions/v5/mapbox/driving-traffic/` +
-    //   `${originCoords[0]},${originCoords[1]};${destinationCoords[0]},${destinationCoords[1]}` +
-    //   `?geometries=geojson&overview=full&steps=true&annotations=congestion,distance` +
-    //   `&alternatives=true` +
-    //   `${departAtParam}` +
-    //   `&access_token=${mapboxgl.accessToken}`;
-
-    //console.log(url)
-
-    // fetch once
-    // let dataTraffic: any;
-    // try {
-    //   // const [resT, resN] = await Promise.all([fetch(urlTraffic), fetch(urlNoTraffic)]);
-    //   // [dataTraffic, dataNoTraffic] = await Promise.all([resT.json(), resN.json()]);
-    //   const resT = await fetch(urlTraffic);
-    //   const dataTraffic = await resT.json();
-    //   if (!dataTraffic?.routes?.length) { setRoutes([]); setRoutesNoTraffic([]); return; }
-    //   const trafficRoutes = dataTraffic.routes;
-    //   setRoutes(trafficRoutes);
-
-    // } catch (e) {
-    //   console.error("Directions fetch failed", e);
-    //   return;
-    // }
-    // if (!dataTraffic?.routes?.length) { setRoutes([]); setRoutesNoTraffic([]); return; }
-
-    // // AFTER you've parsed the traffic response json and have dataTraffic.routes:
-    // const trafficRoutes = dataTraffic?.routes || [];
-    // setRoutes(trafficRoutes); // your existing state update
-
-      // fetch once
     let dataTraffic: any;
+
+    setTrafficLoading(true)
+    setTravelTime(null);
     try {
       const resT = await fetch(urlTraffic);
-      dataTraffic = await resT.json();           // <-- assign to the outer variable
+      dataTraffic = await resT.json();          
     } catch (e) {
       console.error("Directions fetch failed", e);
       return;
+    } finally {
+      setTrafficLoading(false)
     }
 
     if (!dataTraffic?.routes?.length) {
@@ -834,34 +795,58 @@ const MapRoute: React.FC = () => {
     }
 
     const trafficRoutes = dataTraffic.routes;
+
+    setRoutesNoTraffic(Array(trafficRoutes.length).fill(null));
+
     setRoutes(trafficRoutes);
 
-
-    // NEW: build aligned "no-traffic" baselines via Map Matching (same order, same path)
-    const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN!;
-    const abort = new AbortController(); // optional but recommended
-    const signal = abort.signal;
-    // store abort in a ref if you want to cancel on re-run: baselineAbortRef.current = abort;
-
-    const matchedBaselines = await Promise.all(
-      trafficRoutes.map((r: any) => matchBaselineForSamePath(r, token, signal))
-    );
-
-    // Keep 1:1 alignment with traffic routes (index i ↔ i)
-    const alignedNoTraffic = matchedBaselines.map((b) => b ?? null);
-    setRoutesNoTraffic(alignedNoTraffic);
-
-    // OPTIONAL: set your base (no-traffic) minutes for the selected route idx
-    const i = 0; // or selectedRouteIdx
-    if (alignedNoTraffic[i]) {
-      const baseMin = Math.round(alignedNoTraffic[i]!.duration / 60);
-      setBaseTrafficTime(baseMin); // if you show it in the UI
-    } else {
-      setBaseTrafficTime(null);
+    if (currentTrafficView === "none") {
+      setTravelTime(null); // show "…" while computing
+      const idx = selectedRouteIdx; // usually 0 here
+      const fresh = trafficRoutes[idx];
+      if (fresh) ensureBaselineForIndex(idx, fresh);
     }
 
+    mapInstanceRef.current?.fitBounds(
+      turf.bbox(turf.lineString(trafficRoutes[0].geometry.coordinates)),
+      { padding: 80, maxZoom: 14, duration: 600 }
+    );
 
-    // fetch multiplier once (also sets peakTime/departAtTime inside your helper)
+    mapForecastInstanceRef.current?.fitBounds(
+      turf.bbox(turf.lineString(trafficRoutes[0].geometry.coordinates)),
+      { padding: 80, maxZoom: 14, duration: 600 }
+    );
+
+
+    // build aligned "no-traffic" baselines via Map Matching (same order, same path)
+    // const token = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN!;
+    // const abort = new AbortController(); 
+    // const signal = abort.signal;
+
+    // const matchedBaselines = await Promise.all(
+    //   trafficRoutes.map((r: any) => matchBaselineForSamePath(r, token, signal))
+    // );
+
+    // // Keep 1:1 alignment with traffic routes (index i ↔ i)
+    // const alignedNoTraffic = matchedBaselines.map((b) => b ?? null);
+    // setRoutesNoTraffic(alignedNoTraffic);
+
+    // const i = 0; 
+    // if (alignedNoTraffic[i]) {
+    //   const baseMin = Math.round(alignedNoTraffic[i]!.duration / 60);
+    //   setBaseTrafficTime(baseMin); 
+    // } else {
+    //   setBaseTrafficTime(null);
+    // }
+
+    // initialize a sparse array matching the number of traffic routes (all null)
+    //setRoutesNoTraffic(Array(trafficRoutes.length).fill(null));
+    // We will lazily fill each index on demand when user toggles "No Traffic"
+    setBaseTrafficTime(null);
+
+
+
+    // fetch multiplier once
     const mult = await fetchMultiplier(originCoords, destinationCoords, selectedCountyOption);
     setForecastMultiplier(mult ?? null);
 
@@ -870,7 +855,7 @@ const MapRoute: React.FC = () => {
       mp.getStyle().layers?.forEach((l) => {
         if (
           l.id.startsWith("route-current-line-") ||
-          l.id.startsWith("route-current-none-line-") || // add this
+          l.id.startsWith("route-current-none-line-") || 
           l.id.startsWith("route-forecast-line-")
         ) {
           mp.removeLayer(l.id);
@@ -879,7 +864,7 @@ const MapRoute: React.FC = () => {
       Object.keys((mp.getStyle() as any).sources || {}).forEach((sid) => {
         if (
           sid.startsWith("route-current-src-") ||
-          sid.startsWith("route-current-none-src-") || // add this
+          sid.startsWith("route-current-none-src-") ||
           sid.startsWith("route-forecast-src-")
         ) {
           mp.removeSource(sid);
@@ -938,37 +923,7 @@ const MapRoute: React.FC = () => {
         paint: { "line-gradient": gradientNoTraffic(annotation), "line-width": 5, "line-opacity": 0.8 },
       }, map_layer);
 
-      // FORECAST map (adjusted congestion using your worsenCongestion + multiplier)
-      // let adjusted: string[] = [];
-      // if (mult != null) {
-      //   const base = annotation.congestion || [];
-      //   const dists = annotation.distance || [];
-      //   for (let k = 0; k < base.length; k++) {
-      //     const cur = base[k];
-      //     const prev = k > 0 ? base[k - 1] : cur;
-      //     const isHighway = (dists?.[k] ?? 0) > 800;
-      //     //adjusted.push(worsenCongestion(cur, prev, isHighway, dists?.[k] ?? 0, mult));
-      //     adjusted.push(
-      //       worsenCongestion(cur, prev, isHighway, dists?.[k] ?? 0, mult, {
-      //         sensitivity: yearSensitivity[forecastYear],
-      //       })
-      //     );
-
-      //   }
-      // }
-
-      // FORECAST map (minutes-based worsen via helper)
-      // const deltaMin = Math.max(0, Math.round(forecastTravelTime - travelTime));
-      // const wr = worsenRoute(route, {
-      //   targetDeltaMinutes: deltaMin,
-      //   seed: 42,             // optional
-      //   preferHighways: true, // optional
-      // });
-      // const adjusted: string[] = wr.adjustedLevels;
-
-      // (optional) If you want to show the helper’s ETA on the UI:
-      // setForecastTravelTime?.(wr.estimatedDurationMinutes);
-
+    
       mapF.addSource(`route-forecast-src-${i}`, {
         type: "geojson",
         lineMetrics: true,
@@ -984,20 +939,6 @@ const MapRoute: React.FC = () => {
           forecastGradient = gradientFromAdjusted(wr.adjustedLevels);
         }
       }
-
-      // mapF.addLayer({
-      //   id: `route-forecast-line-${i}`,
-      //   type: "line",
-      //   source: `route-forecast-src-${i}`,
-      //   layout: { "line-join": "round", "line-cap": "round", visibility: i === 0 ? "visible" : "none" },
-      //   paint: {
-      //     "line-gradient": forecastGradient,
-      //     "line-width": 5,
-      //     "line-opacity": 0.8,
-      //   },
-      // }, map_layer);
-
-
 
       
       mapF.addLayer(
@@ -1019,40 +960,29 @@ const MapRoute: React.FC = () => {
         map_layer
       );
 
-      // mapF.addLayer({
-      //   id: `route-forecast-line-${i}`,
-      //   type: "line",
-      //   source: `route-forecast-src-${i}`,
-      //   layout: { "line-join": "round", "line-cap": "round", visibility: i === 0 ? "visible" : "none" },
-      //   paint: {
-      //     "line-gradient": mult != null ? gradientFromAdjusted(adjusted) : gradientFromAnnotation(annotation),
-      //     "line-width": 5,
-      //     "line-opacity": 0.8,
-      //   },
-      // }, map_layer);
     });
 
     // store routes + set ETAs for route 0
-    setRoutes(dataTraffic.routes);
+    //setRoutes(dataTraffic.routes);
     //setRoutesNoTraffic(dataNoTraffic.routes ?? []);
     setSelectedRouteIdx(0);
 
     const etaTraffic0 = Math.round(dataTraffic.routes[0].duration / 60);
     //const etaNoTraffic0 = dataNoTraffic.routes?.[0] ? Math.round(dataNoTraffic.routes[0].duration / 60) : null;
-    const etaNoTraffic0 = alignedNoTraffic[0] ? Math.round(alignedNoTraffic[0]!.duration / 60) : null;
+    //const etaNoTraffic0 = alignedNoTraffic[0] ? Math.round(alignedNoTraffic[0]!.duration / 60) : null;
 
     //setBaseTrafficTime(etaTraffic0);
 
     if (currentTrafficView === "current") setTravelTime(etaTraffic0);
-    else if (etaNoTraffic0 != null) setTravelTime(etaNoTraffic0);
+    //else if (etaNoTraffic0 != null) setTravelTime(etaNoTraffic0);
 
     //if (mult != null) setForecastTravelTime(Math.round(etaTraffic0 *  mult));
 
     // fit both maps to O/D
-    const bounds = new mapboxgl.LngLatBounds();
-    bounds.extend(originCoords).extend(destinationCoords);
-    map.fitBounds(bounds, { padding: { top: 120, bottom: 50, left: 50, right: 50 } });
-    mapF.fitBounds(bounds, { padding: { top: 120, bottom: 50, left: 50, right: 50 } });
+    //const bounds = new mapboxgl.LngLatBounds();
+    //bounds.extend(originCoords).extend(destinationCoords);
+    //map.fitBounds(bounds, { padding: { top: 120, bottom: 50, left: 50, right: 50 } });
+    //mapF.fitBounds(bounds, { padding: { top: 120, bottom: 50, left: 50, right: 50 } });
   };
 
   useEffect(() => {
@@ -1081,6 +1011,22 @@ const MapRoute: React.FC = () => {
   }, [routes, selectedRouteIdx, forecastMultiplier]);
 
 
+  function TinySpinner() {
+    return (
+      <svg
+        className="ml-2 inline-block animate-spin"
+        xmlns="http://www.w3.org/2000/svg"
+        width="16" height="16" viewBox="0 0 24 24" fill="none"
+        aria-label="Loading"
+      >
+        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" opacity="0.25"></circle>
+        <path d="M22 12a10 10 0 0 0-10-10" stroke="currentColor" strokeWidth="3"></path>
+      </svg>
+    );
+  }
+
+  const isTrafficLoadingDisplay =
+    currentTrafficView === "current" && trafficLoading;
 
 
   return (
@@ -1122,7 +1068,18 @@ const MapRoute: React.FC = () => {
                   mapboxgl={mapboxgl}
                   placeholder="Enter origin address"
                   options={{ language: "en", country: "US", proximity: [-122.3505, 47.6206] }}
-                  onChange={(d) => setOrigin(d)}
+                  //onChange={(d) => setOrigin(d)}
+                  onChange={(d) => {
+                    setOrigin(d);
+                    if (!d) {
+                      // user cleared the box — remove pin and all routes
+                      clearOriginSide();  
+                    }
+                  }}
+                  onClear={() => {            
+                    clearOriginSide();
+                  }}
+
                   autoComplete="off"
                   onRetrieve={(res) => {
                     if (res.features?.[0]) {
@@ -1169,7 +1126,17 @@ const MapRoute: React.FC = () => {
                 mapboxgl={mapboxgl}
                 placeholder="Enter destination address"
                 options={{ language: "en", country: "US", proximity: [-122.3505, 47.6206] }}
-                onChange={(d) => setDestination(d)}
+                //onChange={(d) => setDestination(d)}
+                onChange={(d) => {
+                  setDestination(d);
+                  if (!d) {
+                    // user cleared the box — remove pin and all routes
+                    clearDestinationSide();
+                  }
+                }}
+                onClear={() => {            
+                  clearDestinationSide();
+                }}
                 onRetrieve={(res) => {
                   if (res.features?.[0]) {
                     const coords = res.features[0].geometry.coordinates as [number, number];
@@ -1228,21 +1195,45 @@ const MapRoute: React.FC = () => {
               <select
                 className="mr-1 rounded-lg"
                 value={currentTrafficView}
-                onChange={(e) => {
+                // onChange={(e) => {
+                //   const v = e.target.value as "current" | "none";
+                //   setCurrentTrafficView(v);
+                //   // update ETA shown on the left when switching
+                //   const rIdx = selectedRouteIdx;
+                //   if (v === "current" && routes[rIdx]) {
+                //     setTravelTime(Math.round(routes[rIdx].duration / 60));
+                //   } else if (v === "none" && routesNoTraffic[rIdx]) {
+                //     setTravelTime(Math.round(routesNoTraffic[rIdx].duration / 60));
+                //   }
+                // }}
+                onChange={async (e) => {
                   const v = e.target.value as "current" | "none";
                   setCurrentTrafficView(v);
-                  // update ETA shown on the left when switching
                   const rIdx = selectedRouteIdx;
-                  if (v === "current" && routes[rIdx]) {
-                    setTravelTime(Math.round(routes[rIdx].duration / 60));
-                  } else if (v === "none" && routesNoTraffic[rIdx]) {
-                    setTravelTime(Math.round(routesNoTraffic[rIdx].duration / 60));
+
+                  if (v === "current") {
+                    if (routes[rIdx]) setTravelTime(Math.round(routes[rIdx].duration / 60));
+                    return;
+                  }
+
+                  // v === "none": if we already have the baseline, use it; else fetch lazily
+                  const cached = baselineCacheRef.current.get(rIdx);
+                  if (cached?.duration != null) {
+                    setTravelTime(Math.round(cached.duration / 60));
+                    setBaseTrafficTime(Math.round(cached.duration / 60));
+                  } else {
+                    // show loading state immediately
+                    setTravelTime(null);
+                    setBaseTrafficTime(null);
+                    await ensureBaselineForIndex(rIdx);
                   }
                 }}
+
               >
                 <option value="current">Current Traffic</option>
                 <option value="none">No Traffic</option>
               </select>
+              {(isBaselineLoading || isTrafficLoadingDisplay) && <TinySpinner />}
             </h4>
 
 
@@ -1278,8 +1269,25 @@ const MapRoute: React.FC = () => {
           </div>
 
           <div className="mt-1 text-sm font-normal text-gray-700">
-            {peakTime && <span className="mr-2">{peakTime}</span>}
-            {routes.length > 0 && travelTime != null && <span><br/>Estimated time: {formatMinutes(travelTime)}</span>}
+            {/*{peakTime && <span className="mr-2">{peakTime}</span>}*/}
+            {/*{routes.length > 0 && travelTime != null && <span><br/>Estimated time: {formatMinutes(travelTime)}</span>}*/}
+            {routes.length > 0 && (
+              <div className="mt-1 ml-1 text-sm text-neutral-700">
+                <div>
+                  Estimated time:{" "}
+                  {(currentTrafficView === "none" && isBaselineLoading) ||
+                  (currentTrafficView === "current" && isTrafficLoadingDisplay)
+                    ? "…"
+                    : (travelTime != null ? formatMinutes(travelTime) : "—")}
+                </div>
+                {peakTime != null && (
+                  <div>
+                    Peak time: {peakTime}
+                  </div>
+                )}
+              </div>
+            )}
+
           </div>
         </div>
         <div
@@ -1289,7 +1297,7 @@ const MapRoute: React.FC = () => {
           className="absolute inset-0 h-full rounded-lg border"
         />
 
-        {/* NEW: top-right Route pill (LEFT map only) */}
+        {/*top-right Route pill (LEFT map only) */}
         {routes.length > 1 && (
           <div className="absolute top-2 right-2 z-10">
             <div className="flex items-center bg-white/90 backdrop-blur rounded-full border border-gray-300 shadow overflow-hidden">
