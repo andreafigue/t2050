@@ -1093,7 +1093,7 @@ const BridgeNeedsMap = () => {
 
   return (
     <div className="flex gap-4" style={{ width:'100%', height:"75vh", margin:0 }}>
-      <div className="border shadow-md" style={{ width: "65%", position: "relative",  borderRadius: "8px"}}>
+      <div className="border shadow-md" style={{ width: "60%", position: "relative",  borderRadius: "8px"}}>
 
         {/* County filter */}     
         <div
@@ -1302,7 +1302,7 @@ const BridgeNeedsMap = () => {
 
       {/* right column */}
       <div style={{ 
-        width: "35%", 
+        width: "40%", 
         display: "flex", 
         flexDirection: "column", 
         height: "100%",
@@ -1319,9 +1319,28 @@ const BridgeNeedsMap = () => {
           </div>
 
           <div className="border" style={{ ...cardStyle, flex: 1, textAlign: "center", backgroundColor: "#f4f4f4" }}>
-            <div style={{ fontSize: "11pt", marginBottom: "10px", fontFamily: "Encode Sans Compressed, sans-serif" }}>
-              Total Improvement Cost
-            </div>
+            
+            <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              fontSize: "11pt",
+              marginBottom: "10px",
+              fontFamily: "Encode Sans Compressed, sans-serif",
+            }}
+          >
+            <span>Total Improvement Cost</span>
+            <span
+              className={styles.tooltip}
+              data-tooltip="Placeholder text."
+              tabIndex={0}
+              aria-label="More info"
+              style={{ marginLeft: 8, fontSize: 11 }}
+            >
+              <Info size={18} />
+            </span>
+          </div>
             <div id="total-cost" data-cost="0" style={{ fontSize: "24pt", fontWeight: "bold", color: "#333", fontFamily: "Encode Sans Compressed, sans-serif" }}>
               $0
             </div>

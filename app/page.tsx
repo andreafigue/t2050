@@ -215,7 +215,7 @@ const Page = () => {
                 height={35} 
                 className="inline-block opacity-90 mr-2"
               />
-              <strong>Explore:</strong> See how much trips will change in the years ahead.
+              <strong>Explore:</strong> Just 10 minutes of added travel time each day adds up to more than 40 hours a year. See how much trips will change in the years ahead.
             </p>
             <DynamicMapRoute />
             <br/>
