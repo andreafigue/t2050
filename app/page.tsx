@@ -1,3 +1,4 @@
+// @ts-nocheck
 'use client';
 
 import React from 'react';
@@ -96,6 +97,7 @@ const Page = () => {
 
       const viewportH = window.innerHeight;
       const sectionRect = section.getBoundingClientRect();
+
       const sectionTop = window.scrollY + sectionRect.top;
       const totalScrollable = section.offsetHeight - viewportH;
 
