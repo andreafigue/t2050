@@ -114,7 +114,7 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ error: `Destination TAZ ${destTaz} not found` }, { status: 404 });
       }
 
-
+      console.log("OTAZ: ", originTaz, "DTAZ: ", destinationTaz, "multiplier: ", multiplier)
       return NextResponse.json({
         originTaz,
         destinationTaz: destTaz,

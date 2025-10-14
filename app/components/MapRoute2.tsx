@@ -1282,7 +1282,7 @@ const MapRoute: React.FC = () => {
                 </div>
                 {peakTime != null && (
                   <div>
-                    Peak time: {peakTime}
+                    {peakTime}
                   </div>
                 )}
               </div>

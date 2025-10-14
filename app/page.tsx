@@ -18,10 +18,21 @@ const Page = () => {
 
   const containerRef = useRef(null);
 
+  const nextSectionRef = useRef<HTMLElement | null>(null);
+
   const { scrollYProgress } = useScroll({
     target: containerRef,
     offset: ['start start', 'end start'],
   });
+
+  const { scrollYProgress: heroProgress } = useScroll({
+    target: containerRef,
+    // starts when Section 1 enters the viewport, ends when its bottom reaches the top
+    offset: ["start start", "end start"],
+  });
+
+  const arrowOpacity = useTransform(heroProgress, [0, 0.1, 0.9], [1, 1, 0]);
+
 
   // Animations
   const titleTop = useTransform(scrollYProgress, [0, 0.5, 0.7], ['25%', '6rem', '6rem']);
@@ -120,11 +131,40 @@ const Page = () => {
               <Image src="/logos/mic.png" alt="UW" width={250} height={67} />
             </a>
           </motion.div>
+
+          {/* Bouncing arrow */}
+          <motion.button
+            aria-label="Scroll to content"
+            className="absolute z-30 left-1/2 -translate-x-1/2 bottom-6 md:bottom-10 flex flex-col items-center text-white focus:outline-none"
+            style={{ opacity: arrowOpacity }}
+            onClick={() => nextSectionRef.current?.scrollIntoView({ behavior: "smooth" })}
+          >
+            <span className="text-md mb-1 tracking-wide  opacity-90">
+              Scroll for More
+            </span>
+            <motion.svg
+              width="56"
+              height="56"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              initial={{ y: 0 }}
+              animate={{ y: [0, 8, 0] }}
+              transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+              role="img"
+              aria-hidden="true"
+            >
+              <path d="M6 9l6 6 6-6" />
+            </motion.svg>
+          </motion.button>
+
         </div>
       </section>
 
       {/* Section 2 */}
       <motion.section
+        ref={nextSectionRef}
         className="px-4 md:px-16 py-16 bg-gray-100"
         initial={{ opacity: 0, y: 30 }}
         whileInView={{ opacity: 1, y: 0 }}
