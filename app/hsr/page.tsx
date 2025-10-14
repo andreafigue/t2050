@@ -4,7 +4,7 @@ import ChartComponent from '../components/hsr2';
 
 const HomePage: React.FC = () => {
   return (
-    <div style={{ padding: '1rem 1rem', height: "330px" }}>
+    <div style={{ padding: '1rem 1rem', height: "200px" }}>
       <ChartComponent />
     </div>
   );

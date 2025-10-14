@@ -208,6 +208,19 @@ const Page = () => {
   // optional scale animation (safe numeric transform)
   const titleScale = useTransform(progress, [0, 1], [1.5, 1]);
 
+  interface FootnoteProps {
+    id: string;
+    noteId: string;
+  }
+
+  function Footnote({ id, noteId }: FootnoteProps) {
+    return (
+      <sup id={id}>
+        {id}
+      </sup>
+    );
+  }
+
   return (
     <main style={{ fontFamily: 'Encode Sans Compressed, sans-serif' }}>
       {/* Pinned Scroll Transition */}
@@ -447,7 +460,7 @@ const Page = () => {
             </ViewportGate>
 
             <div className="pl-3" style={{ marginTop: "0.5rem", fontSize: "0.9rem", color: "#4b5563" }}>
-              <ol style={{ margin: "1rem 0 0 0rem", padding: 0, listStyleType: "decimal" }}>
+              <ol style={{ margin: "1rem 0 0 0rem", padding: 0, listStyleType: "circle" }}>
                 <li>
                   Washington State Office of Financial Management (OFM),
                   <em> Growth Management Act Population Projections for Counties: 2020–2050</em>.
@@ -484,8 +497,8 @@ const Page = () => {
               </p>
               <p className="text-lg mb-4 font-semibold">Did you know?</p>
               <ul className="list-disc list-inside text-lg mb-4 space-y-2">
-                <li>In 2022, the average commuter in Central Puget Sound spent 82 hours stuck in traffic at an annual cost of $1,874.</li>
-                <li>Congestion contributes 621,000 metric tons of excess carbon dioxide emissions annually in Central Puget Sound, contributing to climate change.</li>
+                <li>In 2022, the average commuter in Central Puget Sound spent 82 hours stuck in traffic at an annual cost of $1,874 <Footnote id="1" noteId="note1" />.</li>
+                <li>Congestion contributes 621,000 metric tons of excess carbon dioxide emissions annually in Central Puget Sound, contributing to climate change<Footnote id="1" noteId="note1" />.</li>
               </ul>           
             </div>
           </div>
@@ -505,7 +518,7 @@ const Page = () => {
             </ViewportGate>
             <br/>
             <div className="pl-3" style={{ marginTop: "0.5rem", fontSize: "0.9rem", color: "#4b5563" }}>
-              <ol style={{ margin: "0rem 0 0 1.25rem", padding: 0, listStyleType: "decimal" }}>
+              <ol style={{ margin: "0rem 0 0 1.25rem", padding: 0, listStyleType: "circle" }}>
                 <li>
                   Current peak-time travel conditions using Mapbox Directions API. 
                 </li>
@@ -535,7 +548,11 @@ const Page = () => {
             </p>
             <DynamicMapComponent/>
           </div>*/}
+
+
         </div>
+
+        
       </motion.section>
 
       {/* Section 4 */}
@@ -591,11 +608,16 @@ const Page = () => {
             </div>
 
             <div className="pl-2" style={{ marginTop: "1rem", fontSize: "0.9rem", color: "#4b5563" }}>
-              <ol style={{ margin: "0rem 0 0 1rem", padding: 0, listStyleType: "decimal" }}>
+              <ol style={{ margin: "0rem 0 0 1rem", padding: 0, listStyleType: "circle" }}>
                 <li>
                   Federal Aviation Administration (FAA),
                   <em>Passenger Boarding (Enplanement) Data (ACAIS)</em>.
-                </li>             
+                </li>      
+                <li>
+                Puget Sound Regional Council
+                <em>Regional Aviation Baseline Study.</em>
+                </li>
+
               </ol>
             </div>
           </div>
@@ -649,8 +671,8 @@ const Page = () => {
               </p>
               <p className="text-lg mb-4 font-semibold">Did you know?</p>
               <ul className="list-disc list-inside text-lg mb-4 space-y-2">
-                <li>In 2022, over 600 million tons of freight moved through Washington state, with a total value of just over $700 billion.</li>
-                <li>By 2050, freight movements in Washington are forecast to increase 45%, from 603 million tons of cargo to 872 million tons.</li>
+                <li>In 2022, over 600 million tons of freight moved through Washington state, with a total value of just over $700 billion<Footnote id="2" noteId="note2" />.</li>
+                <li>By 2050, freight movements in Washington are forecast to increase 45%, from 603 million tons of cargo to 872 million tons<Footnote id="2" noteId="note2" />.</li>
               </ul>
               
             </div>
@@ -674,7 +696,7 @@ const Page = () => {
             </div>
 
             <div className="pl-0" style={{ marginTop: "0.5rem", fontSize: "0.9rem", color: "#4b5563" }}>
-              <ol style={{ margin: "0rem 0 0 1rem", padding: 0, listStyleType: "decimal" }}>
+              <ol style={{ margin: "0rem 0 0 1rem", padding: 0, listStyleType: "circle" }}>
                 <li>
                   U.S. Department of Transportation, Federal Highway Administration &amp; Bureau of Transportation Statistics,
                   <em>Freight Analysis Framework Version 5 (FAF5)</em>.
@@ -737,7 +759,7 @@ const Page = () => {
             </div>
 
             <div className="pl-3" style={{ marginTop: "0.5rem", fontSize: "0.9rem", color: "#4b5563" }}>
-              <ol style={{ margin: "0.25rem 0 0 1rem", padding: 0, listStyleType: "decimal" }}>
+              <ol style={{ margin: "0.25rem 0 0 1rem", padding: 0, listStyleType: "circle" }}>
                 <li>
                   Washington State Department of Transportation (WSDOT), 
                   <em> Bridge Needs</em>. Accessed Oct 31, 2024. 
@@ -800,7 +822,7 @@ const Page = () => {
             </div>
 
             <div style={{ marginTop: "0rem", marginLeft: "1rem", fontSize: "0.9rem", color: "#4b5563" }}>
-              <ol style={{ margin: "2rem 0 0 0.5rem", padding: 0, listStyleType: "decimal" }}>
+              <ol style={{ margin: "2rem 0 0 0.5rem", padding: 0, listStyleType: "circle" }}>
                 <li>
                   Washington State Department of Transportation (WSDOT),
                   <em>Ultra-High-Speed Ground Transportation Study — Business Case Analysis(2019)</em>.
@@ -851,6 +873,33 @@ const Page = () => {
 
         </div>
       </motion.section>*/}
+
+      <motion.section
+        className="px-4 md:px-16 py-16 bg-gray-100"
+        initial={{ opacity: 0, y: 30 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.6 }}>
+      
+        <div className="max-w-6xl mx-auto">
+          <div className="md:flex-row-reverse items-start">
+              <h3 className="text-2xl md:text-3xl font-semibold mb-4 text-gray-600">
+                Sources
+              </h3> 
+          </div>
+          <div className="pl-3" style={{ marginTop: "0.5rem", fontSize: "0.9rem", color: "#4b5563" }}>
+              <ol style={{ margin: "1rem 0 0 0rem", padding: 0, listStyleType: "decimal" }}>
+                <li>
+                  Texas Transportation Institute, Urban Mobility Report 2023.
+                </li>
+                <li>
+                  Washington State Freight System Plan (2022).
+                </li>
+              </ol>
+            </div>
+        </div>
+      </motion.section>
+
 
       {/* Footer */}
       <footer className="bg-gray-50 text-sm text-gray-600 pt-16 pb-12 text-center">

@@ -10,8 +10,8 @@ When changes are made, deploy by running the following commands:
 
 ```bash
 cd /src/t2050/
-npm run build
-pm2 restart
+sudo npm run build
+pm2 restart t2050
 ```
 
 If there are issues with loading the page or images are not loading, remove the Next.js build directory and rebuild:
@@ -19,8 +19,8 @@ If there are issues with loading the page or images are not loading, remove the 
 ```bash
 cd /src/t2050/
 rm -rf .next
-npm run build
-pm2 restart
+sudo npm run build
+pm2 restart t2050
 ```
 
 ## Components
@@ -53,4 +53,4 @@ Each component is a visualization that can also be accessed individually
 
 ## API Key
 
-Api keys are available in ./.env. Mapbox in use is NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
+Api keys are available in ./.env Mapbox key in use is NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN

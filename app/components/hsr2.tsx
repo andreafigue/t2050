@@ -227,12 +227,12 @@ const ChartComponent = () => {
   }, [origin, destination, containerWidth]);
 
   return (
-    <div className="flex h-full">
+    <div className="flex h-100">
       {/* Filters */}
       <div className="w-2/6 p-6 bg-white border rounded">
         <div className="flex justify-between gap-4">
           {/* From Column */}
-          <div className="flex-1">
+          <div className="flex-1 ">
             <h5 className="font-semibold text-gray-700 mb-2 text-center">From</h5>
             <ul className="space-y-2">
               {cities.map((city) => (
@@ -283,7 +283,7 @@ const ChartComponent = () => {
         <svg
           ref={chartRef}
           width="100%"
-          height={330}
+          height={230}
           preserveAspectRatio="xMinYMin meet"
         />
       </div>
