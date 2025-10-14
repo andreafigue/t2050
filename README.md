@@ -1,36 +1,56 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
-## Getting Started
+## Challenge 2050 - The Future in motion
 
-First, run the development server:
+This project is a React and Next.js application built with TypeScript, using Mapbox for mapping and D3.js for data visualizations.
+
+## Deployment Instructions
+
+When changes are made, deploy by running the following commands:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cd /src/t2050/
+npm run build
+pm2 restart
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+If there are issues with loading the page or images are not loading, remove the Next.js build directory and rebuild:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+cd /src/t2050/
+rm -rf .next
+npm run build
+pm2 restart
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Components
 
-## Learn More
+Each component is a visualization that can also be accessed individually
 
-To learn more about Next.js, take a look at the following resources:
+- Population
+	/app/components/Population.tsx
+	https://mobilitywa2050.org/population
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- Traffic
+	/app/components/MapRoute2.tsx
+	https://mobilitywa2050.org/traffic
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- Airport
+	/app/components/Airport.tsx
+	https://mobilitywa2050.org/airport
 
-## Deploy on Vercel
+- Freight
+	/app/components/Freight.tsx
+	https://mobilitywa2050.org/freight
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- Bridges
+	/app/components/BridgeMap2.tsx
+	https://mobilitywa2050.org/bridges
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- HSR
+	/app/components/hsr2.tsx
+	https://mobilitywa2050.org/hsr
+
+## API Key
+
+Api keys are available in ./.env. Mapbox in use is NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN
