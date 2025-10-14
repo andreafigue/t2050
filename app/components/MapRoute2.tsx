@@ -5,7 +5,7 @@ import React, { useRef, useState, useEffect } from "react";
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 import dynamic from "next/dynamic";
-import "../globals2.css";
+//import "../globals2.css";
 import { worsenRoute } from "./worsenRoute"; // adjust path
 
 import * as turf from "@turf/turf";

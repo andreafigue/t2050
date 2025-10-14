@@ -3,22 +3,53 @@
 import React from 'react';
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
-import { useScroll, useTransform, motion } from 'framer-motion';
-import { useRef } from 'react';
-
-
+import { useScroll, useTransform, motion, useMotionValue } from 'framer-motion';
+import { useRef, useEffect } from 'react';
+import { useReducedMotion } from 'framer-motion';
+import "./globals2.css";
 import Population from './components/Population';
 import BridgeNeedsMap from './components/BridgeMap2';
 import Airport from './components/Airport';
-const DynamicMapRoute = dynamic(() => import('./components/MapRoute2'), { loading: () => <p>Loading commute map…</p> });
-const DynamicWashingtonMapWithLineGraphs = dynamic(() => import('./components/Freight'), { loading: () => <p>Loading freight trends…</p> });
-const DynamicChartComponent = dynamic(() => import('./components/hsr2'), { loading: () => <p>Loading HSR chart…</p> });
+
+const DynamicMapRoute = dynamic(() => import('./components/MapRoute2'), {
+  ssr: false,
+  loading: () => <p className="text-center py-6">Loading commute map…</p>,
+});
+const DynamicWashingtonMapWithLineGraphs = dynamic(() => import('./components/Freight'), {
+  ssr: false,
+  loading: () => <p className="text-center py-6">Loading freight trends…</p>,
+});
+const DynamicChartComponent = dynamic(() => import('./components/hsr2'), {
+  ssr: false,
+  loading: () => <p className="text-center py-6">Loading HSR chart…</p>,
+});
+
+function ViewportGate({ children }: { children: React.ReactNode }) {
+  const ref = React.useRef<HTMLDivElement | null>(null);
+  const [visible, setVisible] = React.useState(false);
+
+  React.useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([e]) => {
+        if (e.isIntersecting) setVisible(true);
+      },
+      { rootMargin: '200px 0px' } // start mounting a bit before it enters
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  return <div ref={ref}>{visible ? children : null}</div>;
+}
 
 const Page = () => {
 
   const containerRef = useRef(null);
 
   const nextSectionRef = useRef<HTMLElement | null>(null);
+
 
   const { scrollYProgress } = useScroll({
     target: containerRef,
@@ -31,28 +62,158 @@ const Page = () => {
     offset: ["start start", "end start"],
   });
 
-  const arrowOpacity = useTransform(heroProgress, [0, 0.1, 0.9], [1, 1, 0]);
+  const textDesktopRef = React.useRef<HTMLDivElement | null>(null);
+  const textMobileRef  = React.useRef<HTMLDivElement | null>(null);
+  const [introRevealed, setIntroRevealed] = React.useState(false);
 
+  function handleScrollMoreClick() {
+    const section = containerRef.current;
+    if (!section) return;
 
-  // Animations
-  const titleTop = useTransform(scrollYProgress, [0, 0.5, 0.7], ['25%', '6rem', '6rem']);
-  const titleLeft = useTransform(scrollYProgress, [0, 0.5, 0.7], ['45%', '7.5rem','7.5rem']);
-  const titleX = useTransform(scrollYProgress, [0, 0.5, 0.7], ['-50%', '0%', "0%"]);
-  const titleY = useTransform(scrollYProgress, [0, 0.5, 0.7], ['-50%', '0%', "0%"]);
+    const viewportH = window.innerHeight;
+    const sectionRect = section.getBoundingClientRect();
+    const sectionTop = window.scrollY + sectionRect.top;
+    const totalScrollable = section.offsetHeight - viewportH;
 
-  const titleScale = useTransform(scrollYProgress, [0, 0.5, 0.7], [1.4, 1, 1]);
+    const scrollInSection = window.scrollY - sectionTop;
 
+    // First click → scroll to show full intro text
+    if (!introRevealed && scrollInSection < totalScrollable * 0.8) {
+      const targetY = sectionTop + totalScrollable ;
+      window.scrollTo({ top: targetY, behavior: "smooth" });
+      setIntroRevealed(true);
+    } else {
+      // Second click → scroll to next section
+      nextSectionRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }
+
+  // Auto-reset state when user scrolls back up
+  React.useEffect(() => {
+    function handleScroll() {
+      const section = containerRef.current;
+      if (!section) return;
+
+      const viewportH = window.innerHeight;
+      const sectionRect = section.getBoundingClientRect();
+      const sectionTop = window.scrollY + sectionRect.top;
+      const totalScrollable = section.offsetHeight - viewportH;
+
+      const scrollInSection = window.scrollY - sectionTop;
+      const progress = scrollInSection / totalScrollable;
+
+      // If user scrolls back up above 0.3 of hero, reset state
+      if (progress < 0.8 && introRevealed) {
+        console.log("NOW")
+        setIntroRevealed(false);
+      }
+    }
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [introRevealed]);
+
+  function getViewportHeight() {
+    // iOS/iPadOS Safari reports innerHeight inconsistently when toolbars collapse
+    return (window.visualViewport?.height ?? window.innerHeight);
+  }
+
+  const reduceMotion = useReducedMotion();
+  
+  const arrowOpacity = reduceMotion ? 1 : useTransform(scrollYProgress, [0, 0.1, 0.9], [1, 1, 0]);
+  //const titleScale  = reduceMotion ? 1 : useTransform(scrollYProgress, [0, 0.5, 0.7], [1.4, 1, 1]);
   const overlayOpacity = useTransform(scrollYProgress, [0, 0.5, 0.7], [0.5, 0.7, 0.7]);
 
   const textOpacity = useTransform(scrollYProgress, [0.25, 0.5, 0.7], [0, 1, 1]);
   const textY = useTransform(scrollYProgress, [0, 0.5, 0.7], ['25rem', '5rem', '5rem']);
 
+  // Desktop/tablet title: center -> top-left
+  const dtTitleTop = reduceMotion
+    ? '6rem'
+    : useTransform(scrollYProgress, [0, 0.45], ['28%', '6rem']);
+
+  const dtTitleLeft = reduceMotion
+    ? '7.5rem'
+    : useTransform(scrollYProgress, [0, 0.45, 0.6], ['60%', '7.5rem', '7.5rem']);
+
+  const dtTitleX = reduceMotion
+    ? '0%'
+    : useTransform(scrollYProgress, [0, 0.45, 0.6], ['-50%', '0%', '0%']);
+
+  const dtTitleY = reduceMotion
+    ? '0%'
+    : useTransform(scrollYProgress, [0, 0.45, 0.6], ['-50%', '0%', '0%']);
+
+  const dtTitleScale = reduceMotion
+    ? 1
+    : useTransform(scrollYProgress, [0, 0.45], [1.5, 1]);
+
+  // Mobile: center → top-left, drop the centering offsets as you scroll
+  const mbTitleTop = reduceMotion
+    ? '1svh'
+    : useTransform(scrollYProgress, [0, 0.5], ['50svh', '12svh']);
+
+  const mbTitleLeft = reduceMotion
+    ? '4vw'
+    : useTransform(scrollYProgress, [0, 0.5], ['50vw', '8vw']);
+
+  const mbTranslateY = reduceMotion
+    ? '0%'
+    : useTransform(scrollYProgress, [0, 0.5], ['-50%', '0%']);
+
+  const mbTranslateX = reduceMotion
+    ? '0%'
+    : useTransform(scrollYProgress, [0, 0.5], ['-50%', '0%']);
+
+  const mbTitleScale = reduceMotion
+    ? 0.9
+    : useTransform(scrollYProgress, [0, 0.6], [1.5, 0.9]);
+
+  
+  const mbTransform = reduceMotion
+    ? 'translate(0, -50%) scale(1)'
+    : useTransform(
+        scrollYProgress,
+        [0, 1],
+        ['translate(-50%, -50%) scale(1.05)', 'translate(0, -50%) scale(0.9)']
+      );
+
+  const mbTitleX = reduceMotion ? '0%' : useTransform(scrollYProgress, [0, 1], ['-50%', '0%']);
+
+  // Mobile intro text: start below centered title → tuck under top-left title, full width
+  const mobileTextTop = reduceMotion
+    ? '7.5rem'
+    : useTransform(scrollYProgress, [0, 0.5], ['calc(38% + 5rem)', '7.5rem']);
+
+// useScroll with a unique name
+  const { scrollYProgress: heroScrollProgress } = useScroll({
+    target: containerRef,
+    offset: ['start start', 'end start'],
+  });
+
+  // numeric MotionValue for the animation progress
+  const progress = useMotionValue(0);
+
+  useEffect(() => {
+    if (!heroScrollProgress) return; // prevents .on() undefined error
+
+    const unsubscribe = heroScrollProgress.on('change', (v) => {
+      const t = Math.max(0, Math.min(1, v / 0.5)); // map 0–0.8 → 0–1
+      progress.set(t);
+    });
+
+    return () => unsubscribe?.();
+  }, [heroScrollProgress, progress]);
+
+  // optional scale animation (safe numeric transform)
+  const titleScale = useTransform(progress, [0, 1], [1.5, 1]);
+
   return (
     <main style={{ fontFamily: 'Encode Sans Compressed, sans-serif' }}>
       {/* Pinned Scroll Transition */}
-      <section ref={containerRef} className="relative h-[300vh] bg-black">
+      <section ref={containerRef} className="relative h-[200svh] sm:h-[240svh] md:h-[300svh] bg-black">
         {/* Sticky wrapper */}
-         <div className="sticky top-0 h-screen w-full overflow-hidden z-10">
+         <div className="sticky top-0 h-[100svh] md:h-screen w-full overflow-hidden z-10">
           {/* Background image */}
           <Image
             src="/img/background.jpg"
@@ -65,35 +226,55 @@ const Page = () => {
             className="absolute inset-0 bg-black z-10"
             style={{ opacity: overlayOpacity }}
           />
-
-          {/* Title */}
-          <motion.div
-            className="absolute z-20 text-white"
+         <motion.div
+            className="
+              absolute z-30 text-white text-left
+              [--hero-top-end:9rem]   [--hero-left-end:8rem]
+              sm:[--hero-top-end:10%] sm:[--hero-left-end:10%]
+              md:[--hero-top-end:15rem] md:[--hero-left-end:12rem]
+              lg:[--hero-top-end:10rem] lg:[--hero-left-end:19rem]
+            "
             style={{
-              top: titleTop,
-              left: titleLeft,
-              translateX: titleX,
-              translateY: titleY,
-              scale: titleScale
+              // expose numeric progress to CSS
+              ['--p' as any]: progress,
+
+              // CSS does interpolation from 50% → responsive vars
+              top:  'calc((1 - var(--p)) * 50% + var(--p) * var(--hero-top-end))',
+              left: 'calc((1 - var(--p)) * 50% + var(--p) * var(--hero-left-end))',
+
+              translateX: '-50%',
+              translateY: '-50%',
+              scale: titleScale,
+              willChange: 'top,left,transform',
+              position: "absolute"
             }}
           >
-            <h1 className="text-4xl md:text-6xl font-bold mb-2 drop-shadow-lg">
+            <h1 className="font-bold drop-shadow-lg text-3xl sm:text-4xl md:text-5xl lg:text-6xl mb-1 lg:mb-2">
               Challenge 2050
             </h1>
-            <p className="text-xl md:text-2xl drop-shadow">The Future in Motion</p>
+            <p className="drop-shadow text-base sm:text-lg md:text-xl lg:text-2xl">
+              The Future in Motion
+            </p>
           </motion.div>
 
-          {/* Section 1 Text */}
+          {/* Section 1 Text Desktop*/}
           <motion.div
-            className="absolute z-20 text-white px-4 md:px-16"
+            className="
+              absolute z-20 text-white px-4 hidden sm:block sm:px-16
+              [--text-top:30%] [--text-left:3%]        /* base (mobile/tablet) */
+              md:[--text-top:15rem] md:[--text-left:1rem]  /* tablet */
+              lg:[--text-top:10rem] lg:[--text-left:5.5rem]  /* desktop */
+            "
+            ref={textDesktopRef}
             style={{
-              top: '10rem',
-              left: '6rem',
+              top: 'var(--text-top)',
+              left: 'var(--text-left)',
               opacity: textOpacity,
+              translateX: '0%',
               y: textY,
             }}
           >
-            <div className="max-w-xl">
+            <div className="mx-auto sm:mx-0 sm:max-w-xl">
               <p className="text-xl mb-4">
                 By the year 2050, Washington State will be home to 10 million people—a population surge of 1.8 million,
                 with the vast majority settling in the already-bustling central Puget Sound region.
@@ -114,34 +295,95 @@ const Page = () => {
             </div>
           </motion.div>
 
+          {/* Section 1 Text Mobile*/}
           <motion.div
-            className="absolute z-20 text-white px-4 md:px-8"
+            ref={textMobileRef}
+            className="absolute z-20 text-white px-4 sm:hidden"
             style={{
-              top: '4rem',
-              right: '4rem',
-              //opacity: logoOpacity,
-              //x: logoY,
+              top: mobileTextTop,          // or your mobileTextTop motion value
+              left: '50%',
+              translateX: '-50%',
+              width: "95vw",
+              opacity: textOpacity,
+              y: textY,
             }}
           >
-            <a href="https://https://www.washington.edu//" target="_blank" rel="noopener noreferrer">
-              <Image src="/logos/Signature_Stacked_White.png" alt="UW" width={250} height={67} />
+            <div className="mx-auto">
+              <p className="text-md mb-4">
+                By the year 2050, Washington State will be home to 10 million people—a population surge of 1.8 million,
+                with the vast majority settling in the already-bustling central Puget Sound region.
+              </p>
+              <p className="text-md mb-4">
+                Washington’s future hinges on one critical question: <strong>How will 10 million people move safely and efficiently across our state?</strong>
+              </p>
+              <p className="text-md mb-4">
+                As roads, bridges, ferries, railways, and airports strain under increased demand, state and regional leaders
+                face a stark choice—invest boldly and strategically now, or face the rising costs of inaction: clogged highways,
+                delayed flights, and a quality of life diminished by congestion.
+              </p>
+              <p className="text-md mb-4">
+                Challenge 2050 is a data-driven initiative to help Washingtonians understand and prepare for the transportation 
+                challenges of a rapidly growing state. Explore the trends, impacts, and choices we face—and discover how informed 
+                decisions today can shape a better tomorrow. 
+              </p>
+            </div>
+          </motion.div>
+
+          {/* Logos — padded and spaced like before */}
+          <motion.div
+            className="
+              absolute z-20 text-white
+              px-2 sm:px-14 
+              top-8 right-4 sm:top-16  sm:right-8
+              flex flex-col items-end gap-8 sm:gap-12
+            "
+          >
+            <a
+              href="https://www.washington.edu/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block"
+            >
+              <Image
+                src="/logos/Signature_Stacked_White.png"
+                alt="UW"
+                width={250}
+                height={67}
+                className="w-32 sm:w-36 md:w-[180px] lg:w-[250px] h-auto"
+                sizes="(max-width: 480px) 96px, (max-width: 640px) 144px, 250px"
+                priority
+              />
             </a>
-            <br/><br/>
-            <a href="https://https://www.washington.edu//" target="_blank" rel="noopener noreferrer">
-              <Image src="/logos/mic.png" alt="UW" width={250} height={67} />
+
+            <a
+              href="https://www.washington.edu/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block"
+            >
+              <Image
+                src="/logos/mic.png"
+                alt="MIC"
+                width={250}
+                height={67}
+                className="w-32 sm:w-36 md:w-[180px] lg:w-[250px] h-auto"
+                sizes="(max-width: 480px) 96px, (max-width: 640px) 144px, 250px"
+              />
             </a>
           </motion.div>
+
 
           {/* Bouncing arrow */}
           <motion.button
             aria-label="Scroll to content"
             className="absolute z-30 left-1/2 -translate-x-1/2 bottom-6 md:bottom-10 flex flex-col items-center text-white focus:outline-none"
             style={{ opacity: arrowOpacity }}
-            onClick={() => nextSectionRef.current?.scrollIntoView({ behavior: "smooth" })}
+            onClick={handleScrollMoreClick}
           >
-            <span className="text-md mb-1 tracking-wide  opacity-90">
+            <span className="text-md mb-1 tracking-wide opacity-90 font-[Encode_Sans_Compressed]">
               Scroll for More
             </span>
+
             <motion.svg
               width="56"
               height="56"
@@ -149,9 +391,9 @@ const Page = () => {
               fill="none"
               stroke="currentColor"
               strokeWidth="2"
-              initial={{ y: 0 }}
-              animate={{ y: [0, 8, 0] }}
-              transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+              initial={reduceMotion ? false : { y: 0 }}
+              animate={reduceMotion ? undefined : { y: [0, 8, 0] }}
+              transition={reduceMotion ? undefined : { duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
               role="img"
               aria-hidden="true"
             >
@@ -200,8 +442,9 @@ const Page = () => {
               />
               <strong>Explore:</strong> See how our state’s population has changed since 1961 and is predicted to continue to grow over the next 25 years.
             </p>
-
-            <Population />
+            <ViewportGate>
+              <Population />
+            </ViewportGate>
 
             <div className="pl-3" style={{ marginTop: "0.5rem", fontSize: "0.9rem", color: "#4b5563" }}>
               <ol style={{ margin: "1rem 0 0 0rem", padding: 0, listStyleType: "decimal" }}>
@@ -257,7 +500,9 @@ const Page = () => {
               />
               <strong>Explore:</strong> Just 10 minutes of added travel time each day adds up to more than 40 hours a year. See how much trips will change in the years ahead.
             </p>
-            <DynamicMapRoute />
+            <ViewportGate>
+              <DynamicMapRoute />
+            </ViewportGate>
             <br/>
             <div className="pl-3" style={{ marginTop: "0.5rem", fontSize: "0.9rem", color: "#4b5563" }}>
               <ol style={{ margin: "0rem 0 0 1.25rem", padding: 0, listStyleType: "decimal" }}>
@@ -340,7 +585,9 @@ const Page = () => {
             </p>
 
             <div style={{width: "100%", height: "600px" }}>
-             <Airport />
+              <ViewportGate>
+               <Airport />
+              </ViewportGate>
             </div>
 
             <div className="pl-2" style={{ marginTop: "1rem", fontSize: "0.9rem", color: "#4b5563" }}>
@@ -421,7 +668,9 @@ const Page = () => {
               Cargo that can’t get to overseas markets harms our state’s economy, including the 1 in 4 jobs dependent on international trade.
             </p>
             <div className="w-full" >
-              <DynamicWashingtonMapWithLineGraphs/>
+              <ViewportGate>
+                <DynamicWashingtonMapWithLineGraphs/>
+              </ViewportGate>
             </div>
 
             <div className="pl-0" style={{ marginTop: "0.5rem", fontSize: "0.9rem", color: "#4b5563" }}>
@@ -482,7 +731,9 @@ const Page = () => {
             </p>
 
             <div style={{ padding: '1rem 1rem' }}>
-              <BridgeNeedsMap />
+              <ViewportGate>
+                <BridgeNeedsMap />
+              </ViewportGate>
             </div>
 
             <div className="pl-3" style={{ marginTop: "0.5rem", fontSize: "0.9rem", color: "#4b5563" }}>
@@ -542,7 +793,9 @@ const Page = () => {
 
             <div className="mb-4" style={{ padding: '1rem 1rem', width: "100%", height: "320px" }}>
               <div className=" w-full h-full">
-                <DynamicChartComponent />
+                <ViewportGate>
+                  <DynamicChartComponent />
+                </ViewportGate>
               </div>
             </div>
 

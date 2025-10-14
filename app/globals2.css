@@ -49,6 +49,7 @@ html {
   -webkit-text-size-adjust: 100%;
   -webkit-tap-highlight-color: rgba(55, 58, 60, 0);
 }
+
 article,
 aside,
 figcaption,
@@ -18666,3 +18667,13 @@ body.dark-mode .copy a {
     padding-left: 0;
   }
 }
+@media (max-width: 640px) {
+  .hero-title {
+    font-size: clamp(1.75rem, 6vw, 2.25rem);
+    line-height: 1.1;
+  }
+  .hero-subtitle {
+    font-size: clamp(1rem, 4vw, 1.25rem);
+  }
+}
+

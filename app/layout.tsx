@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Encode_Sans_Compressed } from "next/font/google";
 import "./globals.css";
 //import "azure-maps-control/dist/atlas.min.css";
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { AppRouterCacheProvider } from '@mui/material-nextjs/v15-appRouter';
+
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
