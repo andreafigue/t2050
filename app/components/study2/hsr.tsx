@@ -45,8 +45,10 @@ const ChartComponent = () => {
   const [origin, setOrigin] = useState("Vancouver");
   const [destination, setDestination] = useState("Seattle");
 
-
   const chartRef = useRef(null);
+
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [containerWidth, setContainerWidth] = useState<number>(600);
 
   const routeKey = `${origin}-${destination}`;
   const data = ["HSR", "Air", "Car", "Train"].map((mode) => ({
@@ -55,13 +57,25 @@ const ChartComponent = () => {
   }));
 
   useEffect(() => {
+    if (!containerRef.current) return;
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setContainerWidth(entry.contentRect.width);
+      }
+    });
+    observer.observe(containerRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
     requestAnimationFrame(() => {
       if (!chartRef.current) return;
 
       const svg = d3.select(chartRef.current);
       const margin = { top: 20, right: 30, bottom: 10, left: 150 };
-      const width = 600 - margin.left - margin.right;
+      const width = Math.max(0, containerWidth - margin.left - margin.right);
       const height = 200;
+
 
 
 
@@ -126,7 +140,7 @@ const ChartComponent = () => {
               .style("fill", "#444")
               .text((d) => `${d.time} min`)
               .call((enter) =>
-                enter.transition().duration(1000).attr("x", (d) => x(d.time) + 45)
+                enter.transition().duration(1000).attr("x", (d) => Math.min(x(d.time) + 45, width - 5))
               ),
           (update) =>
             update.call((update) =>
@@ -140,7 +154,7 @@ const ChartComponent = () => {
                   return function (t) {
                     const value = Math.round(i(t));
                     d3.select(this)
-                      .attr("x", x(value) + 45)
+                      .attr("x", Math.min(x(value) + 45, width - 5))
                       .text(`${value} min`);
                   };
                 })
@@ -171,11 +185,13 @@ const ChartComponent = () => {
               .attr("width", 60)
               .attr("height", 60)
               .call((enter) =>
-                enter.transition().duration(1000).attr("x", (d) => x(d.time) - 30)
+                enter.transition().duration(1000).attr("x", (d) => Math.min(Math.max(x(d.time) - 30, 0), width - 60))
+
               ),
           (update) =>
             update.call((update) =>
-              update.transition().duration(1000).attr("x", (d) => x(d.time) - 30)
+              update.transition().duration(1000).attr("x", (d) => Math.min(Math.max(x(d.time) - 30, 0), width - 60))
+
             )
         );
 
@@ -210,7 +226,7 @@ const ChartComponent = () => {
             )
         );
     });
-  }, [origin, destination]);
+  }, [origin, destination, containerWidth]);
 
   return (
     <div className="flex h-full">
@@ -265,8 +281,13 @@ const ChartComponent = () => {
       </div>
 
       {/* D3 Chart */}
-      <div className="w-4/6 pl-4 pr-10 py-10 flex flex-col justify-center items-start">
-        <svg ref={chartRef} width={700} height={330}></svg>
+      <div ref={containerRef} className="w-4/6 pl-4 pr-10 py-10 flex flex-col justify-center items-start">
+        <svg
+          ref={chartRef}
+          width="100%"
+          height={330}
+          preserveAspectRatio="xMinYMin meet"
+        />
       </div>
     </div>
   );
