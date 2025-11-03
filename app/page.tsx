@@ -577,11 +577,7 @@ const Page = () => {
             <div>
               <h2 className="text-3xl md:text-4xl font-semibold mb-4">Airports Under Pressure</h2>
               <p className="text-lg mb-4">
-                Air travel, too, will feel the crunch. With Puget Sound’s population expected to swell, we need more capacity.
-                TSA wait times could soar—especially during holidays and peak seasons—slowing both leisure travelers and the cargo planes that carry Washington’s exports abroad.
-              </p>
-              <p className="text-lg mb-4">
-                Without expanded airport capacity, delays will hinder both travel and trade—affecting everything from holiday plans to Washington’s global exports. 
+                Air travel, too, will feel the crunch. Without expanded airport capacity, Puget Sound’s population growth will hinder both travel and trade—affecting everything from holiday plans to Washington’s global exports. 
               </p>
               <p className="text-lg mb-4 font-semibold">Did you know?</p>
               <ul className="list-disc list-inside text-lg mb-4 space-y-2">
