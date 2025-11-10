@@ -2,7 +2,7 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## Challenge 2050 - The Future in motion
 
-This project is a React and Next.js application built with TypeScript, using Mapbox for mapping and D3.js for data visualizations.
+This project is a React and Next.js application built with TypeScript, using Mapbox for mapping and D3.js for data visualizations. Github: https://github.com/andreafigue/t2050
 
 ## Deployment Instructions
 

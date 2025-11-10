@@ -14,6 +14,35 @@
   }
 }
 
+.mapboxgl-popup {
+  z-index: 10000 !important; /* stay above any overlay boxes */
+}
+
+.mapboxgl-popup-content {
+  font-size: 12px;
+  line-height: 1.3;
+  padding: 6px 8px; /* compact for all screens */
+  border-radius: 8px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+  background: rgba(255, 255, 255, 0.96);
+}
+
+.mapboxgl-popup-close-button {
+  font-size: 16px;
+  color: #333;
+  padding: 0 4px;
+}
+
+/* Smaller popup on phones */
+@media (max-width: 640px) {
+  .mapboxgl-popup-content {
+    font-size: 10px;
+    padding: 2px 2px;
+    max-width: 180px;
+  }
+}
+
+
 body {
   color: var(--foreground);
   background: var(--background);
@@ -24,3 +53,34 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;
 }
+
+/* Force browsers (esp. iOS Safari) to treat the page as light */
+html {
+  color-scheme: light !important;
+}
+
+/* Make sure the page background/text are explicitly light */
+html, body, #__next, [data-overlay-root] {
+  background: #ffffff !important;
+  color: #111111 !important;
+}
+
+/* If you use CSS variables for colors, pin them to light values */
+:root {
+  --background: #ffffff !important;
+  --foreground: #111111 !important;
+}
+
+/* Remove or override any dark-scheme block like this: */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #ffffff !important;
+    --foreground: #111111 !important;
+  }
+  /* Optional: also guard against global dark overrides */
+  html, body {
+    background: #ffffff !important;
+    color: #111111 !important;
+  }
+}
+
