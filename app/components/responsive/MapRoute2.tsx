@@ -1030,7 +1030,7 @@ const MapRoute: React.FC = () => {
 
 
   return (
-    <div className="flex flex-col lg:flex-row  md:gap-4 gap-2 w-full min-h-screen lg:h-[600px] p-0 m-0">
+    <div className="flex flex-col lg:flex-row  md:gap-4 gap-2 w-full h-100 md:h-[80vh] lg:h-[75vh] p-0 m-0">
 
       {/* Top Controls Row: Search Inputs + Filters */}
       <div className="w-full lg:w-3/12 flex flex-col  md:gap-4 gap-2 h-auto lg:h-full">

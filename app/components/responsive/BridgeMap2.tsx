@@ -1092,7 +1092,7 @@ const BridgeNeedsMap = () => {
   }, []);
 
   return (
-    <div className="flex flex-col lg:flex-row  md:gap-4 gap-2 w-full min-h-screen lg:h-[75vh] m-0">
+    <div className="flex flex-col lg:flex-row  md:gap-4 gap-2 w-full h-100 md:h-[80vh] lg:h-[75vh] m-0">
       <div   className="border shadow-md w-full lg:w-3/5 relative rounded-lg h-80 lg:h-auto">
 
         {/* County filter */}     

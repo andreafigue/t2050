@@ -130,17 +130,6 @@ export default function Airport() {
     // Clear previous line-chart elements
     svg.selectAll(".axis, .line, .highlight, .y-label, .title").remove();
 
-    // Title
-    svg
-      .append("text")
-      .attr("class", "title")
-      .attr("x", margin.left + innerWidth / 2)
-      .attr("y", margin.top / 2)
-      .attr("text-anchor", "middle")
-      .attr("font-size", window.innerWidth < 640 ? "18px" : "25px")
-      .attr("fill", "#334155")
-      .text("Passenger Enplanements vs. Capacity");
-
     // Y-axis label
     svg
       .append("text")
@@ -701,21 +690,19 @@ export default function Airport() {
   // UI
   // ---------------------------
   return (
-    <div className="flex flex-col gap-3 md:gap-5 h-[100svh] md:min-h-[320px] min-h-0 w-full max-w-full">
-    
-      {/* Top Box: Title & Slider */}
+    <div className="flex flex-col gap-3 md:gap-5 w-full max-w-full h-[85vh] md:h-[80vh]">
+
+      {/* Top Box */}
       <div
-        className="bg-gray-100 border shadow-md rounded-lg shrink-0 "
-        style={{ padding: 20, borderRadius: 8 }}
+        className="border shadow-md rounded-lg shrink-0"
+        style={{ padding: 20, borderRadius: 8, background: "#f4f4f4" }}
       >
-        <h2 className="text-lg sm:text-xl md:text-2xl font-semibold mb-1 sm:mb-2 text-center text-slate-800">
+        <h4 className="text-lg md:text-xl font-bold mb-1 md:mb-2 text-center">
           Airport Passenger Forecast vs Capacity
-        </h2>
+        </h4>
 
         {/* Stats */}
-        <div
-          className="flex justify-center gap-3 sm:gap-8 md:gap-20 text-sm sm:text-base"
-        >
+        <div className="flex justify-center gap-3 sm:gap-8 md:gap-20 text-sm sm:text-base">
           <div style={{ background: "#f4f4f4", padding: 10 }}>
             <strong>Forecast</strong>: {passengerData[index].forecast}M
           </div>
@@ -723,7 +710,7 @@ export default function Airport() {
             <strong>Capacity</strong>: {passengerData[index].capacity}M
           </div>
           <div style={{ background: "#f4f4f4", padding: 10 }}>
-            <strong>Unmet</strong>:{" "}
+            <strong>Unmet</strong>:
             {(passengerData[index].forecast - passengerData[index].capacity).toFixed(2)}M
           </div>
         </div>
@@ -742,25 +729,31 @@ export default function Airport() {
         </div>
       </div>
 
-      {/* Bottom Grid */}
+      {/* Bottom Section Automatically Expands */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-5 flex-1 min-h-0">
-        {/* Column 1: Graph */} 
-        <div
-          ref={leftWrapRef}
-          className="border shadow-md rounded-lg p-2 md:p-7 min-h-[260px] h-[38svh] md:h-full bg-gray-100 flex-1"
-        >
-          <svg ref={svgRef}  className="w-full h-full"></svg>
+
+        {/* Column 1 */}
+        <div className="border shadow-md rounded-lg flex flex-col py-2 md:py-4 min-h-0 bg-gray items-center"
+             style={{ background: "#f4f4f4" }}>
+          <h4 className="text-lg md:text-xl font-bold">Passenger Enplanements vs Capacity</h4>
+
+          {/* This container grows to fill leftover space */}
+          <div ref={leftWrapRef} className="flex-1  min-h-0">
+            <svg ref={svgRef} className="w-full h-full"></svg>
+          </div>
         </div>
 
-        {/* Column 2: Animated Icons (Buckets) */}
-        <div
-          ref={rightWrapRef} 
-          className="border shadow-md rounded-lg bg-gray-100 p-2
-             min-h-[260px]  md:h-full w-full flex-1"
-        >
-          <svg ref={chartRef}  className="w-full h-full" ></svg>
+        {/* Column 2 */}
+        <div className="border shadow-md rounded-lg flex flex-col p-4 min-h-0 bg-gray"
+             style={{ background: "#f4f4f4" }}>
+          <div ref={rightWrapRef} className="flex-1 relative min-h-0">
+            <svg ref={chartRef} className="w-full h-full"></svg>
+          </div>
         </div>
+
       </div>
     </div>
+
+
   );
 }

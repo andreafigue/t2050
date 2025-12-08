@@ -853,7 +853,7 @@ const Population: React.FC = () => {
         {/* Population Chart */}
         <div className="border items-center shadow-md rounded-lg flex-1 flex flex-col p-4 h-full min-h-[30vh] lg:min-h-0"
         style={{background: "#f4f4f4"}}>
-          <h4 className="text-md md:text-xl font-bold">
+          <h4 className="text-lg md:text-xl font-bold">
             Population Over Time {selectedCounties.size > 0 && "(selected counties)"}
           </h4>
 
@@ -865,7 +865,7 @@ const Population: React.FC = () => {
         {/* Growth Rate Chart */}
         <div className="border items-center shadow-md rounded-lg flex-1 flex flex-col p-4 h-full min-h-[30vh] lg:min-h-0 bg-gray " 
         style={{background: "#f4f4f4"}}>
-          <h4 className="text-md md:text-xl font-bold">
+          <h4 className="text-lg md:text-xl font-bold">
             Population Growth Rate {selectedCounties.size > 0 && "(selected counties)"}
           </h4>
 

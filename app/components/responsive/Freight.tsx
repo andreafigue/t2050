@@ -492,7 +492,14 @@ const WashingtonMapWithLineGraphs: React.FC<FreightProps> = ({
 
 
   return (
-    <div className="flex flex-col lg:flex-row md:gap-4 gap-2 w-full min-h-screen lg:h-[75vh] m-0">
+    <div
+      className="
+        grid md:gap-4 gap-2 w-full
+        h-100 md:h-[80vh] lg:h-[75vh]
+        grid-cols-1 lg:grid-cols-5 min-h-0
+      "
+      style={{ margin: 0 }}
+    >
     
       {/*Mapbox section*/}
       <div className="
@@ -717,12 +724,11 @@ const WashingtonMapWithLineGraphs: React.FC<FreightProps> = ({
       </div>
 
       {/* Right Column for Charts */}
-      <div className="w-full md:gap-4 gap-2 lg:w-5/12 flex flex-col h-auto lg:h-full min-h-0 lg:mt-0">
-
+      <div className="lg:col-span-2 md:gap-4 gap-2 col-span-1 flex flex-col lg:h-full">
         
         {/* Filters */}
         <div className="p-3 border rounded-lg shadow-md bg-white items-center flex flex-col ">
-          <h4 style={{ fontSize: "15pt", fontWeight: "bold" }}>Filters</h4>
+          <h4 className="text-lg md:text-xl font-bold">Filters</h4>
           <div className="flex flex-wrap gap-4 w-full">
             {Object.keys(selectedFilters).map(key => (
               <div key={key} className="flex-1">
@@ -747,7 +753,7 @@ const WashingtonMapWithLineGraphs: React.FC<FreightProps> = ({
         
         {/* Tons Chart */}
         <div className="border items-center shadow-md rounded-lg flex-1 flex flex-col p-3 bg-white min-h-0">
-          <h4 style={{ fontSize: "15pt", fontWeight: "bold" }}>
+          <h4 className="text-lg md:text-xl font-bold">
             Tons over Years {selectedCounties.size > 0 && "(selected counties)"}
           </h4>
           <div className="w-full h-full flex-1 relative min-h-0" style={{ overflow: "visible" }}>
@@ -759,7 +765,7 @@ const WashingtonMapWithLineGraphs: React.FC<FreightProps> = ({
 
         {/* Value Chart */}
         <div className="border items-center shadow-md rounded-lg flex-1 flex flex-col p-3 bg-white min-h-0">
-          <h4 style={{ fontSize: "15pt", fontWeight: "bold" }}>
+          <h4 className="text-lg md:text-xl font-bold">
             Value over Years {selectedCounties.size > 0 && "(selected counties)"}
           </h4>
           <div className="w-full h-full inset-0 flex-1 relative min-h-0" >

@@ -278,7 +278,7 @@ const Page = () => {
               absolute z-20 text-white px-4 hidden sm:block sm:px-16
               [--text-top:30%] [--text-left:3%]        /* base (mobile/tablet) */
               md:[--text-top:15rem] md:[--text-left:1rem]  /* tablet */
-              lg:[--text-top:10rem] lg:[--text-left:5.5rem]  /* desktop */
+              lg:[--text-top:10rem] lg:[--text-left:3rem]  /* desktop */
             "
             ref={textDesktopRef}
             style={{

@@ -11,6 +11,8 @@ import "../globals2.css";
 import Population from '../components/responsive/Population';
 import BridgeNeedsMap from '../components/responsive/BridgeMap2';
 import Airport from '../components/responsive/Airport';
+import MemoryMonitor from "../components/monitor/MemoryMonitor";
+
 
 const DynamicMapRoute = dynamic(() => import('../components/responsive/MapRoute2'), {
   ssr: false,
@@ -25,25 +27,66 @@ const DynamicChartComponent = dynamic(() => import('../components/responsive/hsr
   loading: () => <p className="text-center py-6">Loading HSR chart…</p>,
 });
 
-function ViewportGate({ children }: { children: React.ReactNode }) {
-  const ref = React.useRef<HTMLDivElement | null>(null);
+// function ViewportGate({ children }: { children: React.ReactNode }) {
+//   const ref = React.useRef<HTMLDivElement | null>(null);
+//   const [visible, setVisible] = React.useState(false);
+
+//   React.useEffect(() => {
+//     const el = ref.current;
+//     if (!el) return;
+//     const io = new IntersectionObserver(
+//       ([e]) => {
+//         if (e.isIntersecting) setVisible(true);
+//       },
+//       { rootMargin: '200px 0px' } // start mounting a bit before it enters
+//     );
+//     io.observe(el);
+//     return () => io.disconnect();
+//   }, []);
+
+//   return <div ref={ref}>{visible ? children : null}</div>;
+// }
+
+
+// Function with memory measurement
+function ViewportGate({ children, name }) {
+  const ref = React.useRef(null);
   const [visible, setVisible] = React.useState(false);
 
   React.useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    const io = new IntersectionObserver(
-      ([e]) => {
-        if (e.isIntersecting) setVisible(true);
-      },
-      { rootMargin: '200px 0px' } // start mounting a bit before it enters
-    );
+
+    const io = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting && !visible) setVisible(true);
+    });
+
     io.observe(el);
     return () => io.disconnect();
-  }, []);
+  }, [visible]);
+
+  // Push samples when visible
+  React.useEffect(() => {
+    if (!visible) return;
+
+    const id = setInterval(() => {
+      const mem = (performance as any).memory;
+      if (mem && (window as any).__pushVizSample) {
+        (window as any).__pushVizSample(
+          name,
+          mem.usedJSHeapSize / 1024 / 1024
+        );
+      }
+    }, 1000);
+
+    return () => clearInterval(id);
+  }, [visible]);
 
   return <div ref={ref}>{visible ? children : null}</div>;
 }
+
+
+
 
 const Page = () => {
 
@@ -279,7 +322,7 @@ const Page = () => {
               absolute z-20 text-white px-4 hidden sm:block sm:px-8
               [--text-top:30%] [--text-left:3%]        /* base (mobile/tablet) */
               md:[--text-top:15rem] md:[--text-left:1rem]  /* tablet */
-              lg:[--text-top:10rem] lg:[--text-left:5.5rem]  /* desktop */
+              lg:[--text-top:10rem] lg:[--text-left:3rem]  /* desktop */
             "
             ref={textDesktopRef}
             style={{
@@ -463,7 +506,7 @@ const Page = () => {
               />
               <strong>Explore:</strong> See how our state’s population has changed since 1961 and is predicted to continue to grow over the next 25 years.
             </p>
-            <ViewportGate>
+            <ViewportGate name="Population">
               <Population />
             </ViewportGate>
 
@@ -498,7 +541,7 @@ const Page = () => {
               className="rounded-xl shadow-lg mx-auto"
             />
             <div>
-              <h2 className="text-3xl md:text-4xl font-semibold mb-4">The Commute, Reimagined</h2>
+              <h2 className="text-3xl md:text-4xl font-semibold md:mb-4">The Commute, Reimagined</h2>
               <p className="text-lg mb-4">
                 This growth is more than abstract data—it affects everyday lives. Longer commutes mean less time with family, 
                 more stress, and higher costs. Without action, travel times will exceed tolerable limits.
@@ -510,8 +553,8 @@ const Page = () => {
               </ul>           
             </div>
           </div>
-          <div className="mt-2 p-2 md:p-4 border bg-gray-100" style={{borderRadius: 8}}>
-            <p className="text-lg mb-2">
+          <div className="p-2 md:p-4 border bg-gray-100" style={{borderRadius: 8}}>
+            <p className="text-lg md:mb-2">
               <Image
                 src="/img/search2.png" 
                 alt="Explore icon"
@@ -521,11 +564,11 @@ const Page = () => {
               />
               <strong>Explore:</strong> Just 10 minutes of added travel time each day adds up to more than 40 hours a year. See how much trips will change in the years ahead.
             </p>
-            <ViewportGate>
+            <ViewportGate name="Traffic">
               <DynamicMapRoute />
             </ViewportGate>
             <br/>
-            <div className="pl-3" style={{ marginTop: "0.5rem", fontSize: "0.9rem", color: "#4b5563" }}>
+            <div className="pl-3" style={{fontSize: "0.9rem", color: "#4b5563" }}>
               <ol style={{ margin: "0rem 0 0 1.25rem", padding: 0, listStyleType: "circle" }}>
                 <li>
                   Current peak-time travel conditions using Mapbox Directions API. 
@@ -581,7 +624,7 @@ const Page = () => {
               className="rounded-xl shadow-lg"
             />
             <div>
-              <h2 className="text-3xl md:text-4xl font-semibold mb-4">Airports Under Pressure</h2>
+              <h2 className="text-3xl md:text-4xl font-semibold md:mb-4">Airports Under Pressure</h2>
               <p className="text-lg mb-4">
                 Air travel, too, will feel the crunch. Without expanded airport capacity, Puget Sound’s population growth will hinder both travel and trade—affecting everything from holiday plans to Washington’s global exports. 
               </p>
@@ -593,7 +636,7 @@ const Page = () => {
             </div>
           </div>
 
-          <div className="mt-6 bg-white md:p-6 p-2 border" style={{borderRadius: 8}}>
+          <div className=" bg-white md:p-6 p-2 border" style={{borderRadius: 8}}>
             <p className="text-lg mb-2">
               <Image
                 src="/img/search2.png" 
@@ -606,7 +649,7 @@ const Page = () => {
             </p>
 
             <div style={{width: "100%", height: "100%" }}>
-              <ViewportGate>
+              <ViewportGate name="Airport">
                <Airport />
               </ViewportGate>
             </div>
@@ -681,7 +724,7 @@ const Page = () => {
               
             </div>
           </div>
-          <div className="mt-6 bg-gray-100 md:p-6 p-2 border" style={{borderRadius: 8}}>
+          <div className="bg-gray-100 md:p-6 p-2 border" style={{borderRadius: 8}}>
             <p className="text-lg mb-2">
               <Image
                 src="/img/search2.png" 
@@ -694,7 +737,7 @@ const Page = () => {
               Cargo that can’t get to overseas markets harms our state’s economy, including the 1 in 4 jobs dependent on international trade.
             </p>
             <div className="w-full" >
-              <ViewportGate>
+              <ViewportGate name="Freight">
                 <DynamicWashingtonMapWithLineGraphs/>
               </ViewportGate>
             </div>
@@ -729,7 +772,7 @@ const Page = () => {
               className="rounded-xl shadow-lg"
             />
             <div>
-              <h2 className="text-3xl md:text-4xl font-semibold mb-4">The Quiet Crisis Beneath Our Roads</h2>
+              <h2 className="text-3xl md:text-4xl font-semibold md:mb-4">The Quiet Crisis Beneath Our Roads</h2>
               <p className="text-lg mb-4">
                 Beneath the weight of growth lies a quieter crisis: infrastructure decay. The state’s 8,400-plus bridges—
                 essential connectors for people and goods—are aging. A bridge in disrepair may not make headlines until it fails,
@@ -744,7 +787,7 @@ const Page = () => {
               
             </div>
           </div>
-          <div className="mt-6 bg-white md:p-6 p-2 border" style={{borderRadius: 8}}>
+          <div className="bg-white md:p-6 p-2 border" style={{borderRadius: 8}}>
             <p className="text-lg mb-2">
               <Image
                 src="/img/search2.png" 
@@ -757,7 +800,7 @@ const Page = () => {
             </p>
 
             
-            <ViewportGate>
+            <ViewportGate name="Bridges">
               <BridgeNeedsMap />
             </ViewportGate>
 
@@ -791,11 +834,11 @@ const Page = () => {
               className="rounded-xl shadow-lg"
             />
             <div>
-              <h2 className="text-3xl md:text-4xl font-semibold mb-10 text-center md:text-left">
+              <h2 className="text-3xl md:text-4xl font-semibold md:mb-4 text-center md:text-left">
                 A High-Speed Vision
               </h2>
               
-              <p className="text-lg mb-4">
+              <p className="text-lg">
                 The future isn’t just about fixing what’s broken—it’s also about imagining what could be.
                 One vision being explored is the development of an ultra-high-speed rail system linking Vancouver, BC; Seattle, WA; and Portland, OR,
                 with trains topping 250 mph.
@@ -803,7 +846,7 @@ const Page = () => {
               
             </div>  
           </div>
-          <div className="mt-6 bg-gray-100 md:p-6 p-2 border" style={{borderRadius: 8}}>
+          <div className=" bg-gray-100 md:p-6 p-2 border" style={{borderRadius: 8}}>
             <p className="text-lg mb-2">
               <Image
                 src="/img/search2.png" 
@@ -818,7 +861,7 @@ const Page = () => {
 
             <div className="mb-2" style={{ width: "100%", height: "100%" }}>
               <div className=" w-full h-full">
-                <ViewportGate>
+                <ViewportGate name="High-Speed Rail">
                   <DynamicChartComponent />
                 </ViewportGate>
               </div>
@@ -902,6 +945,9 @@ const Page = () => {
             </div>
         </div>
       </motion.section>
+
+      {/*Memory asessment*/}
+      {/*<MemoryMonitor />*/}
 
 
       {/* Footer */}
