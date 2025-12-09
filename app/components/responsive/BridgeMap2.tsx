@@ -1329,7 +1329,7 @@ const BridgeNeedsMap = () => {
               fontFamily: "Encode Sans Compressed, sans-serif",
             }}
           >
-            <span>Total Improvement Cost</span>
+            <span>Total Estimated Cost</span>
             <span
               className={styles.tooltip}
               data-tooltip="This is a unit cost estimate provided by WSDOT and does not reflect a bridge replacement design, construction schedule, or current construction costs that are all market dependent."
