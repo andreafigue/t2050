@@ -8,7 +8,9 @@ export default {
   ],
   theme: {
     screens: {
-      sm: '640px',
+      'short': { raw: '(max-height: 700px)' },
+      xs: "0px",
+      sm: '576px',
       md: '768px',
       lg: '1024px',
       xl: '1280px',

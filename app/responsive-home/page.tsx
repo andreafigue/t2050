@@ -11,7 +11,6 @@ import "../globals2.css";
 import Population from '../components/responsive/Population';
 import BridgeNeedsMap from '../components/responsive/BridgeMap2';
 import Airport from '../components/responsive/Airport';
-import MemoryMonitor from "../components/monitor/MemoryMonitor";
 
 
 const DynamicMapRoute = dynamic(() => import('../components/responsive/MapRoute2'), {
@@ -27,63 +26,63 @@ const DynamicChartComponent = dynamic(() => import('../components/responsive/hsr
   loading: () => <p className="text-center py-6">Loading HSR chart…</p>,
 });
 
-// function ViewportGate({ children }: { children: React.ReactNode }) {
-//   const ref = React.useRef<HTMLDivElement | null>(null);
-//   const [visible, setVisible] = React.useState(false);
-
-//   React.useEffect(() => {
-//     const el = ref.current;
-//     if (!el) return;
-//     const io = new IntersectionObserver(
-//       ([e]) => {
-//         if (e.isIntersecting) setVisible(true);
-//       },
-//       { rootMargin: '200px 0px' } // start mounting a bit before it enters
-//     );
-//     io.observe(el);
-//     return () => io.disconnect();
-//   }, []);
-
-//   return <div ref={ref}>{visible ? children : null}</div>;
-// }
-
-
-// Function with memory measurement
-function ViewportGate({ children, name }) {
-  const ref = React.useRef(null);
+function ViewportGate({ children }: { children: React.ReactNode }) {
+  const ref = React.useRef<HTMLDivElement | null>(null);
   const [visible, setVisible] = React.useState(false);
 
   React.useEffect(() => {
     const el = ref.current;
     if (!el) return;
-
-    const io = new IntersectionObserver(([entry]) => {
-      if (entry.isIntersecting && !visible) setVisible(true);
-    });
-
+    const io = new IntersectionObserver(
+      ([e]) => {
+        if (e.isIntersecting) setVisible(true);
+      },
+      { rootMargin: '200px 0px' } // start mounting a bit before it enters
+    );
     io.observe(el);
     return () => io.disconnect();
-  }, [visible]);
-
-  // Push samples when visible
-  React.useEffect(() => {
-    if (!visible) return;
-
-    const id = setInterval(() => {
-      const mem = (performance as any).memory;
-      if (mem && (window as any).__pushVizSample) {
-        (window as any).__pushVizSample(
-          name,
-          mem.usedJSHeapSize / 1024 / 1024
-        );
-      }
-    }, 1000);
-
-    return () => clearInterval(id);
-  }, [visible]);
+  }, []);
 
   return <div ref={ref}>{visible ? children : null}</div>;
 }
+
+
+// // Function with memory measurement
+// function ViewportGate({ children, name }) {
+//   const ref = React.useRef(null);
+//   const [visible, setVisible] = React.useState(false);
+
+//   React.useEffect(() => {
+//     const el = ref.current;
+//     if (!el) return;
+
+//     const io = new IntersectionObserver(([entry]) => {
+//       if (entry.isIntersecting && !visible) setVisible(true);
+//     });
+
+//     io.observe(el);
+//     return () => io.disconnect();
+//   }, [visible]);
+
+//   // Push samples when visible
+//   React.useEffect(() => {
+//     if (!visible) return;
+
+//     const id = setInterval(() => {
+//       const mem = (performance as any).memory;
+//       if (mem && (window as any).__pushVizSample) {
+//         (window as any).__pushVizSample(
+//           name,
+//           mem.usedJSHeapSize / 1024 / 1024
+//         );
+//       }
+//     }, 1000);
+
+//     return () => clearInterval(id);
+//   }, [visible]);
+
+//   return <div ref={ref}>{visible ? children : null}</div>;
+// }
 
 
 
@@ -225,10 +224,7 @@ const Page = () => {
 
   const mbTitleX = reduceMotion ? '0%' : useTransform(scrollYProgress, [0, 1], ['-50%', '0%']);
 
-  // Mobile intro text: start below centered title → tuck under top-left title, full width
-  const mobileTextTop = reduceMotion
-    ? '7.5rem'
-    : useTransform(scrollYProgress, [0, 0.5], ['calc(38% + 5rem)', '7.5rem']);
+
 
 // useScroll with a unique name
   const { scrollYProgress: heroScrollProgress } = useScroll({
@@ -267,7 +263,7 @@ const Page = () => {
   }
 
   return (
-    <main style={{ fontFamily: 'Encode Sans Compressed, sans-serif' }}>
+    <main className="min-w-[320px]" style={{ fontFamily: 'Encode Sans Compressed, sans-serif' }}>
 
       {/* Pinned Scroll Transition */}
       <section ref={containerRef} className="relative h-[200vh] sm:h-[240vh] md:h-[300vh] bg-black">
@@ -288,9 +284,10 @@ const Page = () => {
          <motion.div
             className="
               absolute z-30 text-white text-left
-              [--hero-top-end:9rem]   [--hero-left-end:8rem]
-              sm:[--hero-top-end:10%] sm:[--hero-left-end:10%]
-              md:[--hero-top-end:15rem] md:[--hero-left-end:12rem]
+              [--hero-top-end:6rem]   [--hero-left-end:8rem]
+              short:[--hero-top-end:6rem]   short:[--hero-left-end:7rem]
+              sm:[--hero-top-end:13rem] sm:[--hero-left-end:11rem]
+              md:[--hero-top-end:14rem] md:[--hero-left-end:14.5rem]
               lg:[--hero-top-end:10rem] lg:[--hero-left-end:19rem]
             "
             style={{
@@ -308,9 +305,9 @@ const Page = () => {
               position: "absolute"
             }}
           >
-            <h1 className="font-bold drop-shadow-lg text-3xl sm:text-4xl md:text-5xl lg:text-6xl mb-1 lg:mb-2">
+            <h2 className="font-bold drop-shadow-lg text-3xl short:text-2xl sm:text-4xl md:text-5xl lg:text-6xl mb-1 lg:mb-2">
               Challenge 2050
-            </h1>
+            </h2>
             <p className="drop-shadow text-base sm:text-lg md:text-xl lg:text-2xl">
               The Future in Motion
             </p>
@@ -319,10 +316,12 @@ const Page = () => {
           {/* Section 1 Text Desktop*/}
           <motion.div
             className="
-              absolute z-20 text-white px-4 hidden sm:block sm:px-8
-              [--text-top:30%] [--text-left:3%]        /* base (mobile/tablet) */
-              md:[--text-top:15rem] md:[--text-left:1rem]  /* tablet */
-              lg:[--text-top:10rem] lg:[--text-left:3rem]  /* desktop */
+              absolute z-20 text-white px-4 block sm:px-8 text-left
+              [--text-top:5rem] [--text-left:1.2rem]        /* base */
+              short:[--text-top:4rem] short:[--text-left:1.2rem]  /* mobile */
+              sm:[--text-top:13rem] sm:[--text-left:2rem]  /* mobile */
+              md:[--text-top:15rem] md:[--text-left:3rem]  /* tablet */
+              lg:[--text-top:10rem] lg:[--text-left:5rem]  /* desktop */
             "
             ref={textDesktopRef}
             style={{
@@ -333,54 +332,22 @@ const Page = () => {
               y: textY,
             }}
           >
-            <div className="mx-auto sm:mx-0 sm:max-w-xl">
-              <p className="text-xl mb-4">
-                By the year 2050, Washington State will be home to 10 million people—a population surge of 1.8 million,
-                with the vast majority settling in the already-bustling central Puget Sound region.
-              </p>
-              <p className="text-xl mb-4">
-                Washington’s future hinges on one critical question: <strong>How will 10 million people move safely and efficiently across our state?</strong>
-              </p>
-              <p className="text-xl mb-4">
-                As roads, bridges, ferries, railways, and airports strain under increased demand, state and regional leaders
-                face a stark choice—invest boldly and strategically now, or face the rising costs of inaction: clogged highways,
-                delayed flights, and a quality of life diminished by congestion.
-              </p>
-              <p className="text-xl mb-4">
-                Challenge 2050 is a data-driven initiative to help Washingtonians understand and prepare for the transportation 
-                challenges of a rapidly growing state. Explore the trends, impacts, and choices we face—and discover how informed 
-                decisions today can shape a better tomorrow. 
-              </p>
-            </div>
-          </motion.div>
+            <div className="w-[85vw] mx-auto sm:w-auto sm:mx-0 sm:max-w-xl">
 
-          {/* Section 1 Text Mobile*/}
-          <motion.div
-            ref={textMobileRef}
-            className="absolute z-20 text-white px-4 sm:hidden"
-            style={{
-              top: mobileTextTop,          // or your mobileTextTop motion value
-              left: '50%',
-              translateX: '-50%',
-              width: "95vw",
-              opacity: textOpacity,
-              y: textY,
-            }}
-          >
-            <div className="mx-auto">
-              <p className="text-md mb-4">
+              <p className="text-base short:text-sm sm:text-lg md:text-xl mb-4">
                 By the year 2050, Washington State will be home to 10 million people—a population surge of 1.8 million,
                 with the vast majority settling in the already-bustling central Puget Sound region.
               </p>
-              <p className="text-md mb-4">
+
+              <p className="text-base short:text-sm sm:text-lg md:text-xl  mb-4">
                 Washington’s future hinges on one critical question: <strong>How will 10 million people move safely and efficiently across our state?</strong>
               </p>
-              <p className="text-md mb-4">
+              <p className="text-base short:text-sm sm:text-lg md:text-xl  mb-4">
                 As roads, bridges, ferries, railways, and airports strain under increased demand, state and regional leaders
                 face a stark choice—invest boldly and strategically now, or face the rising costs of inaction: clogged highways,
                 delayed flights, and a quality of life diminished by congestion.
               </p>
-              <p className="text-md mb-4">
+              <p className="text-base short:text-sm sm:text-lg md:text-xl  mb-4">
                 Challenge 2050 is a data-driven initiative to help Washingtonians understand and prepare for the transportation 
                 challenges of a rapidly growing state. Explore the trends, impacts, and choices we face—and discover how informed 
                 decisions today can shape a better tomorrow. 
@@ -393,8 +360,8 @@ const Page = () => {
             className="
               absolute z-20 text-white
               px-2 sm:px-14 
-              top-8 right-4 sm:top-16  sm:right-8
-              flex flex-col items-end gap-8 sm:gap-12
+              top-6 right-4 sm:top-16  sm:right-8
+              flex flex-col items-end gap-4 sm:gap-12
             "
           >
             <a
@@ -408,7 +375,7 @@ const Page = () => {
                 alt="UW"
                 width={250}
                 height={67}
-                className="w-32 sm:w-36 md:w-[180px] lg:w-[250px] h-auto"
+                className="w-24 sm:w-36 md:w-[180px] lg:w-[250px] h-auto"
                 sizes="(max-width: 480px) 96px, (max-width: 640px) 144px, 250px"
                 priority
               />
@@ -425,7 +392,7 @@ const Page = () => {
                 alt="MIC"
                 width={250}
                 height={67}
-                className="w-32 sm:w-36 md:w-[180px] lg:w-[250px] h-auto"
+                className="w-24 sm:w-36 md:w-[180px] lg:w-[250px] h-auto"
                 sizes="(max-width: 480px) 96px, (max-width: 640px) 144px, 250px"
               />
             </a>
@@ -435,17 +402,17 @@ const Page = () => {
           {/* Bouncing arrow */}
           <motion.button
             aria-label="Scroll to content"
-            className="absolute z-30 left-1/2 -translate-x-1/2 bottom-6 md:bottom-10 flex flex-col items-center text-white focus:outline-none"
+            className="absolute z-30 left-1/2 -translate-x-1/2 bottom-3 md:bottom-4 flex flex-col items-center text-white focus:outline-none"
             style={{ opacity: arrowOpacity }}
             onClick={handleScrollMoreClick}
           >
-            <span className="text-md mb-1 tracking-wide opacity-90 font-[Encode_Sans_Compressed]">
+            <span className="text-sm md:text-md  tracking-wide opacity-90 font-[Encode_Sans_Compressed]">
               Scroll for More
             </span>
 
             <motion.svg
-              width="56"
-              height="56"
+              width="46"
+              height="46"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
