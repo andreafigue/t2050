@@ -12,6 +12,7 @@ import Population from './components/Population';
 import BridgeNeedsMap from './components/BridgeMap2';
 import Airport from './components/Airport';
 
+
 const DynamicMapRoute = dynamic(() => import('./components/MapRoute2'), {
   ssr: false,
   loading: () => <p className="text-center py-6">Loading commute map…</p>,
@@ -25,7 +26,7 @@ const DynamicChartComponent = dynamic(() => import('./components/hsr2'), {
   loading: () => <p className="text-center py-6">Loading HSR chart…</p>,
 });
 
-function ViewportGate({ children }: { children: React.ReactNode }) {
+function ViewportGate({ children, className }: { children: React.ReactNode, className?: string }) {
   const ref = React.useRef<HTMLDivElement | null>(null);
   const [visible, setVisible] = React.useState(false);
 
@@ -42,8 +43,49 @@ function ViewportGate({ children }: { children: React.ReactNode }) {
     return () => io.disconnect();
   }, []);
 
-  return <div ref={ref}>{visible ? children : null}</div>;
+  return <div ref={ref} className={className}>{visible ? children : null}</div>;
 }
+
+
+// // Function with memory measurement
+// function ViewportGate({ children, name }) {
+//   const ref = React.useRef(null);
+//   const [visible, setVisible] = React.useState(false);
+
+//   React.useEffect(() => {
+//     const el = ref.current;
+//     if (!el) return;
+
+//     const io = new IntersectionObserver(([entry]) => {
+//       if (entry.isIntersecting && !visible) setVisible(true);
+//     });
+
+//     io.observe(el);
+//     return () => io.disconnect();
+//   }, [visible]);
+
+//   // Push samples when visible
+//   React.useEffect(() => {
+//     if (!visible) return;
+
+//     const id = setInterval(() => {
+//       const mem = (performance as any).memory;
+//       if (mem && (window as any).__pushVizSample) {
+//         (window as any).__pushVizSample(
+//           name,
+//           mem.usedJSHeapSize / 1024 / 1024
+//         );
+//       }
+//     }, 1000);
+
+//     return () => clearInterval(id);
+//   }, [visible]);
+
+//   return <div ref={ref}>{visible ? children : null}</div>;
+// }
+
+
+
 
 const Page = () => {
 
@@ -182,10 +224,7 @@ const Page = () => {
 
   const mbTitleX = reduceMotion ? '0%' : useTransform(scrollYProgress, [0, 1], ['-50%', '0%']);
 
-  // Mobile intro text: start below centered title → tuck under top-left title, full width
-  const mobileTextTop = reduceMotion
-    ? '7.5rem'
-    : useTransform(scrollYProgress, [0, 0.5], ['calc(38% + 5rem)', '7.5rem']);
+
 
 // useScroll with a unique name
   const { scrollYProgress: heroScrollProgress } = useScroll({
@@ -224,11 +263,12 @@ const Page = () => {
   }
 
   return (
-    <main style={{ fontFamily: 'Encode Sans Compressed, sans-serif' }}>
+    <main className="min-w-[320px]" style={{ fontFamily: 'Encode Sans Compressed, sans-serif' }}>
+
       {/* Pinned Scroll Transition */}
-      <section ref={containerRef} className="relative h-[200svh] sm:h-[240svh] md:h-[300svh] bg-black">
+      <section ref={containerRef} className="relative h-[200vh] sm:h-[240vh] md:h-[300vh] bg-black">
         {/* Sticky wrapper */}
-         <div className="sticky top-0 h-[100svh] md:h-screen w-full overflow-hidden z-10">
+         <div className="sticky top-0 h-screen md:h-screen w-full overflow-hidden ">
           {/* Background image */}
           <Image
             src="/img/background.jpg"
@@ -244,9 +284,10 @@ const Page = () => {
          <motion.div
             className="
               absolute z-30 text-white text-left
-              [--hero-top-end:9rem]   [--hero-left-end:8rem]
-              sm:[--hero-top-end:10%] sm:[--hero-left-end:10%]
-              md:[--hero-top-end:15rem] md:[--hero-left-end:12rem]
+              [--hero-top-end:6rem]   [--hero-left-end:8rem]
+              short:[--hero-top-end:6rem]   short:[--hero-left-end:7rem]
+              sm:[--hero-top-end:13rem] sm:[--hero-left-end:11rem]
+              md:[--hero-top-end:14rem] md:[--hero-left-end:14.5rem]
               lg:[--hero-top-end:10rem] lg:[--hero-left-end:19rem]
             "
             style={{
@@ -264,9 +305,9 @@ const Page = () => {
               position: "absolute"
             }}
           >
-            <h1 className="font-bold drop-shadow-lg text-3xl sm:text-4xl md:text-5xl lg:text-6xl mb-1 lg:mb-2">
+            <h2 className="font-bold drop-shadow-lg text-3xl short:text-2xl sm:text-4xl md:text-5xl lg:text-6xl mb-1 lg:mb-2">
               Challenge 2050
-            </h1>
+            </h2>
             <p className="drop-shadow text-base sm:text-lg md:text-xl lg:text-2xl">
               The Future in Motion
             </p>
@@ -275,10 +316,12 @@ const Page = () => {
           {/* Section 1 Text Desktop*/}
           <motion.div
             className="
-              absolute z-20 text-white px-4 hidden sm:block sm:px-16
-              [--text-top:30%] [--text-left:3%]        /* base (mobile/tablet) */
-              md:[--text-top:15rem] md:[--text-left:1rem]  /* tablet */
-              lg:[--text-top:10rem] lg:[--text-left:3rem]  /* desktop */
+              absolute z-20 text-white px-4 block sm:px-8 text-left
+              [--text-top:5rem] [--text-left:1.2rem]        /* base */
+              short:[--text-top:4rem] short:[--text-left:1.2rem]  /* mobile */
+              sm:[--text-top:13rem] sm:[--text-left:2rem]  /* mobile */
+              md:[--text-top:15rem] md:[--text-left:3rem]  /* tablet */
+              lg:[--text-top:10rem] lg:[--text-left:5rem]  /* desktop */
             "
             ref={textDesktopRef}
             style={{
@@ -289,54 +332,22 @@ const Page = () => {
               y: textY,
             }}
           >
-            <div className="mx-auto sm:mx-0 sm:max-w-xl">
-              <p className="text-xl mb-4">
-                By the year 2050, Washington State will be home to 10 million people—a population surge of 1.8 million,
-                with the vast majority settling in the already-bustling central Puget Sound region.
-              </p>
-              <p className="text-xl mb-4">
-                Washington’s future hinges on one critical question: <strong>How will 10 million people move safely and efficiently across our state?</strong>
-              </p>
-              <p className="text-xl mb-4">
-                As roads, bridges, ferries, railways, and airports strain under increased demand, state and regional leaders
-                face a stark choice—invest boldly and strategically now, or face the rising costs of inaction: clogged highways,
-                delayed flights, and a quality of life diminished by congestion.
-              </p>
-              <p className="text-xl mb-4">
-                Challenge 2050 is a data-driven initiative to help Washingtonians understand and prepare for the transportation 
-                challenges of a rapidly growing state. Explore the trends, impacts, and choices we face—and discover how informed 
-                decisions today can shape a better tomorrow. 
-              </p>
-            </div>
-          </motion.div>
+            <div className="w-[85vw] mx-auto sm:w-auto sm:mx-0 sm:max-w-xl">
 
-          {/* Section 1 Text Mobile*/}
-          <motion.div
-            ref={textMobileRef}
-            className="absolute z-20 text-white px-4 sm:hidden"
-            style={{
-              top: mobileTextTop,          // or your mobileTextTop motion value
-              left: '50%',
-              translateX: '-50%',
-              width: "95vw",
-              opacity: textOpacity,
-              y: textY,
-            }}
-          >
-            <div className="mx-auto">
-              <p className="text-md mb-4">
+              <p className="text-base short:text-sm sm:text-lg md:text-xl mb-4">
                 By the year 2050, Washington State will be home to 10 million people—a population surge of 1.8 million,
                 with the vast majority settling in the already-bustling central Puget Sound region.
               </p>
-              <p className="text-md mb-4">
+
+              <p className="text-base short:text-sm sm:text-lg md:text-xl  mb-4">
                 Washington’s future hinges on one critical question: <strong>How will 10 million people move safely and efficiently across our state?</strong>
               </p>
-              <p className="text-md mb-4">
+              <p className="text-base short:text-sm sm:text-lg md:text-xl  mb-4">
                 As roads, bridges, ferries, railways, and airports strain under increased demand, state and regional leaders
                 face a stark choice—invest boldly and strategically now, or face the rising costs of inaction: clogged highways,
                 delayed flights, and a quality of life diminished by congestion.
               </p>
-              <p className="text-md mb-4">
+              <p className="text-base short:text-sm sm:text-lg md:text-xl  mb-4">
                 Challenge 2050 is a data-driven initiative to help Washingtonians understand and prepare for the transportation 
                 challenges of a rapidly growing state. Explore the trends, impacts, and choices we face—and discover how informed 
                 decisions today can shape a better tomorrow. 
@@ -349,8 +360,8 @@ const Page = () => {
             className="
               absolute z-20 text-white
               px-2 sm:px-14 
-              top-8 right-4 sm:top-16  sm:right-8
-              flex flex-col items-end gap-8 sm:gap-12
+              top-6 right-4 sm:top-16  sm:right-8
+              flex flex-col items-end gap-4 sm:gap-12
             "
           >
             <a
@@ -364,7 +375,7 @@ const Page = () => {
                 alt="UW"
                 width={250}
                 height={67}
-                className="w-32 sm:w-36 md:w-[180px] lg:w-[250px] h-auto"
+                className="w-24 sm:w-36 md:w-[180px] lg:w-[250px] h-auto"
                 sizes="(max-width: 480px) 96px, (max-width: 640px) 144px, 250px"
                 priority
               />
@@ -381,7 +392,7 @@ const Page = () => {
                 alt="MIC"
                 width={250}
                 height={67}
-                className="w-32 sm:w-36 md:w-[180px] lg:w-[250px] h-auto"
+                className="w-24 sm:w-36 md:w-[180px] lg:w-[250px] h-auto"
                 sizes="(max-width: 480px) 96px, (max-width: 640px) 144px, 250px"
               />
             </a>
@@ -391,17 +402,17 @@ const Page = () => {
           {/* Bouncing arrow */}
           <motion.button
             aria-label="Scroll to content"
-            className="absolute z-30 left-1/2 -translate-x-1/2 bottom-6 md:bottom-10 flex flex-col items-center text-white focus:outline-none"
+            className="absolute z-30 left-1/2 -translate-x-1/2 bottom-3 md:bottom-4 flex flex-col items-center text-white focus:outline-none"
             style={{ opacity: arrowOpacity }}
             onClick={handleScrollMoreClick}
           >
-            <span className="text-md mb-1 tracking-wide opacity-90 font-[Encode_Sans_Compressed]">
+            <span className="text-sm md:text-md  tracking-wide opacity-90 font-[Encode_Sans_Compressed]">
               Scroll for More
             </span>
 
             <motion.svg
-              width="56"
-              height="56"
+              width="46"
+              height="46"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -419,46 +430,50 @@ const Page = () => {
         </div>
       </section>
 
+
+
+
       {/* Section 2 */}
       <motion.section
         ref={nextSectionRef}
-        className="px-4 md:px-16 py-16 bg-gray-100"
+        className=" relative px-2 md:px-8 py-2 md:py-8 bg-gray-100"
         initial={{ opacity: 0, y: 30 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
         transition={{ duration: 0.6 }}
       >
         <div className="max-w-6xl mx-auto">
-          <div className="flex flex-col md:flex-row-reverse gap-8 items-start">
+          <div className="flex flex-col md:flex-row-reverse gap-8 p-2 md:p-4 md:mb-4">
             <Image
               src="/img/pikeplace.jpg"
               alt="A Changing State"
               width={450}
               height={300}
-              className="rounded-xl shadow-lg"
+              className="rounded-xl shadow-lg mx-auto"
             />
             <div>
               <h2 className="text-3xl md:text-4xl font-semibold mb-4">A Changing State</h2>
-              <p className="text-lg mb-4">
+              <p className="text-lg ">
                 Washington’s evolution has been decades in the making. From 1961 through projections for 2050,
                 population growth has shifted the balance across counties, reshaping urban and rural communities alike.
               </p>
             </div>
           </div>
 
-          <div className="mt-12 bg-white p-6 border" style={{borderRadius: 8}}>
-            <p className="text-2xl mb-4">
+          <div className="bg-white p-2 md:p-4  border " style={{borderRadius: 8}}>
+
+            <p className="text-lg mb-2">
               <Image
                 src="/img/search2.png" 
                 alt="Explore icon"
-                width={35}
-                height={35} 
+                width={20}
+                height={20} 
                 className="inline-block opacity-90 mr-2"
               />
               <strong>Explore:</strong> See how our state’s population has changed since 1961 and is predicted to continue to grow over the next 25 years.
             </p>
-            <ViewportGate>
-              <Population />
+            <ViewportGate className="h-[90svh] md:h-[75svh] overflow-hidden" name="Population">
+              <Population className="h-full"/>
             </ViewportGate>
 
             <div className="pl-3" style={{ marginTop: "0.5rem", fontSize: "0.9rem", color: "#4b5563" }}>
@@ -476,57 +491,57 @@ const Page = () => {
 
       {/* Section 3 */}
       <motion.section
-        className="px-4 md:px-16 py-16 bg-white"
+        className="relative px-2 md:px-8 py-2 md:py-8 bg-white"
         initial={{ opacity: 0, y: 30 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
         transition={{ duration: 0.6 }}
       >
         <div className="max-w-6xl mx-auto">
-          <div className="flex flex-col md:flex-row gap-8 items-start">
+          <div className="flex flex-col md:flex-row gap-4 p-2 md:p-4  items-start">
             <Image
               src="/img/i5corridor.jpg"
               alt="The Commute, Reimagined"
               width={450}
               height={300}
-              className="rounded-xl shadow-lg"
+              className="rounded-xl shadow-lg mx-auto"
             />
             <div>
-              <h2 className="text-3xl md:text-4xl font-semibold mb-4">The Commute, Reimagined</h2>
+              <h2 className="text-3xl md:text-4xl font-semibold md:mb-4">The Commute, Reimagined</h2>
               <p className="text-lg mb-4">
                 This growth is more than abstract data—it affects everyday lives. Longer commutes mean less time with family, 
                 more stress, and higher costs. Without action, travel times will exceed tolerable limits.
               </p>
               <p className="text-lg mb-4 font-semibold">Did you know?</p>
-              <ul className="list-disc list-inside text-lg mb-4 space-y-2">
+              <ul className="list-disc list-inside text-lg space-y-2">
                 <li>In 2022, the average commuter in Central Puget Sound spent 82 hours stuck in traffic at an annual cost of $1,874 <Footnote id="1" noteId="note1" />.</li>
                 <li>Congestion contributes 621,000 metric tons of excess carbon dioxide emissions annually in Central Puget Sound, contributing to climate change<Footnote id="1" noteId="note1" />.</li>
               </ul>           
             </div>
           </div>
-          <div className="mt-12 p-6 border bg-gray-100" style={{borderRadius: 8}}>
-            <p className="text-2xl mb-4">
+          <div className="p-2 md:p-4 border bg-gray-100" style={{borderRadius: 8}}>
+            <p className="text-lg md:mb-2">
               <Image
                 src="/img/search2.png" 
                 alt="Explore icon"
-                width={35}
-                height={35} 
+                width={20}
+                height={20}
                 className="inline-block opacity-90 mr-2"
               />
               <strong>Explore:</strong> Just 10 minutes of added travel time each day adds up to more than 40 hours a year. See how much trips will change in the years ahead.
             </p>
-            <ViewportGate>
+            <ViewportGate className="h-[95svh] md:h-[75svh] overflow-hidden" name="Traffic">
               <DynamicMapRoute />
             </ViewportGate>
             <br/>
-            <div className="pl-3" style={{ marginTop: "0.5rem", fontSize: "0.9rem", color: "#4b5563" }}>
+            <div className="pl-3" style={{fontSize: "0.9rem", color: "#4b5563" }}>
               <ol style={{ margin: "0rem 0 0 1.25rem", padding: 0, listStyleType: "circle" }}>
                 <li>
                   Current peak-time travel conditions using Mapbox Directions API. 
                 </li>
                 <li>
                   Puget Sound Regional Council (PSRC),
-                  <em> Vision 2050 – Regional Transportation Model, assumes the build out of Transit 3.</em>
+                  <em> Vision 2050 – Regional Transportation Model, assumes the build out of Sound Transit 3.</em>
                 </li>
 
                 <li>
@@ -559,14 +574,14 @@ const Page = () => {
 
       {/* Section 4 */}
       <motion.section
-        className="px-4 md:px-16 py-16 bg-gray-100"
+        className="relative px-2 md:px-8 py-2 md:py-8 bg-gray-100"
         initial={{ opacity: 0, y: 30 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
         transition={{ duration: 0.6 }}
       >
         <div className="max-w-6xl mx-auto">
-          <div className="flex flex-col md:flex-row-reverse gap-8 items-start">
+          <div className="flex flex-col md:flex-row-reverse gap-8 p-2 md:p-4 md:mb-4 items-start">
             <Image
               src="/img/tsa.JPG"
               alt="Airports Under Pressure"
@@ -575,7 +590,7 @@ const Page = () => {
               className="rounded-xl shadow-lg"
             />
             <div>
-              <h2 className="text-3xl md:text-4xl font-semibold mb-4">Airports Under Pressure</h2>
+              <h2 className="text-3xl md:text-4xl font-semibold md:mb-4">Airports Under Pressure</h2>
               <p className="text-lg mb-4">
                 Air travel, too, will feel the crunch. Without expanded airport capacity, Puget Sound’s population growth will hinder both travel and trade—affecting everything from holiday plans to Washington’s global exports. 
               </p>
@@ -587,20 +602,20 @@ const Page = () => {
             </div>
           </div>
 
-          <div className="mt-12 bg-white p-6 border" style={{borderRadius: 8}}>
-            <p className="text-2xl mb-4">
+          <div className=" bg-white md:p-6 p-2 border" style={{borderRadius: 8}}>
+            <p className="text-lg mb-2">
               <Image
                 src="/img/search2.png" 
                 alt="Explore icon"
-                width={35}
-                height={35} 
+                width={20}
+                height={20}
                 className="inline-block opacity-90 mr-2"
               />
               <strong>Explore:</strong> Watch how rising passenger demand begins to outpace airport capacity. As demand grows, unmet needs appear and increase, showing how much traffic our airports can't accommodate without further investment.
             </p>
 
-            <div style={{width: "100%", height: "600px" }}>
-              <ViewportGate>
+            <div style={{width: "100%", height: "100%" }}>
+              <ViewportGate className="h-[90svh] md:h-[75svh]" name="Airport">
                <Airport />
               </ViewportGate>
             </div>
@@ -645,14 +660,14 @@ const Page = () => {
 
       {/* Section 5 */}
       <motion.section
-        className="px-4 md:px-16 py-16 bg-white"
+        className="relative px-2 md:px-8 py-2 md:py-8 bg-white"
         initial={{ opacity: 0, y: 30 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
         transition={{ duration: 0.6 }}
       >
         <div className="max-w-6xl mx-auto">
-          <div className="flex flex-col md:flex-row gap-8 items-start">
+          <div className="flex flex-col md:flex-row gap-8 p-2 md:p-4 md:mb-4 items-start">
             <Image
               src="/img/WA-port.jpg"
               alt="Freight and the Backbone of Commerce"
@@ -675,23 +690,21 @@ const Page = () => {
               
             </div>
           </div>
-          <div className="mt-12 bg-gray-100 p-6 border" style={{borderRadius: 8}}>
-            <p className="text-2xl mb-4">
+          <div className="bg-gray-100 md:p-6 p-2 border" style={{borderRadius: 8}}>
+            <p className="text-lg mb-2">
               <Image
                 src="/img/search2.png" 
                 alt="Explore icon"
-                width={35}
-                height={35} 
+                width={20}
+                height={20}
                 className="inline-block opacity-90 mr-2"
               />
               <strong>Explore:</strong> Learn how cargo moves around the state and how it is expected to grow to meet the increased demand of a growing population.
               Cargo that can’t get to overseas markets harms our state’s economy, including the 1 in 4 jobs dependent on international trade.
             </p>
-            <div className="w-full" >
-              <ViewportGate>
+              <ViewportGate  name="Freight">
                 <DynamicWashingtonMapWithLineGraphs/>
               </ViewportGate>
-            </div>
 
             <div className="pl-0" style={{ marginTop: "0.5rem", fontSize: "0.9rem", color: "#4b5563" }}>
               <ol style={{ margin: "0rem 0 0 1rem", padding: 0, listStyleType: "circle" }}>
@@ -707,14 +720,14 @@ const Page = () => {
 
       {/* Section 6 */}
       <motion.section
-        className="px-4 md:px-16 py-16 bg-gray-100"
+        className="relative px-2 md:px-8 py-2 md:py-8 bg-gray-100"
         initial={{ opacity: 0, y: 30 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
         transition={{ duration: 0.6 }}
       >
         <div className="max-w-6xl mx-auto">
-          <div className="flex flex-col md:flex-row-reverse gap-8 items-start">
+          <div className="flex flex-col md:flex-row-reverse gap-8 p-2 md:p-4 md:mb-4 items-start">
             <Image
               src="/img/bridge.jpg"
               alt="The Quiet Crisis Beneath Our Roads"
@@ -723,7 +736,7 @@ const Page = () => {
               className="rounded-xl shadow-lg"
             />
             <div>
-              <h2 className="text-3xl md:text-4xl font-semibold mb-4">The Quiet Crisis Beneath Our Roads</h2>
+              <h2 className="text-3xl md:text-4xl font-semibold md:mb-4">The Quiet Crisis Beneath Our Roads</h2>
               <p className="text-lg mb-4">
                 Beneath the weight of growth lies a quieter crisis: infrastructure decay. The state’s 8,400-plus bridges—
                 essential connectors for people and goods—are aging. A bridge in disrepair may not make headlines until it fails,
@@ -738,23 +751,22 @@ const Page = () => {
               
             </div>
           </div>
-          <div className="mt-12 bg-white p-6 border" style={{borderRadius: 8}}>
-            <p className="text-2xl mb-4">
+          <div className="bg-white md:p-6 p-2 border" style={{borderRadius: 8}}>
+            <p className="text-lg mb-2">
               <Image
                 src="/img/search2.png" 
                 alt="Explore icon"
-                width={35}
-                height={35} 
+                width={20}
+                height={20}
                 className="inline-block opacity-90 mr-2"
               />
               <strong>Explore:</strong> Inspect the condition of spans across the state and see what detours would be required if bridges were closed before they could be repaired or replaced.
             </p>
 
-            <div style={{ padding: '1rem 1rem' }}>
-              <ViewportGate>
-                <BridgeNeedsMap />
-              </ViewportGate>
-            </div>
+            
+            <ViewportGate name="Bridges">
+              <BridgeNeedsMap />
+            </ViewportGate>
 
             <div className="pl-3" style={{ marginTop: "0.5rem", fontSize: "0.9rem", color: "#4b5563" }}>
               <ol style={{ margin: "0.25rem 0 0 1rem", padding: 0, listStyleType: "circle" }}>
@@ -770,14 +782,14 @@ const Page = () => {
 
       {/* Section 7 */}
       <motion.section
-        className="px-4 md:px-16 py-16 bg-white"
+        className="relative px-2 md:px-8 py-2 md:py-8 bg-white"
         initial={{ opacity: 0, y: 30 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
         transition={{ duration: 0.6 }}
       >
         <div className="max-w-6xl mx-auto">
-          <div className="flex flex-col md:flex-row gap-8 items-start">
+          <div className="flex flex-col md:flex-row gap-8 p-2 md:p-4 md:mb-4 items-start">
             <Image
               src="/img/hsr.jpg"
               alt="A High-Speed Vision"
@@ -786,11 +798,11 @@ const Page = () => {
               className="rounded-xl shadow-lg"
             />
             <div>
-              <h2 className="text-3xl md:text-4xl font-semibold mb-10 text-center md:text-left">
+              <h2 className="text-3xl md:text-4xl font-semibold md:mb-4 text-center md:text-left">
                 A High-Speed Vision
               </h2>
               
-              <p className="text-lg mb-4">
+              <p className="text-lg">
                 The future isn’t just about fixing what’s broken—it’s also about imagining what could be.
                 One vision being explored is the development of an ultra-high-speed rail system linking Vancouver, BC; Seattle, WA; and Portland, OR,
                 with trains topping 250 mph.
@@ -798,22 +810,22 @@ const Page = () => {
               
             </div>  
           </div>
-          <div className="mt-12 bg-gray-100 p-6 border" style={{borderRadius: 8}}>
-            <p className="text-2xl mb-4">
+          <div className=" bg-gray-100 md:p-6 p-2 border" style={{borderRadius: 8}}>
+            <p className="text-lg mb-2">
               <Image
                 src="/img/search2.png" 
                 alt="Explore icon"
-                width={35}
-                height={35} 
+                width={20}
+                height={20}
                 className="inline-block opacity-90 mr-2"
               />
               <strong>Explore:</strong> Trips between Seattle and Vancouver, BC or Seattle and Portland, OR could be an hour or shorter—
               redefining what it means to live and work in the Pacific Northwest.
             </p>
 
-            <div className="mb-4" style={{ padding: '1rem 1rem', width: "100%", height: "320px" }}>
+            <div className="mb-2" style={{ width: "100%", height: "100%" }}>
               <div className=" w-full h-full">
-                <ViewportGate>
+                <ViewportGate name="High-Speed Rail">
                   <DynamicChartComponent />
                 </ViewportGate>
               </div>
@@ -873,7 +885,7 @@ const Page = () => {
       </motion.section>*/}
 
       <motion.section
-        className="px-4 md:px-16 py-16 bg-gray-100"
+        className="relative px-2 md:px-8 py-2 md:py-8 bg-gray-100"
         initial={{ opacity: 0, y: 30 }}
         whileInView={{ opacity: 1, y: 0 }}
         viewport={{ once: true }}
@@ -897,6 +909,9 @@ const Page = () => {
             </div>
         </div>
       </motion.section>
+
+      {/*Memory asessment*/}
+      {/*<MemoryMonitor />*/}
 
 
       {/* Footer */}

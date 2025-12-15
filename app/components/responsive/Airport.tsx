@@ -628,7 +628,7 @@ export default function Airport() {
   // UI
   // ---------------------------
   return (
-    <div className="h-[85vh] md:h-[80vh] flex flex-col gap-3 md:gap-5" >
+    <div className="h-full flex flex-col gap-2 md:gap-4" >
       {/* Top Container */}
       <div className="border shadow-md rounded-lg bg-gray-100 p-3 md:p-5">
         {/* Title */}

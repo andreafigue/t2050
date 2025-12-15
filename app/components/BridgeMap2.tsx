@@ -1092,22 +1092,22 @@ const BridgeNeedsMap = () => {
   }, []);
 
   return (
-    <div className="flex gap-4" style={{ width:'100%', height:"75vh", margin:0 }}>
-      <div className="border shadow-md" style={{ width: "60%", position: "relative",  borderRadius: "8px"}}>
+    <div className="flex flex-col lg:flex-row  md:gap-4 gap-2 w-full h-100 md:h-[80vh] lg:h-[75vh] m-0">
+      <div   className="border shadow-md w-full lg:w-3/5 relative rounded-lg h-80 lg:h-auto">
 
         {/* County filter */}     
         <div
           style={{
             position: "absolute",
-            top: "20px",
-            left: "20px",
+            top: "6px",
+            left: "6px",
             zIndex: 10,
             background: "rgba(255, 255, 255, 0.95)",
             borderRadius: "8px",
-            padding: "12px",
             boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-            width: "240px",
-            fontSize: "10pt",
+            width: "clamp(140px, 40vw, 220px)",
+            fontSize: "clamp(10px, 2vw, 12px)",
+            padding: "clamp(6px, 1vw, 10px)",
             fontFamily: "Encode Sans Compressed, sans-serif"
 
           }}
@@ -1198,17 +1198,18 @@ const BridgeNeedsMap = () => {
         <div
           style={{
             position: "absolute",
-            top: "20px",
-            right: "20px",
+            bottom: "6px",
+            left: "6px",
             zIndex: 10,
             background: "rgba(255, 255, 255, 0.95)",
             borderRadius: "8px",
-            padding: "10px 15px",
+            width: "clamp(160px, 40vw, 220px)",
+            fontSize: "clamp(10px, 2vw, 12px)",
+            padding: "clamp(6px, 1vw, 10px)",
             boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
             display: "flex",
             alignItems: "center",
             gap: "15px",
-            fontSize: "11pt"
           }}
         >
           <strong 
@@ -1245,10 +1246,11 @@ const BridgeNeedsMap = () => {
         <div
           style={{
             position: "absolute",
-            bottom: "20px",
-            right: "20px",
+            bottom: "6px",
+            right: "6px",
             background: "rgba(255, 255, 255, 0.9)",
-            padding: "15px",
+            fontSize: "clamp(10px, 2vw, 12px)",
+            padding: "clamp(6px, 1vw, 10px)",
             borderRadius: "8px",
             boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
           }}
@@ -1301,14 +1303,11 @@ const BridgeNeedsMap = () => {
 
 
       {/* right column */}
-      <div style={{ 
-        width: "40%", 
-        display: "flex", 
-        flexDirection: "column", 
-        height: "100%",
-        minHeight: 0 
-      }}>
-        <div className="mb-4" style={{ display: "flex", gap: "10px", flex: "0 0 20%" }}>
+      <div
+          className="w-full  md:gap-4 gap-2 lg:w-2/5 flex flex-col min-h-[600px] lg:h-[75vh] lg:mt-0"
+        >
+
+        <div className=" md:gap-4 gap-2" style={{ display: "flex", flex: "0 0 20%" }}>
           <div className="border" style={{ ...cardStyle, flex: 1, textAlign: "center", backgroundColor: "#f4f4f4" }}>
             <div style={{ fontSize: "11pt", marginBottom: "10px", fontFamily: "Encode Sans Compressed, sans-serif" }}>
               Total Bridges
@@ -1330,7 +1329,7 @@ const BridgeNeedsMap = () => {
               fontFamily: "Encode Sans Compressed, sans-serif",
             }}
           >
-            <span>Total Improvement Cost</span>
+            <span>Total Estimated Cost</span>
             <span
               className={styles.tooltip}
               data-tooltip="This is a unit cost estimate provided by WSDOT and does not reflect a bridge replacement design, construction schedule, or current construction costs that are all market dependent."
@@ -1348,14 +1347,15 @@ const BridgeNeedsMap = () => {
         </div>
 
         
-        <div className="border mb-4" style={{
+        <div className="border" style={{
           ...cardStyle, 
           flex: "1 1 0", 
           width: "100%", 
           display:"flex", 
           flexDirection: "column",
           minHeight: 0, 
-          backgroundColor: "#f4f4f4"
+          backgroundColor: "#f4f4f4",
+          maxHeight: "50vh"
         }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             {/* Insert Condition Chart */}
@@ -1379,19 +1379,20 @@ const BridgeNeedsMap = () => {
             justifyContent: "center", 
             overflow: "hidden"
           }}>
-            <div id="condition-bar-chart" style={{ width: "100%", height: "100%" }}/>
+            <div id="condition-bar-chart" className="w-full h-full"/>
           </div>
         </div>
 
 
-        <div className="border mb-0" style={{
+        <div className="border" style={{
           ...cardStyle, 
           flex: "1 1 0", 
           width: "100%", 
           display:"flex", 
           flexDirection: "column",
           minHeight: 0 , 
-          backgroundColor: "#f4f4f4"
+          backgroundColor: "#f4f4f4",
+          maxHeight: "50vh",
         }}>
           {/* Insert Detour Chart */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -1413,7 +1414,7 @@ const BridgeNeedsMap = () => {
             justifyContent: "center", 
             overflow: "hidden"
           }}>
-            <div id="detour-distribution-chart" style={{ width: "100%", height: "100%" }}/>
+            <div id="detour-distribution-chart" className="w-full h-full"/>
             </div>
           </div>
         </div> 

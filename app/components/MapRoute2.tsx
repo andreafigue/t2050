@@ -1030,13 +1030,14 @@ const MapRoute: React.FC = () => {
 
 
   return (
-    <div className="flex gap-4 w-full h-[500px] p-0 m-0">
+    <div className="flex flex-col lg:flex-row  md:gap-4 gap-2 w-full h-full p-0 m-0">
+
       {/* Top Controls Row: Search Inputs + Filters */}
-      <div className="flex flex-col gap-4 w-3/12 h-full">
+      <div className="w-full lg:w-3/12 flex flex-col  md:gap-4 gap-2 h-auto lg:h-full">
 
         {/* Filters on the Right */}
         <div className="p-3 bg-white border rounded-lg shadow-md w-full ">
-          <label htmlFor="county-select" className="block text-lg font-semibold mb-2">
+          <label htmlFor="county-select" className="block text-lg font-semibold">
             Select Model
           </label>
           <div className="flex items-center gap-2">
@@ -1053,7 +1054,7 @@ const MapRoute: React.FC = () => {
           </div>
         </div>
       {/* Search Box Container */}
-      <div className="p-3 bg-white border rounded-lg shadow-md w-full min-h-[150px]">
+      <div className="p-3 bg-white border rounded-lg shadow-md w-full min-h-0">
         {mapLoaded ? (
           <>
             <div className="mb-2">
@@ -1185,13 +1186,14 @@ const MapRoute: React.FC = () => {
     </div>
 
     {/* Map Containers */}
-    <div className="flex-1 flex gap-4 w-9/12 h-full">
+    <div className="w-full lg:w-9/12 flex flex-col lg:flex-row  md:gap-4 gap-2 h-[600px] lg:h-full">
 
-      <div className="flex-1 relative rounded-lg shadow-md border h-full" >
+      <div className="flex-1 relative rounded-lg shadow-md border h-[300px] lg:h-full">
+
         <div className="absolute top-2 left-2 bg-white bg-opacity-90 p-2 rounded text-sm font-medium shadow z-10">
 
           <div className={`flex items-center gap-3 ${routes.length > 1 ? "justify-between" : ""}`}>
-            <h4 className="text-lg font-semibold mb-0">
+            <h4 className="text-lg font-semibold">
               <select
                 className="mr-1 rounded-lg"
                 value={currentTrafficView}
@@ -1268,11 +1270,11 @@ const MapRoute: React.FC = () => {
             )}*/}
           </div>
 
-          <div className="mt-1 text-sm font-normal text-gray-700">
+          <div className="text-sm font-normal text-gray-700">
             {/*{peakTime && <span className="mr-2">{peakTime}</span>}*/}
             {/*{routes.length > 0 && travelTime != null && <span><br/>Estimated time: {formatMinutes(travelTime)}</span>}*/}
             {routes.length > 0 && (
-              <div className="mt-1 ml-1 text-sm text-neutral-700">
+              <div className="ml-1 text-sm text-neutral-700">
                 <div>
                   Estimated time:{" "}
                   {(currentTrafficView === "none" && isBaselineLoading) ||
@@ -1293,9 +1295,10 @@ const MapRoute: React.FC = () => {
         <div
           id="map-container"
           ref={mapContainerRef}
-          style={{ height: "100%", borderRadius: 8 }}
-          className="absolute inset-0 h-full rounded-lg border"
+          className="absolute inset-0 h-full w-full rounded-lg border"
+          style={{ borderRadius: 8 }}
         />
+
 
         {/*top-right Route pill (LEFT map only) */}
         {routes.length > 1 && (
@@ -1330,9 +1333,9 @@ const MapRoute: React.FC = () => {
 
       </div>
 
-      <div className="flex-1 relative rounded-lg shadow-md h-full" >
+      <div className="flex-1 relative rounded-lg shadow-md border h-[300px] lg:h-full">
         <div className="absolute top-2 left-2 bg-white bg-opacity-90 p-2 rounded text-sm font-medium shadow z-10">
-          <h4 className="text-lg font-semibold mb-0">
+          <h2 className="text-lg font-semibold">
             
             <select 
               className="mr-1 rounded-lg" 
@@ -1344,7 +1347,7 @@ const MapRoute: React.FC = () => {
               <option value="2050">2050</option>
             </select>
             Forecast
-          </h4>
+          </h2>
           {routes.length > 0 && forecastTravelTime && travelTime && (
             <span className="text-sm font-normal">
               {`Estimated time: ${formatMinutes(forecastTravelTime)} `} 
@@ -1363,7 +1366,6 @@ const MapRoute: React.FC = () => {
                     width="1em"
                     height="0.8em"
                     fill="currentColor"
-                    style={{ marginBottom: "0.1em" }}
                   >
                     <path d="M8 15V3M8 3l-4 4m4-4l4 4" stroke="currentColor" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>
@@ -1376,8 +1378,8 @@ const MapRoute: React.FC = () => {
         <div
           id="map-forecast-container"
           ref={mapForecastContainerRef}
-          style={{ height: "100%", borderRadius: 8 }}
-          className="absolute inset-0 h-full rounded-lg border"
+          className="absolute inset-0 h-full w-full rounded-lg border"
+          style={{ borderRadius: 8 }}
         />
       </div>
     </div>

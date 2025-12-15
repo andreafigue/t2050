@@ -495,7 +495,7 @@ const WashingtonMapWithLineGraphs: React.FC<FreightProps> = ({
     <div
       className="
         grid md:gap-4 gap-2 w-full
-        h-100 md:h-[80vh] lg:h-[75vh]
+        h-90svh md:h-[80vh] lg:h-[75vh]
         grid-cols-1 lg:grid-cols-5 min-h-0
       "
       style={{ margin: 0 }}

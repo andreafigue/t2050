@@ -623,28 +623,47 @@ const Population: React.FC = () => {
   }, []);
 
   return (
-    <div className = "flex gap-4" style={{ width:"100%", height: "75vh", margin:0}}>
+    <div
+      className="
+        grid md:gap-4 gap-2 w-full
+        h-full overflow-hidden
+        grid-cols-1 lg:grid-cols-5 
+      "
+      style={{ margin: 0 }}
+    >
       
       {/* Map Section */}
-      <div className = "w-3/5 border rounded-lg shadow-md flex relative m-0" style={{ height: "100%" }}>
+      <div
+        className="
+          lg:col-span-3 col-span-1
+          border rounded-lg shadow-md relative
+          min-h-[30vh] md:min-h-[40vh] lg:h-full
+        "
+        //style={{ height: "45vh", /* mobile/tablet */ }}
+      >
         
         {/* Slider */}  
         <div 
-        style={{ 
-          position: 'absolute', 
-          top: "16px",
-          left: "16px",
-          //display: "flex",
-          borderRadius: "8px",
+        style={{
+          position: "absolute",
+          top: 6,
+          left: 6,
+          borderRadius: 8,
           background: "rgba(255, 255, 255, 0.95)",
-          boxShadow: "0 2px 4px rgba(0,0,0,0.1)", 
-          padding: "10px 15px", 
-          alignItems: "center",
-          gap: "15px",
-          zIndex: 2 }}
+          boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+          padding: "clamp(4px, 1vw, 8px)",
+          gap: "clamp(2px, 1vw, 2px)",
+          width: "clamp(140px, 30vw, 160px)",
+          fontSize: "clamp(10px, 2vw, 14px)",                  
+          display: "grid",                  
+          alignItems: "center",   
+          maxHeight: 110,                   
+          overflow: "hidden",               
+          zIndex: 2,
+        }}
         >
           <label htmlFor="yearSlider">Year: {choroplethYear}</label>
-          <br />
+
           <input
             id="yearSlider"
             type="range"
@@ -693,20 +712,21 @@ const Population: React.FC = () => {
         <div
           style={{
             position: "absolute",
-            top: "16px",
-            right: "16px",
-            width: "240px",
+            top: "6px",
+            right: "6px",
+            width: "clamp(140px, 40vw, 220px)",
+            padding: "clamp(6px, 1vw, 10px)",
+            fontSize: "clamp(10px, 2vw, 12px)",
             backgroundColor: "rgba(255, 255, 255, 0.95)",
             borderRadius: "8px",
             boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
             zIndex: 10,
-            padding: "10px",
-            fontSize: "12px",
             cursor: "pointer",
-            maxHeight: isSidebarHovered ? "400px" : "90px",
+            maxHeight: isSidebarHovered ? "min(50vh, 300px)" : "90px",
             overflow: isSidebarHovered ? "auto" : "hidden",
             transition: "all 0.3s ease-in-out",
           }}
+
           onMouseEnter={() => setIsSidebarHovered(true)}
           onMouseLeave={() => setIsSidebarHovered(false)}
         >
@@ -718,12 +738,12 @@ const Population: React.FC = () => {
                   e.stopPropagation();
                   setSelectedCounties(new Set());
                 }}
+                className="text-md md:text-sm"
                 style={{
                   background: "transparent",
                   border: "none",
                   color: "#ef4444",
                   cursor: "pointer",
-                  fontSize: "12px",
                   fontWeight: "bold",
                 }}
               >
@@ -737,7 +757,7 @@ const Population: React.FC = () => {
             style={{
               display: "flex",
               flexWrap: "wrap",
-              gap: "6px",
+              gap: "4px",
               alignContent: "flex-start",
               overflowY: isSidebarHovered && showScroll ? "auto" : "hidden",
               maxHeight: isSidebarHovered ? "160px" : "60px",
@@ -765,11 +785,11 @@ const Population: React.FC = () => {
                 const visibleChips = counties.slice(0, visibleCount).map((county) => (
                   <div
                     key={county}
+                    className="text-xs md:text-md"
                     style={{
                       background: "#eff6ff",
-                      padding: "4px 8px",
+                      padding: "1px 6px",
                       borderRadius: "12px",
-                      fontSize: "11px",
                       display: "flex",
                       alignItems: "center",
                       maxWidth: "100%",
@@ -808,9 +828,9 @@ const Population: React.FC = () => {
                       key="ellipsis"
                       style={{
                         background: "#e5e7eb",
-                        padding: "4px 8px",
+                        padding: "2px 4px",
                         borderRadius: "12px",
-                        fontSize: "11px",
+                        fontSize: "10px",
                       }}
                     >
                       ...
@@ -826,28 +846,13 @@ const Population: React.FC = () => {
       </div>
 
       {/* Right Column for Charts */}
-      <div className = "w-2/5 flex flex-col h-full">
-
-{/*        <div
-          id="line-tooltip"
-          style={{
-            position: "absolute",
-            display: "block",
-            padding: "6px 10px",
-            backgroundColor: "white",
-            border: "1px solid #ccc",
-            borderRadius: "4px",
-            pointerEvents: "none",
-            fontSize: "12px",
-            zIndex: 1000
-          }}
-        />*/}
-
+      <div className="lg:col-span-2 md:gap-4 gap-2 col-span-1 flex flex-col lg:h-full"
+       >
         
         {/* Population Chart */}
-        <div className="border items-center shadow-md rounded-lg flex-1 flex flex-col mb-4 p-4 h-full"
+        <div className="border items-center shadow-md rounded-lg flex-1 flex flex-col p-4 h-full min-h-[20vh] lg:h-full"
         style={{background: "#f4f4f4"}}>
-          <h4 style={{ fontSize: "15pt", fontWeight: "bold" }}>
+          <h4 className="text-lg md:text-xl font-bold">
             Population Over Time {selectedCounties.size > 0 && "(selected counties)"}
           </h4>
 
@@ -857,9 +862,9 @@ const Population: React.FC = () => {
         </div>
 
         {/* Growth Rate Chart */}
-        <div className="border items-center shadow-md rounded-lg flex-1 flex flex-col p-4 h-full bg-gray " 
+        <div className="border items-center shadow-md rounded-lg flex-1 flex flex-col p-4 h-full min-h-[20vh] lg:h-full bg-gray " 
         style={{background: "#f4f4f4"}}>
-          <h4 style={{ fontSize: "15pt", fontWeight: "bold" }}>
+          <h4 className="text-lg md:text-xl font-bold">
             Population Growth Rate {selectedCounties.size > 0 && "(selected counties)"}
           </h4>
 

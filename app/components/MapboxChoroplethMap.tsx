@@ -144,13 +144,25 @@ const MapboxChoroplethMap: React.FC<Props> = ({
       container: mapContainerRef.current,
       style: "mapbox://styles/mapbox/streets-v11",
       center: [-120.4472, 47.3826],
-      zoom: 5.6,
+    });
+
+    mapRef.current.on("load", () => {
+      // Washington State bounding box
+      mapRef.current!.fitBounds(
+        [
+          [-124.848974, 45.543541], // southwest corner (long, lat)
+          [-116.915989, 49.002494], // northeast corner (long, lat)
+        ],
+        { padding: 70}
+      );
+
+      // Then continue adding your GeoJSON / layers here...
     });
 
     mapRef.current.addControl(new mapboxgl.NavigationControl(), "right");
 
     if (!popupRef.current) {
-      popupRef.current = new mapboxgl.Popup({ closeButton: false, closeOnClick: false });
+      popupRef.current = new mapboxgl.Popup({ closeButton: true, closeOnClick: false, className: "county-popup" });
     }
 
     mapRef.current.on("style.load", () => {
@@ -376,21 +388,23 @@ const MapboxChoroplethMap: React.FC<Props> = ({
     return (
       <div style={{
         position: "absolute",
-        bottom: 16,
-        right: 16,
+        bottom: 6,
+        right: 6,
         background: "white",
         padding: "10px 14px",
         borderRadius: 10,
         boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
-        fontSize: 12,
         fontFamily: "sans-serif",
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        width: 200,
+        gap: "clamp(2px, 0.6vw, 2px)",
+        padding: "clamp(5px, 1vw, 12px)",
+        fontSize: "clamp(9px, 1.8vw, 12px)",
+        width: "clamp(110px, 35vw, 200px)",
         zIndex: 100
       }}>
-        <div style={{ fontWeight: 600, marginBottom: 6 }}>{valueLabel ?? "Legend"}</div>
+        <div style={{ fontWeight: 600, marginBottom: 2 }}>{valueLabel ?? "Legend"}</div>
 
         <div
           style={{
@@ -400,7 +414,7 @@ const MapboxChoroplethMap: React.FC<Props> = ({
             background: `linear-gradient(to right, ${
               range.map(d => d.color).join(",")
             })`,
-            marginBottom: 6
+            marginBottom: 2
           }}
         />
 
@@ -408,7 +422,7 @@ const MapboxChoroplethMap: React.FC<Props> = ({
           display: "flex",
           justifyContent: "space-between",
           width: "100%",
-          fontSize: 11,
+         // fontSize: 11,
           color: "#555"
         }}>
           <span>{formatValue ? formatValue(domain[0]) : domain[0]}</span>
@@ -421,6 +435,29 @@ const MapboxChoroplethMap: React.FC<Props> = ({
       </div>
     );
   };
+
+  useEffect(() => {
+    if (!mapRef.current || !mapContainerRef.current) return;
+
+    const map = mapRef.current;
+    const ro = new ResizeObserver(() => {
+      map.resize();
+    });
+    ro.observe(mapContainerRef.current);
+
+    return () => ro.disconnect();
+  }, []);
+
+  const [isSmall, setIsSmall] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 768px)");
+    const apply = () => setIsSmall(mq.matches);
+    apply();
+    mq.addEventListener?.("change", apply);
+    return () => mq.removeEventListener?.("change", apply);
+  }, []);
+
+
 
   return (
     <div style={{ position: "relative", width: "100%", height: "100%" }}>

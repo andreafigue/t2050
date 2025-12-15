@@ -1030,7 +1030,7 @@ const MapRoute: React.FC = () => {
 
 
   return (
-    <div className="flex flex-col lg:flex-row  md:gap-4 gap-2 w-full h-100 md:h-[80vh] lg:h-[75vh] p-0 m-0">
+    <div className="flex flex-col lg:flex-row  md:gap-4 gap-2 w-full h-full p-0 m-0">
 
       {/* Top Controls Row: Search Inputs + Filters */}
       <div className="w-full lg:w-3/12 flex flex-col  md:gap-4 gap-2 h-auto lg:h-full">
@@ -1054,7 +1054,7 @@ const MapRoute: React.FC = () => {
           </div>
         </div>
       {/* Search Box Container */}
-      <div className="p-3 bg-white border rounded-lg shadow-md w-full min-h-[150px]">
+      <div className="p-3 bg-white border rounded-lg shadow-md w-full min-h-0">
         {mapLoaded ? (
           <>
             <div className="mb-2">
@@ -1270,11 +1270,11 @@ const MapRoute: React.FC = () => {
             )}*/}
           </div>
 
-          <div className="mt-1 text-sm font-normal text-gray-700">
+          <div className="text-sm font-normal text-gray-700">
             {/*{peakTime && <span className="mr-2">{peakTime}</span>}*/}
             {/*{routes.length > 0 && travelTime != null && <span><br/>Estimated time: {formatMinutes(travelTime)}</span>}*/}
             {routes.length > 0 && (
-              <div className="mt-1 ml-1 text-sm text-neutral-700">
+              <div className="ml-1 text-sm text-neutral-700">
                 <div>
                   Estimated time:{" "}
                   {(currentTrafficView === "none" && isBaselineLoading) ||
@@ -1335,7 +1335,7 @@ const MapRoute: React.FC = () => {
 
       <div className="flex-1 relative rounded-lg shadow-md border h-[300px] lg:h-full">
         <div className="absolute top-2 left-2 bg-white bg-opacity-90 p-2 rounded text-sm font-medium shadow z-10">
-          <h4 className="text-lg font-semibold">
+          <h2 className="text-lg font-semibold">
             
             <select 
               className="mr-1 rounded-lg" 
@@ -1347,7 +1347,7 @@ const MapRoute: React.FC = () => {
               <option value="2050">2050</option>
             </select>
             Forecast
-          </h4>
+          </h2>
           {routes.length > 0 && forecastTravelTime && travelTime && (
             <span className="text-sm font-normal">
               {`Estimated time: ${formatMinutes(forecastTravelTime)} `} 
@@ -1366,7 +1366,6 @@ const MapRoute: React.FC = () => {
                     width="1em"
                     height="0.8em"
                     fill="currentColor"
-                    style={{ marginBottom: "0.1em" }}
                   >
                     <path d="M8 15V3M8 3l-4 4m4-4l4 4" stroke="currentColor" strokeWidth="3" fill="none" strokeLinecap="round" strokeLinejoin="round"/>
                   </svg>

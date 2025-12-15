@@ -492,24 +492,38 @@ const WashingtonMapWithLineGraphs: React.FC<FreightProps> = ({
 
 
   return (
-    <div className="flex gap-4" style={{ width:'100%', height:"75vh", margin:0 }}>
+    <div
+      className="
+        grid md:gap-4 gap-2 w-full
+        h-90svh md:h-[80vh] lg:h-[75vh]
+        grid-cols-1 lg:grid-cols-5 min-h-0
+      "
+      style={{ margin: 0 }}
+    >
     
       {/*Mapbox section*/}
-      <div className="flex  w-7/12 border rounded-lg shadow-md h-full relative m-0 border" >
+      <div className="
+          lg:col-span-3 col-span-1
+          border rounded-lg shadow-md relative
+          h-[40vh] md:h-[40vh] lg:h-full
+          min-h-[300px]
+        ">
 
         {/* Slider */}       
         <div 
         style={{ 
           position: 'absolute', 
-          top: "16px",
-          left: "16px",
+          top: 6,
+          left: 6,
           //display: "flex",
-          borderRadius: "8px",
+          borderRadius: 8,
           background: "rgba(255, 255, 255, 0.95)",
           boxShadow: "0 2px 4px rgba(0,0,0,0.1)", 
-          padding: "10px 15px", 
+          padding: "clamp(4px, 1vw, 8px)",
+          gap: "clamp(2px, 1vw, 2px)",
+          width: "clamp(140px, 30vw, 160px)",
+          fontSize: "clamp(10px, 2vw, 14px)", 
           alignItems: "center",
-          gap: "15px",
           zIndex: 2 }}
         >
           <label htmlFor="yearSlider">Year: {choroplethYear}</label>
@@ -577,17 +591,17 @@ const WashingtonMapWithLineGraphs: React.FC<FreightProps> = ({
         <div
           style={{
             position: "absolute",
-            top: "16px",
-            right: "16px",
-            width: "240px",
+            top: "6px",
+            right: "6px",
+            width: "clamp(140px, 40vw, 220px)",
+            padding: "clamp(6px, 1vw, 10px)",
+            fontSize: "clamp(10px, 2vw, 12px)",
             backgroundColor: "rgba(255, 255, 255, 0.95)",
             borderRadius: "8px",
             boxShadow: "0 2px 6px rgba(0,0,0,0.2)",
             zIndex: 10,
-            padding: "10px",
-            fontSize: "12px",
             cursor: "pointer",
-            maxHeight: isSidebarHovered ? "400px" : "90px",
+            maxHeight: isSidebarHovered ? "min(50vh, 300px)" : "90px",
             overflow: isSidebarHovered ? "auto" : "hidden",
             transition: "all 0.3s ease-in-out",
           }}
@@ -710,11 +724,11 @@ const WashingtonMapWithLineGraphs: React.FC<FreightProps> = ({
       </div>
 
       {/* Right Column for Charts */}
-      <div className="w-5/12 flex flex-col h-full min-h-0" >
+      <div className="lg:col-span-2 md:gap-4 gap-2 col-span-1 flex flex-col lg:h-full">
         
         {/* Filters */}
-        <div className="p-3 border rounded-lg shadow-md bg-white mb-4 items-center flex flex-col ">
-          <h4 style={{ fontSize: "15pt", fontWeight: "bold" }}>Filters</h4>
+        <div className="p-3 border rounded-lg shadow-md bg-white items-center flex flex-col ">
+          <h4 className="text-lg md:text-xl font-bold">Filters</h4>
           <div className="flex flex-wrap gap-4 w-full">
             {Object.keys(selectedFilters).map(key => (
               <div key={key} className="flex-1">
@@ -738,8 +752,8 @@ const WashingtonMapWithLineGraphs: React.FC<FreightProps> = ({
         </div>
         
         {/* Tons Chart */}
-        <div className="border items-center shadow-md rounded-lg flex-1 flex flex-col p-3 mb-4 bg-white min-h-0">
-          <h4 style={{ fontSize: "15pt", fontWeight: "bold" }}>
+        <div className="border items-center shadow-md rounded-lg flex-1 flex flex-col p-3 bg-white min-h-0">
+          <h4 className="text-lg md:text-xl font-bold">
             Tons over Years {selectedCounties.size > 0 && "(selected counties)"}
           </h4>
           <div className="w-full h-full flex-1 relative min-h-0" style={{ overflow: "visible" }}>
@@ -751,7 +765,7 @@ const WashingtonMapWithLineGraphs: React.FC<FreightProps> = ({
 
         {/* Value Chart */}
         <div className="border items-center shadow-md rounded-lg flex-1 flex flex-col p-3 bg-white min-h-0">
-          <h4 style={{ fontSize: "15pt", fontWeight: "bold" }}>
+          <h4 className="text-lg md:text-xl font-bold">
             Value over Years {selectedCounties.size > 0 && "(selected counties)"}
           </h4>
           <div className="w-full h-full inset-0 flex-1 relative min-h-0" >

@@ -1,3 +1,4 @@
+// @ts-nocheck
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
@@ -50,6 +51,9 @@ const ChartComponent = () => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [containerWidth, setContainerWidth] = useState<number>(600);
 
+  const isStacked = containerWidth < 640; // tweak breakpoint if you want
+
+
   const routeKey = `${origin}-${destination}`;
   const data = ["HSR", "Air", "Car", "Train"].map((mode) => ({
     mode,
@@ -72,7 +76,12 @@ const ChartComponent = () => {
       if (!chartRef.current) return;
 
       const svg = d3.select(chartRef.current);
-      const margin = { top: 20, right: 80, bottom: 10, left: 150 };
+      const margin = {
+        top: 20,
+        right: isStacked ? 60 : 80,
+        bottom: 10,
+        left: isStacked ? 60 : 150,
+      };
       const width = Math.max(0, containerWidth - margin.left - margin.right);
       const height = 200;
 
@@ -86,10 +95,15 @@ const ChartComponent = () => {
       const y = d3.scaleBand().domain(data.map((d) => d.mode)).range([0, height]).padding(0.1);
 
       let g = svg.select("g");
+
+      // Create if missing
       if (g.empty()) {
-        // @ts-ignore
-        g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
+        g = svg.append("g");
       }
+
+      // ALWAYS update transform
+      g.attr("transform", `translate(${margin.left},${margin.top})`);
+
 
       // === Bars ===
       // @ts-ignore
@@ -180,8 +194,8 @@ const ChartComponent = () => {
               // @ts-ignore
               .attr("y", (d) => y(d.mode) + y.bandwidth() / 2 - 30)
               .attr("x", 0)
-              .attr("width", 60)
-              .attr("height", 60)
+              .attr("width", window.innerWidth < 640 ? "60px" : "60px")
+              .attr("height", window.innerWidth < 640 ? "60px" : "60px")
               .call((enter) =>
                 enter.transition().duration(1000).attr("x", (d) => Math.min(Math.max(x(d.time) - 30, 0), width - 10))
 
@@ -210,8 +224,8 @@ const ChartComponent = () => {
               .style("font-size", "16px")
               .style("fill", "#222")
               .text((d) => {
-                if (d.mode === "HSR") return "High-Speed Rail";
-                if (d.mode === "Air") return "Air travel";
+                if (d.mode === "HSR") return isStacked ? "HSR" : "High-Speed Rail";
+                if (d.mode === "Air") return isStacked ? "Air" : "Air travel";
                 return d.mode;
               }),
           (update) =>
@@ -221,19 +235,25 @@ const ChartComponent = () => {
                 .duration(500)
                 // @ts-ignore
                 .attr("y", (d) => y(d.mode) + y.bandwidth() / 2 + 5)
+                .text((d) => {
+                  if (d.mode === "HSR") return isStacked ? "HSR" : "High-Speed Rail";
+                  if (d.mode === "Air") return isStacked ? "Air" : "Air travel";
+                  return d.mode;
+                })
             )
         );
     });
   }, [origin, destination, containerWidth]);
 
   return (
-    <div className="flex h-100">
+    <div className="flex flex-col md:flex-row w-full max-w-full overflow-x-hidden">
       {/* Filters */}
-      <div className="w-2/6 p-6 bg-white border rounded">
+      <div className="w-full md:w-2/6 p-4 md:p-6 bg-white border rounded">
+
         <div className="flex justify-between gap-4">
           {/* From Column */}
           <div className="flex-1 ">
-            <h5 className="font-semibold text-gray-700 mb-2 text-center">From</h5>
+            <h5 className="font-semibold text-gray-700 text-center">From</h5>
             <ul className="space-y-2">
               {cities.map((city) => (
                 <li
@@ -279,11 +299,15 @@ const ChartComponent = () => {
       </div>
 
       {/* D3 Chart */}
-      <div ref={containerRef} className="w-4/6 pl-4 pr-10 py-10 flex flex-col justify-center items-start">
+      <div ref={containerRef}
+        className="w-full md:w-4/6 pl-0 md:pl-4 pr-0 md:pr-10 py-6 md:py-10
+             flex flex-col justify-center items-start min-w-0"
+        >
         <svg
           ref={chartRef}
           width="100%"
           height={230}
+
           preserveAspectRatio="xMinYMin meet"
         />
       </div>

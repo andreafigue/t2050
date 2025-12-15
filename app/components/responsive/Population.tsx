@@ -626,8 +626,8 @@ const Population: React.FC = () => {
     <div
       className="
         grid md:gap-4 gap-2 w-full
-        h-100 md:h-[80vh] lg:h-[75vh]
-        grid-cols-1 lg:grid-cols-5 min-h-0
+        h-full overflow-hidden
+        grid-cols-1 lg:grid-cols-5 
       "
       style={{ margin: 0 }}
     >
@@ -637,8 +637,7 @@ const Population: React.FC = () => {
         className="
           lg:col-span-3 col-span-1
           border rounded-lg shadow-md relative
-          h-[40vh] md:h-[40vh] lg:h-full
-          min-h-[300px]
+          min-h-[30vh] md:min-h-[40vh] lg:h-full
         "
         //style={{ height: "45vh", /* mobile/tablet */ }}
       >
@@ -851,7 +850,7 @@ const Population: React.FC = () => {
        >
         
         {/* Population Chart */}
-        <div className="border items-center shadow-md rounded-lg flex-1 flex flex-col p-4 h-full min-h-[30vh] lg:min-h-0"
+        <div className="border items-center shadow-md rounded-lg flex-1 flex flex-col p-4 h-full min-h-[20vh] lg:h-full"
         style={{background: "#f4f4f4"}}>
           <h4 className="text-lg md:text-xl font-bold">
             Population Over Time {selectedCounties.size > 0 && "(selected counties)"}
@@ -863,7 +862,7 @@ const Population: React.FC = () => {
         </div>
 
         {/* Growth Rate Chart */}
-        <div className="border items-center shadow-md rounded-lg flex-1 flex flex-col p-4 h-full min-h-[30vh] lg:min-h-0 bg-gray " 
+        <div className="border items-center shadow-md rounded-lg flex-1 flex flex-col p-4 h-full min-h-[20vh] lg:h-full bg-gray " 
         style={{background: "#f4f4f4"}}>
           <h4 className="text-lg md:text-xl font-bold">
             Population Growth Rate {selectedCounties.size > 0 && "(selected counties)"}
