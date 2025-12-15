@@ -542,7 +542,7 @@ const Page = () => {
                 </li>
                 <li>
                   Puget Sound Regional Council (PSRC),
-                  <em> Vision 2050 – Regional Transportation Model, assumes the build out of Transit 3.</em>
+                  <em> Vision 2050 – Regional Transportation Model, assumes the build out of Sound Transit 3.</em>
                 </li>
 
                 <li>

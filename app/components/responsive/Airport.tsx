@@ -29,6 +29,9 @@ export default function Airport() {
   const [index, setIndex] = useState(0);
   const svgRef = useRef<SVGSVGElement | null>(null);   // left graph
   const chartRef = useRef<SVGSVGElement | null>(null); // right buckets
+  const leftSizeRef = useRef<{ w: number; h: number } | null>(null);
+  const rightSizeRef = useRef<{ w: number; h: number } | null>(null);
+
 
   // Counts to control animated icon adds/removals
   const capacityCountRef = useRef(0);
@@ -53,38 +56,6 @@ export default function Airport() {
     }
   }, []);
 
-  
-  const leftWrapRef = useRef<HTMLDivElement | null>(null);
-  const rightWrapRef = useRef<HTMLDivElement | null>(null);
-
-  const [dims, setDims] = useState({
-    left: { w: 400, h: 350 },
-    right: { w: 400, h: 350 },
-  });
-
-  useEffect(() => {
-    const ro = new ResizeObserver(() => {
-      const lw = leftWrapRef.current?.clientWidth ?? 400;
-      const lh = leftWrapRef.current?.clientHeight ?? 350;
-      const rw = rightWrapRef.current?.clientWidth ?? 400;
-      const rh = rightWrapRef.current?.clientHeight ?? 350;
-
-      setDims({
-        left: { w: lw, h: lh },
-        right: { w: rw, h: rh },
-      });
-    });
-
-    if (leftWrapRef.current) ro.observe(leftWrapRef.current);
-    if (rightWrapRef.current) ro.observe(rightWrapRef.current);
-
-    return () => ro.disconnect();
-  }, []);
-
-
-  const prevDimsRef = useRef(dims);
-
-
 
   // ---------------------------
   // Draw effect (runs on index change)
@@ -94,23 +65,45 @@ export default function Airport() {
     const svg = d3.select(svgRef.current);
     const chart = d3.select(chartRef.current);
 
+    const leftParent = svgRef.current?.parentElement;
+
+
+    if (!leftSizeRef.current && leftParent) {
+      leftSizeRef.current = {
+        w: leftParent.clientWidth,
+        h: leftParent.clientHeight,
+      };
+    }
+
+    const { w: leftW, h: leftH } = leftSizeRef.current!;
+    svg.attr("viewBox", `0 0 ${leftW} ${leftH}`);
+
+
+
     // ---- left chart (fixed coordinate system)
-    const LEFT_W = dims.left.w;
-    const LEFT_H = dims.left.h;
-    svg.attr("viewBox", `0 0 ${LEFT_W} ${LEFT_H}`);
+    // const LEFT_W = 400;
+    // const LEFT_H = 350;
+    // svg.attr("viewBox", `0 0 ${LEFT_W} ${LEFT_H}`);
 
     // ---- right chart: derive width from parent on each redraw (no resize listener)
     const parent = chartRef.current?.parentElement;
-    const chartW = dims.right.w;
-    const chartH = dims.right.h;
+    if (!rightSizeRef.current && parent) {
+      rightSizeRef.current = {
+        w: parent.clientWidth,
+        h: parent.clientHeight,
+      };
+    }
+
+    const { w: chartW, h: chartH } = rightSizeRef.current!;
     chart.attr("viewBox", `0 0 ${chartW} ${chartH}`);
+
 
     // ===========================
     // LEFT: Line chart
     // ===========================
-    const margin = { top: 50, right: 20, bottom: 30, left: 40 };
-    const innerWidth = LEFT_W - margin.left - margin.right;
-    const innerHeight = LEFT_H - margin.top - margin.bottom;
+    const margin = { top: 20, right: 20, bottom: 20, left: 55 };
+    const innerWidth = leftW - margin.left - margin.right;
+    const innerHeight = leftH - margin.top - margin.bottom;
 
     // Scales
     const xScale = d3
@@ -130,6 +123,8 @@ export default function Airport() {
     // Clear previous line-chart elements
     svg.selectAll(".axis, .line, .highlight, .y-label, .title").remove();
 
+
+
     // Y-axis label
     svg
       .append("text")
@@ -139,7 +134,7 @@ export default function Airport() {
         `translate(${margin.left - 30}, ${margin.top + innerHeight / 2}) rotate(-90)`
       )
       .attr("text-anchor", "middle")
-      .attr("font-size", window.innerWidth < 640 ? "10px" : "14px")
+      .attr("font-size", "14px")
       .attr("fill", "#334155")
       .text("Millions of Passengers");
 
@@ -147,7 +142,7 @@ export default function Airport() {
     svg
       .append("g")
       .attr("class", "axis")
-      .attr("transform", `translate(${margin.left}, ${LEFT_H - margin.bottom})`)
+      .attr("transform", `translate(${margin.left}, ${leftH - margin.bottom})`)
       .call(d3.axisBottom(xScale).tickFormat(d3.format("d")));
 
     svg
@@ -221,79 +216,39 @@ export default function Airport() {
       .style("fill", "transparent")
       .style("pointer-events", "all")
       .on("mousemove", (event) => {
-        // update tooltip (same global #tooltip as Population)
-        const tooltip = d3.select("#tooltip");
-
         const [mx, my] = d3.pointer(event);
         const year = xScale.invert(mx - margin.left);
 
+        // nearest record by year (same pattern you used)
         const bisect = d3.bisector((d: any) => d.year).left;
         const i = bisect(passengerData, year);
         const d0 = passengerData[Math.max(0, i - 1)];
         const d1 = passengerData[Math.min(passengerData.length - 1, i)];
         const d = (year - d0.year > (d1?.year ?? d0.year) - year && i < passengerData.length) ? d1 : d0;
 
-        // pick a reasonable max width for the tooltip
-        const TOOLTIP_MAX_W = 200;
-        const marginX = 12;
-        const marginY = 8;
+        const x = margin.left + xScale(d.year);
+        const yF = margin.top + yScale(d.forecast);
+        const yC = margin.top + yScale(d.capacity);
 
-        const rawX = event.pageX + 10;
-        const rawY = event.pageY - 28;
+        // position focus elements
+        guide
+          .attr("x1", x).attr("x2", x)
+          .attr("y1", margin.top).attr("y2", margin.top + innerHeight)
+          .style("opacity", 1);
 
-        // clamp so we don't go off the right or top edge
-        const clampedX = Math.min(
-          rawX,
-          window.innerWidth - TOOLTIP_MAX_W - marginX
-        );
-        const clampedY = Math.max(rawY, marginY);
+        fDot.attr("cx", x).attr("cy", yF).style("opacity", 1);
+        cDot.attr("cx", x).attr("cy", yC).style("opacity", 1);
 
-        tooltip
+        // update tooltip (same global #tooltip as Population)
+        d3.select("#tooltip")
           .style("display", "block")
-          .style("max-width", `${TOOLTIP_MAX_W}px`)
-          .style("font-size", window.innerWidth < 640 ? "10px" : "14px")
           .html(
             `<strong>${d.year}</strong><br/>
              Forecast: ${d.forecast.toFixed(1)}M<br/>
              Capacity: ${d.capacity.toFixed(3)}M`
           )
-          .style("left", `${clampedX}px`)
-          .style("top", `${clampedY}px`);
-
-
-        // const [mx, my] = d3.pointer(event);
-        // const year = xScale.invert(mx - margin.left);
-
-        // // nearest record by year 
-        // const bisect = d3.bisector((d: any) => d.year).left;
-        // const i = bisect(passengerData, year);
-        // const d0 = passengerData[Math.max(0, i - 1)];
-        // const d1 = passengerData[Math.min(passengerData.length - 1, i)];
-        // const d = (year - d0.year > (d1?.year ?? d0.year) - year && i < passengerData.length) ? d1 : d0;
-
-        // const x = margin.left + xScale(d.year);
-        // const yF = margin.top + yScale(d.forecast);
-        // const yC = margin.top + yScale(d.capacity);
-
-        // // position focus elements
-        // guide
-        //   .attr("x1", x).attr("x2", x)
-        //   .attr("y1", margin.top).attr("y2", margin.top + innerHeight)
-        //   .style("opacity", 1);
-
-        // fDot.attr("cx", x).attr("cy", yF).style("opacity", 1);
-        // cDot.attr("cx", x).attr("cy", yC).style("opacity", 1);
-
-        // // update tooltip (same global #tooltip as Population)
-        // d3.select("#tooltip")
-        //   .style("display", "block")
-        //   .html(
-        //     `<strong>${d.year}</strong><br/>
-        //      Forecast: ${d.forecast.toFixed(1)}M<br/>
-        //      Capacity: ${d.capacity.toFixed(3)}M`
-        //   )
-        //   .style("left", `${event.pageX + 10}px`)
-        //   .style("top", `${event.pageY - 28}px`);
+          .style("left", `${event.pageX + 10}px`)
+          .style("top", `${event.pageY - 28}px`);
       })
       .on("mouseout", () => {
         d3.select("#tooltip").style("display", "none");
@@ -350,26 +305,33 @@ export default function Airport() {
 
     // --- layout constants for buckets
     const iconPerRow = 5;
-    const cell = chartW * 0.06;     // grid step
-    const icon = cell *0.85 ;     // icon visual size
-    const bucketPad = cell * 0.3; // inner padding
+    const cell = Math.min(chartW * 0.075, chartH/7.5);
+    const icon = cell *.9 ;     // icon visual size
+    const bucketPad = cell * 0.15; // inner padding
     //const bucketY = 60;  // top of bucket content area
 
     // Width of one bucket frame
     const bucketW = (iconPerRow - 1) * cell + icon + bucketPad * 2;
 
     // Gap + centering (computed per redraw from chartW)
-    const gap = chartW * 0.12;
-    const contentW = bucketW * 2 + gap;
+    //const gap = chartW * 0.12;
+    const contentW = bucketW * 2 ;
     const startX = Math.max(0, (chartW - contentW) / 2);
 
     // Final offsets (centered)
-    const offsetCapacity = startX;                  // left bucket
-    const offsetUnmet = startX + bucketW + gap + bucketPad;     // right bucket
+    // const offsetCapacity = startX;                  // left bucket
+    // const offsetUnmet = startX + bucketW + gap + bucketPad;     // right bucket
+
+    const capacityCenterX = chartW * 0.25;
+    const unmetCenterX = chartW * 0.75;
+
+    const offsetCapacity = capacityCenterX - bucketW / 2;
+    const offsetUnmet = unmetCenterX - bucketW / 2;
+
 
     // Bottom baseline stays fixed so growth is "up"
-    const bucketTopY = chartH * 0.13;    // space for labels
-    const bucketBottomY = chartH * 0.82; // space above legend
+    const bucketTopY = chartH * 0.12;    // space for labels
+    const bucketBottomY = chartH *0.99 ; // space above legend
     const bucketHMax = bucketBottomY - bucketTopY;
 
     const maxCapacityIcons = iconPerRow * Math.floor(bucketHMax / cell);
@@ -382,6 +344,36 @@ export default function Airport() {
 
     const currentRows = Math.ceil(currentCapacityIcons / iconPerRow);
     const bucketHCurrent = Math.max(icon + bucketPad * 2, (currentRows - 1) * cell + icon + bucketPad * 2);
+
+    // ===== DEBUG: vertical guide lines at 25% and 75% =====
+    // const guides = chart.select(".center-guides").empty()
+    //   ? chart.append("g").attr("class", "center-guides")
+    //   : chart.select(".center-guides");
+
+    // guides.selectAll("*").remove();
+
+    // [0.25, 0.75].forEach((pct) => {
+    //   guides
+    //     .append("line")
+    //     .attr("x1", chartW * pct)
+    //     .attr("x2", chartW * pct)
+    //     .attr("y1", 0)
+    //     .attr("y2", chartH)
+    //     .attr("stroke", "#ef4444")
+    //     .attr("stroke-dasharray", "6 4")
+    //     .attr("stroke-width", 1.5)
+    //     .attr("pointer-events", "none");
+
+    //   guides
+    //     .append("text")
+    //     .attr("x", chartW * pct)
+    //     .attr("y", 14)
+    //     .attr("text-anchor", "middle")
+    //     .attr("font-size", 12)
+    //     .attr("fill", "#ef4444")
+    //     .text(`${pct * 100}%`);
+    // });
+
 
   
     // One path generator for both cases (full rounded rect + stepped top-right).
@@ -525,49 +517,9 @@ export default function Airport() {
       bucketPad, cell, icon
     });
 
-    const prevDims = prevDimsRef.current;
-    const resizedRight =
-      prevDims.right.w !== dims.right.w || prevDims.right.h !== dims.right.h;
-
-    if (resizedRight) {
-      // reset counts and clear icons so they can be re-laid out
-      capacityCountRef.current = 0;
-      unmetCountRef.current = 0;
-      chart.selectAll(".icon-group > *").remove();
-    }
-
     // --- labels: re-draw each time so they move with centering
     chart.selectAll(".bucket-label").remove();
 
-    chart
-      .append("text")
-      .attr("class", "bucket-label")
-      .attr("x", offsetCapacity + bucketW / 2)
-      .attr("y", chartH * 0.08)
-      .attr("text-anchor", "middle")
-      .attr("fill", "#334155")
-      .attr("font-size", window.innerWidth < 640 ? "19px" : "25px")
-      .text("Capacity");
-
-    chart
-      .append("text")
-      .attr("class", "bucket-label")
-      .attr("x", offsetCapacity + bucketW / 2)
-      .attr("y", chartH * 0.87)
-      .attr("text-anchor", "middle")
-      .attr("fill", "#334155")
-      .attr("font-size", "15px")
-      .text("SeaTac + Paine Field");
-
-    chart
-      .append("text")
-      .attr("class", "bucket-label")
-      .attr("x", offsetUnmet + (bucketW / 2 ))
-      .attr("y", chartH * 0.08)
-      .attr("text-anchor", "middle")
-      .attr("fill", "#334155")
-      .attr("font-size", window.innerWidth < 640 ? "18px" : "25px")
-      .text("Unmet Demand");
 
     // --- legend (centered under the two buckets)
     const legendGroup = chart.select(".legend-group").empty()
@@ -578,27 +530,7 @@ export default function Airport() {
     const legendX = offsetCapacity - 30;
     const legendY = chartH - 34;
 
-    legendGroup
-      .append("foreignObject")
-      .attr("x", legendX)
-      .attr("y", legendY)
-      .attr("width", icon)
-      .attr("height", icon)
-      .append("xhtml:div")
-      .html(`
-        <svg width="100%" height="100%" fill="none" stroke="#334155" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-user">
-          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-          <circle cx="12" cy="7" r="4"></circle>
-        </svg>
-      `);
 
-    legendGroup
-      .append("text")
-      .attr("x", legendX + cell - 10)
-      .attr("y", legendY + 18)
-      .attr("fill", "#334155")
-      .attr("font-size", "14px")
-      .text(" = 1M passengers");
 
     // --- icon updater (uses centered offsets)
     const updateIcons = (
@@ -619,8 +551,8 @@ export default function Airport() {
           const iconIndex = currentCount + i;
           const row = Math.floor(iconIndex / iconPerRow);
           const col = iconIndex % iconPerRow;
-          const finalX = offsetX + col * cell;
-          const finalY = bottomY - bucketPad - icon - row * cell;
+          const finalX = offsetX + col * cell - bucketPad;
+          const finalY = bottomY  - icon - row * cell ;
 
           const group = iconGroup
             .append("g")
@@ -661,6 +593,12 @@ export default function Airport() {
       updateCurrentCount(count);
     };
 
+    // Reset icons if jumping back to first year
+    if (index === 0) {
+      capacityCountRef.current = 0;
+      unmetCountRef.current = 0;
+      chart.selectAll(".icon-group > *").remove();
+    }
 
     // Draw icons with centered offsets
     updateIcons(
@@ -676,84 +614,152 @@ export default function Airport() {
     updateIcons(
       Math.max(0, Math.floor((forecast - capacity) / iconsPerUnit)),
       "#f97316",
-      offsetUnmet ,
+      offsetUnmet + icon/2,
       bucketTopY,
       unmetCountRef.current,
       (v) => (unmetCountRef.current = v),
       "Unmet"
     );
+  }, [index]);
 
-    prevDimsRef.current = dims;
-  }, [index, dims]);
+  
 
   // ---------------------------
   // UI
   // ---------------------------
   return (
-    <div className="flex flex-col gap-3 md:gap-5 w-full max-w-full h-[85vh] md:h-[80vh]">
-
-      {/* Top Box */}
-      <div
-        className="border shadow-md rounded-lg shrink-0"
-        style={{ padding: 20, borderRadius: 8, background: "#f4f4f4" }}
-      >
-        <h4 className="text-lg md:text-xl font-bold mb-1 md:mb-2 text-center">
+    <div className="h-[85vh] md:h-[80vh] flex flex-col gap-3 md:gap-5" >
+      {/* Top Container */}
+      <div className="border shadow-md rounded-lg bg-gray-100 p-3 md:p-5">
+        {/* Title */}
+        <h2 className="text-lg md:text-xl font-semibold text-center mb-3">
           Airport Passenger Forecast vs Capacity
-        </h4>
+        </h2>
 
-        {/* Stats */}
-        <div className="flex justify-center gap-3 sm:gap-8 md:gap-20 text-sm sm:text-base">
-          <div style={{ background: "#f4f4f4", padding: 10 }}>
-            <strong>Forecast</strong>: {passengerData[index].forecast}M
+        {/* Stats Row — ALWAYS SIDE BY SIDE */}
+        <div className="flex items-center justify-between gap-2 md:gap-6 text-center mb-3">
+          <div className="flex-1 min-w-0">
+            <div className="text-xs md:text-sm font-semibold">Forecast</div>
+            <div className="text-sm md:text-base truncate">
+              {passengerData[index].forecast}M
+            </div>
           </div>
-          <div style={{ background: "#f4f4f4", padding: 10 }}>
-            <strong>Capacity</strong>: {passengerData[index].capacity}M
+
+          <div className="flex-1 min-w-0">
+            <div className="text-xs md:text-sm font-semibold">Capacity</div>
+            <div className="text-sm md:text-base truncate">
+              {passengerData[index].capacity}M
+            </div>
           </div>
-          <div style={{ background: "#f4f4f4", padding: 10 }}>
-            <strong>Unmet</strong>:
-            {(passengerData[index].forecast - passengerData[index].capacity).toFixed(2)}M
+
+          <div className="flex-1 min-w-0">
+            <div className="text-xs md:text-sm font-semibold">Unmet</div>
+            <div className="text-sm md:text-base truncate">
+              {(passengerData[index].forecast - passengerData[index].capacity).toFixed(2)}M
+            </div>
           </div>
         </div>
 
-        {/* Slider */}
-        <div className="flex justify-center items-center gap-2 sm:gap-3 mt-2">
-          <strong className="text-sm sm:text-base">Year: {passengerData[index].year}</strong>
+        {/* Year + Slider */}
+        <div className="flex items-center justify-center gap-3">
+          <div className="text-xs md:text-sm font-semibold whitespace-nowrap">
+            Year: {passengerData[index].year}
+          </div>
+
           <input
             type="range"
-            min="0"
+            min={0}
             max={passengerData.length - 1}
             value={index}
             onChange={(e) => setIndex(+e.target.value)}
-            style={{ width: "60%" }}
+            className="flex-1 max-w-[420px]"
           />
         </div>
       </div>
 
+
+
       {/* Bottom Section Automatically Expands */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-5 flex-1 min-h-0">
+      {/* Bottom Section (single height authority) */}
+      <div className="flex-1 overflow-hidden">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-5 h-full">
 
-        {/* Column 1 */}
-        <div className="border shadow-md rounded-lg flex flex-col py-2 md:py-4 min-h-0 bg-gray items-center"
-             style={{ background: "#f4f4f4" }}>
-          <h4 className="text-lg md:text-xl font-bold">Passenger Enplanements vs Capacity</h4>
+          {/* Column 1 */}
+          <div className="border shadow-md rounded-lg flex flex-col p-2 md:p-6  h-full bg-gray"
+               style={{ background: "#f4f4f4" }}>
+            <h4 className="text-lg text-center md:text-xl font-bold mb-1 md:mb-2">Passenger Enplanements vs Capacity</h4>
 
-          {/* This container grows to fill leftover space */}
-          <div ref={leftWrapRef} className="flex-1  min-h-0">
-            <svg ref={svgRef} className="w-full h-full"></svg>
+            {/* This container grows to fill leftover space */}
+            <div  className="flex-1 w-full min-h-0">
+              <svg ref={svgRef} className="w-full h-full"></svg>
+            </div>
+          </div>
+
+          {/* Column 2 */}
+          <div className="border shadow-md rounded-lg flex flex-col py-2 md:py-6 h-full bg-gray"
+               style={{ background: "#f4f4f4" }}>
+
+            <div className="flex justify-between w-full px-4 mb-1 md:mb-2">
+              <div className="text-center text-lg md:text-xl flex-1">
+                <strong>Capacity</strong>
+                {/*<div className="text-xs">SeaTac + Paine Field</div>*/}
+              </div>
+
+              <div className="text-center text-lg md:text-xl flex-1">
+                <strong>Unmet Demand</strong>
+              </div>
+            </div>
+
+            <div  className="flex-1 w-full overflow-hidden mb-0">
+              <svg
+                ref={chartRef}
+                className="w-full h-full"
+                preserveAspectRatio="xMidYMid meet"
+              />
+
+            </div>
+
+            {/* BOTTOM LABEL AREA */}
+            <div className="w-full px-4 text-sm flex flex-col mt-0">
+
+              {/* Row 1 — Seatac aligned under Capacity */}
+              <div className="flex w-full">
+                <div className="flex-1 text-center text-gray-700">
+                  SeaTac + Paine Field
+                </div>
+                <div className="flex-1"></div>
+              </div>
+
+              {/* Row 2 — Legend aligned under Unmet Demand, bottom-right */}
+              <div className="flex w-full mt-1">
+                <div className="flex-1"></div>
+                <div className="flex-1 flex justify-end items-center gap-1 text-gray-700">
+                  <svg
+                    width="22"
+                    height="22"
+                    fill="none"
+                    stroke="#334155"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="lucide lucide-user"
+                  >
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                  </svg>
+                  <span>= 1M passengers</span>
+                </div>
+              </div>
+
+            </div>
+
           </div>
         </div>
 
-        {/* Column 2 */}
-        <div className="border shadow-md rounded-lg flex flex-col p-4 min-h-0 bg-gray"
-             style={{ background: "#f4f4f4" }}>
-          <div ref={rightWrapRef} className="flex-1 relative min-h-0">
-            <svg ref={chartRef} className="w-full h-full"></svg>
-          </div>
-        </div>
+
 
       </div>
     </div>
-
 
   );
 }
