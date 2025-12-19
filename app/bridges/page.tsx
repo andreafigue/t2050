@@ -4,7 +4,7 @@ import BridgeNeedsMap from '../components/BridgeMap2';
 
 const HomePage: React.FC = () => {
   return (
-    <div style={{ padding: '1rem 1rem' }}>
+    <div className="p-2 md:p-4 h-[95svh]">
       <BridgeNeedsMap />
     </div>
   );

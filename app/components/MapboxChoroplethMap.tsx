@@ -155,8 +155,6 @@ const MapboxChoroplethMap: React.FC<Props> = ({
         ],
         { padding: 70}
       );
-
-      // Then continue adding your GeoJSON / layers here...
     });
 
     mapRef.current.addControl(new mapboxgl.NavigationControl(), "right");

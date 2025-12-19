@@ -1058,11 +1058,12 @@ const MapRoute: React.FC = () => {
         {mapLoaded ? (
           <>
             <div className="mb-2">
-              <label htmlFor="vehicle-mode-select" className="block text-lg font-semibold mb-2">
+              <label className="block text-lg font-semibold mb-2">
                 Origin & Destination
               </label>
               <form autoComplete="off">
                 <SearchBox
+                  name = "origin"
                   // @ts-ignore
                   accessToken={mapboxgl.accessToken}
                   //map={!suppressAutoZoom ? mapInstanceRef.current : null}
@@ -1121,6 +1122,7 @@ const MapRoute: React.FC = () => {
 
             <div>
               <SearchBox
+                name="destination"
                 // @ts-ignore
                 accessToken={mapboxgl.accessToken}
                 //map={!suppressAutoZoom ? mapInstanceRef.current : null}

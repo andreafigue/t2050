@@ -11,7 +11,7 @@ import ClientOnly from "./ClientOnly";
 import { debounce } from "lodash";
 import { useCallback } from "react";
 
-import { Info } from "lucide-react";
+import { Info, RotateCcw } from "lucide-react";
 import styles from "./Tooltip.module.css";
 
 
@@ -122,6 +122,59 @@ const detourBucketColors: Record<string, string> = {
   "No Detour": "#7a7a7a"
 };
 
+const buildPopupHTML = (bridge: any) => `
+  <div style="font-family: sans-serif; font-size: 12px; width: 100%; box-sizing: border-box;">
+          
+    <div style="font-weight: bold; font-size: 14px; margin-bottom: 8px;">
+      ${bridge.BridgeName || "Unknown Bridge"}
+    </div>
+
+    <div style="max-height: 210px; overflow-y: auto; padding-right: 8px;">
+      <div style="margin-bottom: 8px;">
+        <div><b>Bridge Number:</b> ${bridge.BridgeNumber || "N/A"}</div>
+        <div><b>County:</b> ${bridge.CountyName || "N/A"}</div>
+        <div><b>Length (ft):</b> ${bridge.PrpsedImprvStructureLgthByFT || "N/A"}</div>
+        <div><b>Width (ft):</b> ${bridge.PrpsedImprvRoadwayWdthByFT || "N/A"}</div>
+        <div><b>Year Built:</b> ${bridge.YearBuilt || "N/A"}</div>
+        ${
+          bridge.YearRebuilt
+            ? `<div><b>Year Rebuilt:</b> ${bridge.YearRebuilt}</div>`
+            : ""
+        }
+      </div>
+
+      <hr style="margin: 8px 0; border: none; border-top: 1px solid #ddd;" />
+
+      <div style="margin-bottom: 8px;">
+        <div style="font-weight: bold; margin-bottom: 4px;">Condition</div>
+        <div><b>Overall:</b> ${bridge.BridgeOverallConditionState || "N/A"}</div>
+        <div><b>Scour:</b> ${scourShortDescriptions[bridge.ScourCondition] || "N/A"}</div>
+        <div><b>Culvert:</b> ${culvertShortDescriptions[bridge.CulvertCondition] || "N/A"}</div>
+      </div>
+
+      <hr style="margin: 8px 0; border: none; border-top: 1px solid #ddd;" />
+
+      <div style="margin-bottom: 8px;">
+        <div style="font-weight: bold; margin-bottom: 4px;">Work & Cost</div>
+        <div><b>Type:</b> ${workTypeDescriptions[bridge.PrpsedImprvTypeOfWork] || "N/A"}</div>
+        <div><b>Method:</b> ${workMethodDescriptions[bridge.PrpsedImprvWorkMethod] || "N/A"}</div>
+        <div><b>Cost/Deck SF:</b> ${formatNumberAbbreviation(bridge.PrpsedImprvCostPerSFDeck * 1000) || "N/A"}</div>
+        <div><b>Structure Cost:</b> ${formatNumberAbbreviation(bridge.PrpsedImprvStructureCost * 1000) || "N/A"}</div>
+        <div><b>Roadway Cost:</b> ${formatNumberAbbreviation(bridge.PrpsedImprvRoadwayCost * 1000) || "N/A"}</div>
+        <div><b>Total:</b> ${formatNumberAbbreviation(bridge.PrpsedImprvTotalCost * 1000) || "N/A"}</div>
+      </div>
+
+      <hr style="margin: 8px 0; border: none; border-top: 1px solid #ddd;" />
+
+      <div>
+        <div style="font-weight: bold; margin-bottom: 4px;">Detour</div>
+        <div><b>Distance:</b> ${bridge.Detour != null ? bridge.Detour + " miles" : "N/A"}</div>
+      </div>
+    </div>
+  </div>
+`;
+
+
 // Helper functions for detour thresholds and colors (0–5: Good, 5–10: Fair, >10: Poor)
 const getDetourColor = (detour: number): string => {
   if (detour <= 5) return "#1a9850"; // dark green
@@ -135,11 +188,31 @@ const getDetourRange = (detour: number): "Good" | "Fair" | "Poor" => {
   return "Poor";
 };
 
+const bridgesToGeoJSON = (bridges: any[]) => ({
+  type: "FeatureCollection",
+  features: bridges
+    .filter(b => b.Longitude && b.Latitude)
+    .map((b,i) => ({
+      type: "Feature",
+      id: b.BridgeNumber ?? i,
+      geometry: {
+        type: "Point",
+        coordinates: [b.Longitude, b.Latitude],
+      },
+      properties: {
+        ...b,
+        condition: b.BridgeOverallConditionState,
+        detourBucket: getDetourBucket(b.Detour),
+      },
+    })),
+});
+
+
 
 const BridgeNeedsMap = () => {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapInstance = useRef<mapboxgl.Map | null>(null);
-  const markersRef = useRef<mapboxgl.Marker[]>([]);
+  //const markersRef = useRef<mapboxgl.Marker[]>([]);
 
   const [bridges, setBridges] = useState<any[]>([]);
   const [selectedLayer, setSelectedLayer] = useState("placeholder");
@@ -153,6 +226,147 @@ const BridgeNeedsMap = () => {
   // County filter menu
   const [isCountyMenuOpen, setIsCountyMenuOpen] = useState(false);
   const countySelectRef = useRef<any>(null);
+
+  const [mobilePopupData, setMobilePopupData] = useState<any | null>(null);
+  const [isMapReady, setIsMapReady] = useState(false);
+
+  const tooltipRef = useRef<d3.Selection<HTMLDivElement, unknown, HTMLElement, any> | null>(null);
+
+  const hoverPopupRef = useRef<mapboxgl.Popup | null>(null);
+  const activeBridgeIdRef = useRef<string | number | null>(null);
+
+  useEffect(() => {
+    if (!tooltipRef.current) {
+      tooltipRef.current = d3.select("body")
+        .append("div")
+        .attr("class", "d3-tooltip")
+        .style("position", "absolute")
+        .style("background", "#fff")
+        .style("padding", "5px 10px")
+        .style("border", "1px solid #ccc")
+        .style("border-radius", "4px")
+        .style("pointer-events", "none")
+        .style("opacity", 0);
+    }
+
+    return () => {
+      tooltipRef.current?.remove();
+      tooltipRef.current = null;
+    };
+  }, []);
+
+  const activePopupRef = useRef<mapboxgl.Popup | null>(null);
+
+  const lightenColor = (hex: string, amount = 0.4) => {
+    const num = parseInt(hex.replace("#", ""), 16);
+    const r = (num >> 16) & 255;
+    const g = (num >> 8) & 255;
+    const b = num & 255;
+
+    const lighten = (c: number) =>
+      Math.round(c + (255 - c) * amount);
+
+    return `rgb(${lighten(r)}, ${lighten(g)}, ${lighten(b)})`;
+  };
+
+    // Compute unique filter options.
+  const countyList = Array.from(
+    new Set(bridges.map((bridge) => String(bridge.CountyName || "").trim()).filter(Boolean))
+  ).sort((a, b) => a.localeCompare(b));
+
+  const countyOptions = countyList.map((county) => ({
+    value: county,
+    label: county,
+  }));
+
+  const overallConditionList = Array.from(
+    new Set(
+      bridges
+        .map((bridge) => String(bridge.BridgeOverallConditionState || "").trim())
+        .filter(Boolean)
+    )
+  );
+
+  const scourConditionList = Array.from(
+    new Set(
+      bridges
+        .map((bridge) => String(bridge.ScourCondition || "").trim())
+        .filter(Boolean)
+    )
+  );
+
+  // Compute filtered bridges for totals and breakdown visualization.
+  const filteredBridges = useMemo(() => {
+    return bridges.filter((bridge) => {
+      const passesCounty =
+        selectedCounties.length === 0 || selectedCounties.includes(bridge.CountyName);
+      const passesOverall =
+        selectedOverallCondition === "All" ||
+        bridge.BridgeOverallConditionState === selectedOverallCondition;
+      const passesScour =
+        selectedScourCondition === "All" ||
+        bridge.ScourCondition === selectedScourCondition;
+      const passesDetour =
+        !selectedDetourRange ||
+        (selectedDetourRange[0] === 0 && selectedDetourRange[1] === 0
+          ? bridge.Detour === 0
+          : bridge.Detour > selectedDetourRange[0] && bridge.Detour <= selectedDetourRange[1]);
+
+      return passesCounty && passesOverall && passesScour && passesDetour;
+    });
+  }, [bridges, selectedCounties, selectedOverallCondition, selectedScourCondition, selectedDetourRange]);
+
+  //const [selectedCounties, setSelectedCounties] = useState<string[]>([]);
+  //const [isCountyMenuOpen, setIsCountyMenuOpen] = useState(false);
+  //const countySelectRef = useRef<any>(null);
+  const [countySheetOpen, setCountySheetOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 640px)");
+
+    const update = () => setIsMobile(mq.matches);
+    update(); // run once on mount
+
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
+
+  const applyCountyFilters = (map: mapboxgl.Map, selectedCounties: string[]) => {
+    const normalized = selectedCounties.map(name =>
+      name.replace(/\s+County$/, "").trim()
+    );
+
+    const hasSelection = normalized.length > 0;
+
+    if (map.getLayer("wa-county-selection-outline")) {
+      map.setFilter(
+        "wa-county-selection-outline",
+        hasSelection ? ["in", "NAME", ...normalized] : null
+      );
+      map.setLayoutProperty(
+        "wa-county-selection-outline",
+        "visibility",
+        hasSelection ? "visible" : "none"
+      );
+    }
+
+    if (map.getLayer("wa-county-gray-fill")) {
+      map.setFilter(
+        "wa-county-gray-fill",
+        hasSelection ? ["!in", "NAME", ...normalized] : null
+      );
+      map.setLayoutProperty(
+        "wa-county-gray-fill",
+        "visibility",
+        hasSelection ? "visible" : "none"
+      );
+    }
+
+
+
+  };
+
 
 
   // New viewMode state: "condition" or "detour"
@@ -171,35 +385,6 @@ const BridgeNeedsMap = () => {
       debouncedSetSelectedDetourRange.cancel();
     };
   }, []);
-
-  // Load CSV data.
-  // useEffect(() => {
-  //   fetch("/Bridge Needs GIS data.csv")
-  //     .then((response) => response.text())
-  //     .then((csvText) => {
-  //       Papa.parse(csvText, {
-  //         header: true,
-  //         dynamicTyping: true,
-  //         complete: (result) => {
-  //           if (result.data.length > 0) {
-  //             const normalizedData = result.data.map((d: any) => ({
-  //               ...d,
-  //               CountyName: String(d.CountyName || "").trim(),
-  //               BridgeOverallConditionState: String(d.BridgeOverallConditionState || "").trim(),
-  //               CulvertCondition: String(d.CulvertCondition || "").trim(),
-  //               ScourCondition: String(d.ScourCondition || "").trim(),
-  //               Detour: Number(d.Detour) // Ensure detour is numeric
-  //             }));
-  //             //console.log("Parsed Data:", normalizedData);
-  //             setBridges(normalizedData);
-  //           } else {
-  //             console.error("No data found in CSV.");
-  //           }
-  //         },
-  //       });
-  //     })
-  //     .catch((error) => console.error("Error loading CSV:", error));
-  // }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -240,6 +425,8 @@ const BridgeNeedsMap = () => {
     fetchData();
   }, []);
 
+
+
   // Initialize the Mapbox map.
   useEffect(() => {
     if (!mapContainerRef.current) return;
@@ -248,65 +435,500 @@ const BridgeNeedsMap = () => {
         container: mapContainerRef.current,
         style: "mapbox://styles/mapbox/streets-v11",
         center: [-120.7401, 47.4511],
-        zoom: 5.6,
         accessToken: mapboxToken,
+        interactiveLayerIds: ["bridges-circle"],
+      });
+
+      mapInstance.current.on("load", () => {
+        setIsMapReady(true);
+        // Washington State bounding box
+        mapInstance.current!.fitBounds(
+          [
+            [-124.848974, 45.543541], // southwest corner (long, lat)
+            [-116.915989, 49.002494], // northeast corner (long, lat)
+          ],
+          { padding: 70}
+        );
       });
 
       mapInstance.current.addControl(new mapboxgl.NavigationControl(), "right");
     }
   }, []);
 
+  useEffect(() => {
+    const map = mapInstance.current;
+    if (!map || !isMapReady) return;
+
+    if (!map.getSource("bridges")) {
+      map.addSource("bridges", {
+        type: "geojson",
+        data: bridgesToGeoJSON(filteredBridges),
+        promoteId: "BridgeNumber",
+      });
+    }
+  }, [isMapReady]);
+
+  useEffect(() => {
+    const map = mapInstance.current;
+    if (!map) return;
+
+    const source = map.getSource("bridges") as mapboxgl.GeoJSONSource;
+    if (!source) return;
+
+    source.setData(bridgesToGeoJSON(filteredBridges));
+  }, [filteredBridges]);
+
+  useEffect(() => {
+    const map = mapInstance.current;
+    if (!map || !map.getSource("bridges")) return;
+
+    if (map.getLayer("bridges-circle")) return;
+
+    map.addLayer({
+      id: "bridges-circle",
+      type: "circle",
+      source: "bridges",
+      paint: {
+        "circle-radius": [
+          "interpolate",
+          ["linear"],
+          ["zoom"],
+
+          5,
+          [
+            "case",
+            ["boolean", ["feature-state", "hover"], false],
+            7,  // hovered at zoom 5
+            3,  // normal at zoom 5
+          ],
+
+          8,
+          [
+            "case",
+            ["boolean", ["feature-state", "hover"], false],
+            10, // hovered at zoom 8
+            5,  // normal at zoom 8
+          ],
+
+          12,
+          [
+            "case",
+            ["boolean", ["feature-state", "hover"], false],
+            14, // hovered at zoom 12
+            8,  // normal at zoom 12
+          ],
+
+          16,
+          [
+            "case",
+            ["boolean", ["feature-state", "hover"], false],
+            18, // hovered at zoom 16
+            12, // normal at zoom 16
+          ],
+        ],
+
+        "circle-color": [
+          "match",
+          ["get", "condition"],
+          "Good", conditionColors.Good,
+          "Fair", conditionColors.Fair,
+          conditionColors.Poor,
+        ],
+        "circle-opacity": 0.95,
+        "circle-stroke-color": "#fff",
+        "circle-stroke-width": 0.8,
+      },
+    });
+
+  }, [isMapReady]);
+
+  useEffect(() => {
+    const map = mapInstance.current;
+    if (isMobile || !map || !map.getLayer("bridges-circle")) return;
+
+    map.setPaintProperty("bridges-circle", "circle-radius", [
+      "interpolate",
+      ["linear"],
+      ["zoom"],
+
+      5,
+      [
+        "case",
+        ["boolean", ["feature-state", "hover"], false],
+        7,
+        3,
+      ],
+
+      8,
+      [
+        "case",
+        ["boolean", ["feature-state", "hover"], false],
+        10,
+        5,
+      ],
+
+      12,
+      [
+        "case",
+        ["boolean", ["feature-state", "hover"], false],
+        14,
+        8,
+      ],
+
+      16,
+      [
+        "case",
+        ["boolean", ["feature-state", "hover"], false],
+        18,
+        12,
+      ],
+    ]);
+  }, []);
+
+  useEffect(() => {
+  const map = mapInstance.current;
+  if (!map || !map.getLayer("bridges-circle")) return;
+
+  if (isMobile) {
+    map.setPaintProperty("bridges-circle", "circle-radius", [
+      "interpolate",
+      ["linear"],
+      ["zoom"],
+      5, 3,
+      8, 5,
+      12, 8,
+      16, 12,
+    ]);
+  }
+}, [isMobile]);
+
+useEffect(() => {
+  const map = mapInstance.current;
+  if (!map || !isMobile) return;
+
+  const source = map.getSource("bridges") as mapboxgl.GeoJSONSource;
+  if (!source) return;
+
+  // Clear ALL feature hover states
+  filteredBridges.forEach(b => {
+    if (b.BridgeNumber != null) {
+      map.setFeatureState(
+        { source: "bridges", id: b.BridgeNumber },
+        { hover: false }
+      );
+    }
+  });
+
+  hoverPopupRef.current?.remove();
+  hoverPopupRef.current = null;
+}, [isMobile, filteredBridges]);
+
+
+
+  useEffect(() => {
+    const map = mapInstance.current;
+    if (!map || !map.getLayer("bridges-circle")) return;
+
+    const colorExpression =
+      viewMode === "detour"
+        ? [
+            "match",
+            ["get", "detourBucket"],
+            "No Detour", detourBucketColors["No Detour"],
+            "0–5 mi", detourBucketColors["0–5 mi"],
+            "6–20 mi", detourBucketColors["6–20 mi"],
+            "21–50 mi", detourBucketColors["21–50 mi"],
+            detourBucketColors["Over 50 mi"],
+          ]
+        : [
+            "match",
+            ["get", "condition"],
+            "Good", conditionColors.Good,
+            "Fair", conditionColors.Fair,
+            conditionColors.Poor,
+          ];
+
+    map.setPaintProperty("bridges-circle", "circle-color", colorExpression);
+  }, [viewMode]);
+
+
+  useEffect(() => {
+    const map = mapInstance.current;
+    if (!map) return;
+
+    const onClick = (e: mapboxgl.MapMouseEvent) => {
+      const hitPadding = isMobile ? 10 : 2;
+
+      const features = map.queryRenderedFeatures(
+        [
+          [e.point.x - hitPadding, e.point.y - hitPadding],
+          [e.point.x + hitPadding, e.point.y + hitPadding],
+        ],
+        { layers: ["bridges-circle"] }
+      );
+
+
+      const feature = features[0];
+      if (!feature) return;
+
+      const props = feature.properties as any;
+      const id = feature.id;
+
+      if (isMobile) {
+        const map = mapInstance.current;
+        if (!map || !map.getLayer("bridges-circle")) return;
+
+        const bridgeNumber = feature.properties.BridgeNumber;
+
+        const haloColorExpression =
+          viewMode === "condition"
+            ? [
+                "match",
+                ["get", "condition"],
+                "Good", "rgba(22, 163, 74, 1)",
+                "Fair", "rgba(234, 88, 12, 1)",
+                "Poor", "rgba(185, 28, 28, 1)",
+                "#ffffff",
+              ]
+            : [
+                "match",
+                ["get", "detourBucket"],
+                "Over 50 mi", "rgba(8, 48, 107, 1)",
+                "21–50 mi",   "rgba(30, 64, 175, 1)",
+                "6–20 mi",    "rgba(37, 99, 235, 0.7)",
+                "0–5 mi",     "rgba(59, 130, 246, 0.7)",
+                "No Detour",  "rgba(55, 55, 55, 1)",
+                "#ffffff",
+              ];
+
+        map.setPaintProperty("bridges-circle", "circle-stroke-color", [
+          "case",
+          ["==", ["get", "BridgeNumber"], bridgeNumber],
+          haloColorExpression,
+          "#ffffff",
+        ]);
+
+        map.setPaintProperty("bridges-circle", "circle-stroke-width", [
+          "case",
+          ["==", ["get", "BridgeNumber"], bridgeNumber],
+          3,        
+          0.8,
+        ]);
+
+        const coords = feature.geometry.coordinates as [number, number];
+
+        map.easeTo({
+          center: coords,
+          duration: 400
+        });
+
+        setMobilePopupData(props);
+        return;
+      }
+       else {
+        if (activeBridgeIdRef.current === id) {
+          activePopupRef.current?.remove();
+          hoverPopupRef.current?.remove();
+          hoverPopupRef.current = null;
+          activeBridgeIdRef.current = null;
+          return;
+        }
+
+        activePopupRef.current?.remove();
+        hoverPopupRef.current?.remove();
+        hoverPopupRef.current = null;
+
+        activePopupRef.current = new mapboxgl.Popup({
+          closeButton: true,
+          maxWidth: "300px",
+        })
+          .setLngLat(feature.geometry.coordinates)
+          .setHTML(buildPopupHTML(props))
+          .addTo(map);
+        activeBridgeIdRef.current = id;
+      }
+    };
+
+    map.on("click", onClick);
+
+    return () => {
+      map.off("click", onClick);
+    };
+  }, [isMobile]);
+
+  useEffect(() => {
+    const map = mapInstance.current;
+    if (!map || !map.getLayer("bridges-circle")) return;
+
+    if (!mobilePopupData) {
+      map.setPaintProperty("bridges-circle", "circle-opacity", 0.95);
+      map.setPaintProperty("bridges-circle", "circle-stroke-color", "#fff");
+      map.setPaintProperty("bridges-circle", "circle-stroke-width", 0.8);
+    }
+  }, [mobilePopupData]);
+
+
+  useEffect(() => {
+    const map = mapInstance.current;
+    if (!map || isMobile) return;
+
+    let hoveredId: string | number | null = null;
+
+    const attach = () => {
+      if (!map.getLayer("bridges-circle")) return;
+
+      const onMove = (e: mapboxgl.MapLayerMouseEvent) => {
+
+        const feature = e.features?.[0];
+        if (!feature) return;
+
+        if (hoveredId !== null && hoveredId !== feature.id) {
+          map.setFeatureState(
+            { source: "bridges", id: hoveredId },
+            { hover: false }
+          );
+        }
+
+        hoveredId = feature.id;
+
+        map.setFeatureState(
+          { source: "bridges", id: hoveredId },
+          { hover: true }
+        );
+
+        map.getCanvas().style.cursor = "pointer";
+
+        if (!isMobile && !hoverPopupRef.current) {
+          hoverPopupRef.current = new mapboxgl.Popup({
+            closeButton: false,
+            closeOnClick: false,
+            offset: 10,
+            className:"p-1 md:p-2 rounded-lg",
+            maxWidth: "200px",
+          });      
+        }
+
+        if (!isMobile){
+          hoverPopupRef.current
+            .setLngLat(e.lngLat)
+            .setHTML(`
+              <div className="mb-0">
+                <span className="text-sm md:text-base" style="font-weight:bold;">
+                  ${feature.properties.BridgeNumber ?? "Unknown #"}
+                </span>
+                <span className="text-sm md:text-base mb-1">
+                  ${feature.properties.BridgeName ?? "Unnamed bridge"}
+                </span>
+                <div className="text-xs md:texs-sm text-right" style="color: grey;">
+                  Click for more
+                </div>
+              </div>
+            `)
+            .addTo(map);
+          }
+
+        hoverPopupRef.current.getElement().style.pointerEvents = "none";
+
+      };
+
+
+      const onLeave = () => {
+        if (hoveredId !== null) {
+          map.setFeatureState(
+            { source: "bridges", id: hoveredId },
+            { hover: false }
+          );
+        }
+        hoveredId = null;
+        map.getCanvas().style.cursor = "";
+
+        hoverPopupRef.current?.remove();
+        hoverPopupRef.current = null;
+
+      };
+
+      map.on("mousemove", "bridges-circle", onMove);
+      map.on("mouseleave", "bridges-circle", onLeave);
+
+      map.off("idle", attach); // IMPORTANT: only attach once
+    };
+
+    map.on("idle", attach);
+
+    return () => {
+      map.off("idle", attach);
+    };
+  }, [isMobile]);
+
+
+
+
   // Add WA county divisions layer from local GeoJSON file.
   useEffect(() => {
-    if (!mapInstance.current) return;
-    mapInstance.current.on("load", () => {
-      // Fetch the local GeoJSON file.
-      fetch("/wa_counties.geojson")
-        .then((res) => res.json())
-        .then((data) => {
-          // Add the source.
-          if (!mapInstance.current!.getSource("wa-county-divisions")) {
-            mapInstance.current!.addSource("wa-county-divisions", {
-              type: "geojson",
-              data: data,
-            });
-            // Add a layer to display county boundaries.
-            mapInstance.current!.addLayer({
-              id: "wa-county-boundaries",
-              type: "line",
-              source: "wa-county-divisions",
-              layout: {},
-              paint: {
-                "line-color": "#757575", 
-                "line-width": 1
-              },
-            }, "land-structure-polygon");
-            mapInstance.current!.addLayer({
-              id: "wa-county-gray-fill",
-              type: "fill",
-              source: "wa-county-divisions",
-              paint: {
-                "fill-color": "#dddddd",
-                "fill-opacity": 0.5
-              },
-              filter: ["in", "NAME", ""] // placeholder, will update dynamically
-            }, "land-structure-polygon");
+    const map = mapInstance.current;
+    if (!map || !isMapReady) return;
 
-            mapInstance.current!.addLayer({
-              id: "wa-county-selection-outline",
-              type: "line",
-              source: "wa-county-divisions",
-              paint: {
-                "line-color": "#757575", // bright blue
-                "line-width": 2
-              },
-              filter: ["in", "NAME", ""] // start empty
-            }, "land-structure-polygon");
-          }
-        })
-        .catch((err) => console.error("Error loading counties GeoJSON:", err));
-    });
-  }, []);
+    if (map.getSource("wa-county-divisions")) return;
+
+    fetch("/wa_counties.geojson")
+      .then(res => res.json())
+      .then(data => {
+        map.addSource("wa-county-divisions", {
+          type: "geojson",
+          data,
+        });
+
+        map.addLayer({
+          id: "wa-county-selection-outline",
+          type: "line",
+          layout: { visibility: "none" },
+          source: "wa-county-divisions",
+          paint: {
+            "line-color": "#757575",
+            "line-width": 2,
+          },
+        });
+
+        map.addLayer({
+          id: "wa-county-boundaries",
+          type: "line",
+          source: "wa-county-divisions",
+          paint: {
+            "line-color": "#757575",
+            "line-width": 1,
+          },
+        }, "land-structure-polygon");        
+
+        map.addLayer({
+          id: "wa-county-gray-fill",
+          type: "fill",
+          layout: { visibility: "none" },
+          source: "wa-county-divisions",
+          paint: {
+            "fill-color": "#dddddd",
+            "fill-opacity": 0.5,
+          },
+        }, "land-structure-polygon");
+
+        applyCountyFilters(map, selectedCounties);
+
+
+
+
+      });
+
+
+  }, [isMapReady]);
+
+
+
+  useEffect(() => {
+    const map = mapInstance.current;
+    if (!map || !isMapReady) return;
+
+
+    applyCountyFilters(map, selectedCounties);
+  }, [selectedCounties]);
 
   // Menu handling
   useEffect(() => {
@@ -374,249 +996,6 @@ const BridgeNeedsMap = () => {
     };
   }, [isCountyMenuOpen]);
 
-  // Update markers whenever bridges, filters, or viewMode change.
-  useEffect(() => {
-    if (!mapInstance.current || bridges.length === 0) return;
-    const map = mapInstance.current;
-
-    const clearMarkers = () => {
-      markersRef.current.forEach((marker) => marker.remove());
-      markersRef.current = [];
-    };
-
-    const filtered = filteredBridges;
-
-    const addMarkers = () => {
-      clearMarkers();
-
-      let detourColorScale: d3.ScaleSequential<string> | null = null;
-
-      if (viewMode === "detour") {
-        const detourValues = filtered
-          .map(b => b.Detour)
-          .filter(d => typeof d === "number" && !isNaN(d));
-
-        detourColorScale = d3.scaleSequential()
-          .domain([0, 99])
-          .interpolator(colorScale);
-      }
-
-
-      filtered.forEach((bridge) => {
-        const {
-          Longitude,
-          Latitude,
-          BridgeNumber,
-          BridgeName,
-          YearBuilt,
-          YearRebuilt,
-          ScourCondition,
-          CulvertCondition,
-          BridgeOverallConditionState,
-          Detour,
-          PrpsedImprvTypeOfWork,
-          PrpsedImprvWorkMethod,
-          PrpsedImprvStructureLgthByFT,
-          PrpsedImprvRoadwayWdthByFT,
-          PrpsedImprvCostPerSFDeck,
-          PrpsedImprvStructureCost,
-          PrpsedImprvRoadwayCost,
-          PrpsedImprvEngMiscCost,
-          PrpsedImprvTotalCost,
-          PrpsedImprvEstimateYear,
-        } = bridge;
-
-        if (!Longitude || !Latitude) return;
-
-        // Determine marker color based on viewMode.
-        let markerColor = "#ff5733";
-
-        if (viewMode === "detour" && typeof Detour === "number") {
-          const bucket = getDetourBucket(Detour);
-          markerColor = detourBucketColors[bucket] || "#999999";
-        } else {
-          markerColor = conditionColors[BridgeOverallConditionState] || "#999999";
-        }
-
-        const markerDot = document.createElement("div");
-        markerDot.dataset.condition = BridgeOverallConditionState;
-        markerDot.classList.add("map-dot", "highlighted");
-
-        if (typeof Detour === "number") {
-          markerDot.dataset.detourBucket = getDetourBucket(Detour);
-        }
-
-        // Wrapper div Mapbox will use
-        const wrapper = document.createElement("div");
-        wrapper.style.width = "10px";
-        wrapper.style.height = "10px";
-        wrapper.style.display = "flex";
-        wrapper.style.alignItems = "center";
-        wrapper.style.justifyContent = "center";
-        wrapper.appendChild(markerDot);
-
-        markerDot.style.width = "7px";
-        markerDot.style.height = "7px";
-        markerDot.style.borderRadius = "50%";
-        markerDot.style.backgroundColor = markerColor;
-        //markerDot.style.opacity = "0.8";
-
-        // Build popup content based on view mode.
-        const popupContent = `
-          <div style="font-family: sans-serif; font-size: 12px; width: 100%; box-sizing: border-box;">
-            
-            <div style="font-weight: bold; font-size: 14px; margin-bottom: 8px;">
-              ${BridgeName || "Unknown Bridge"}
-            </div>
-
-            <div style="max-height: 210px; overflow-y: auto; padding-right: 8px;">
-              <div style="margin-bottom: 8px;">
-                <div><b>Bridge Number:</b> ${BridgeNumber || "N/A"}</div>
-                <div><b>County:</b> ${bridge.CountyName || "N/A"}</div>
-                <div><b>Length (ft):</b> ${PrpsedImprvStructureLgthByFT || "N/A"}</div>
-                <div><b>Width (ft):</b> ${PrpsedImprvRoadwayWdthByFT || "N/A"}</div>
-                <div><b>Year Built:</b> ${YearBuilt || "N/A"}</div>
-                ${
-                  YearRebuilt
-                    ? `<div><b>Year Rebuilt:</b> ${YearRebuilt}</div>`
-                    : ""
-                }
-              </div>
-
-              <hr style="margin: 8px 0; border: none; border-top: 1px solid #ddd;" />
-
-              <div style="margin-bottom: 8px;">
-                <div style="font-weight: bold; margin-bottom: 4px;">Condition</div>
-                <div><b>Overall:</b> ${BridgeOverallConditionState || "N/A"}</div>
-                <div><b>Scour:</b> ${scourShortDescriptions[ScourCondition] || "N/A"}</div>
-                <div><b>Culvert:</b> ${culvertShortDescriptions[CulvertCondition] || "N/A"}</div>
-              </div>
-
-              <hr style="margin: 8px 0; border: none; border-top: 1px solid #ddd;" />
-
-              <div style="margin-bottom: 8px;">
-                <div style="font-weight: bold; margin-bottom: 4px;">Work & Cost</div>
-                <div><b>Type:</b> ${workTypeDescriptions[PrpsedImprvTypeOfWork] || "N/A"}</div>
-                <div><b>Method:</b> ${workMethodDescriptions[PrpsedImprvWorkMethod] || "N/A"}</div>
-                <div><b>Cost/Deck SF:</b> ${formatNumberAbbreviation(PrpsedImprvCostPerSFDeck * 1000) || "N/A"}</div>
-                <div><b>Structure Cost:</b> ${formatNumberAbbreviation(PrpsedImprvStructureCost * 1000) || "N/A"}</div>
-                <div><b>Roadway Cost:</b> ${formatNumberAbbreviation(PrpsedImprvRoadwayCost * 1000) || "N/A"}</div>
-                <div><b>Total:</b> ${formatNumberAbbreviation(PrpsedImprvTotalCost * 1000) || "N/A"}</div>
-              </div>
-
-              <hr style="margin: 8px 0; border: none; border-top: 1px solid #ddd;" />
-
-              <div>
-                <div style="font-weight: bold; margin-bottom: 4px;">Detour</div>
-                <div><b>Distance:</b> ${Detour != null ? Detour + " miles" : "N/A"}</div>
-              </div>
-            </div>
-          </div>
-        `;
-
-        const marker = new mapboxgl.Marker({ element: wrapper })
-          .setLngLat([Longitude, Latitude])
-          .setPopup(
-            new mapboxgl.Popup({ closeButton: true, maxWidth: "300px" })
-              .setHTML(popupContent)
-          )
-          .addTo(map);
-
-        markersRef.current.push(marker);
-      });
-    };
-
-    if (map.loaded()) {
-      addMarkers();
-    } else {
-      map.once("load", addMarkers);
-    }
-  }, [
-    bridges,
-    selectedCounties,
-    selectedOverallCondition,
-    selectedScourCondition,
-    selectedDetourRange,
-    viewMode,
-  ]);
-
-  // Update for layers of the map when filtering
-  useEffect(() => {
-    const map = mapInstance.current;
-    if (!map || !map.isStyleLoaded()) return;
-
-    const normalized = selectedCounties.map(name =>
-      name.replace(/ County$/, "").trim()
-    );
-
-    const selectedfilter =
-      normalized.length > 0
-        ? ["in", "NAME", ...normalized]
-        : ["in", "NAME", ""];
-
-    const unselectedFilter =
-    normalized.length > 0
-      ? ["!in", "NAME", ...normalized] // show all NOT selected
-      : ["in", "NAME", ""];            // show nothing
-
-
-    if (map.getLayer("wa-county-selection-outline")) {
-      map.setFilter("wa-county-selection-outline", selectedfilter);
-    }
-
-    if (map.getLayer("wa-county-gray-fill")) {
-      map.setFilter("wa-county-gray-fill", unselectedFilter);
-    }
-  }, [selectedCounties]);
-
-
-  // Compute unique filter options.
-  const countyList = Array.from(
-    new Set(bridges.map((bridge) => String(bridge.CountyName || "").trim()).filter(Boolean))
-  ).sort((a, b) => a.localeCompare(b));
-
-  const countyOptions = countyList.map((county) => ({
-    value: county,
-    label: county,
-  }));
-
-  const overallConditionList = Array.from(
-    new Set(
-      bridges
-        .map((bridge) => String(bridge.BridgeOverallConditionState || "").trim())
-        .filter(Boolean)
-    )
-  );
-
-  const scourConditionList = Array.from(
-    new Set(
-      bridges
-        .map((bridge) => String(bridge.ScourCondition || "").trim())
-        .filter(Boolean)
-    )
-  );
-
-  // Compute filtered bridges for totals and breakdown visualization.
-  const filteredBridges = useMemo(() => {
-    return bridges.filter((bridge) => {
-      const passesCounty =
-        selectedCounties.length === 0 || selectedCounties.includes(bridge.CountyName);
-      const passesOverall =
-        selectedOverallCondition === "All" ||
-        bridge.BridgeOverallConditionState === selectedOverallCondition;
-      const passesScour =
-        selectedScourCondition === "All" ||
-        bridge.ScourCondition === selectedScourCondition;
-      const passesDetour =
-        !selectedDetourRange ||
-        (selectedDetourRange[0] === 0 && selectedDetourRange[1] === 0
-          ? bridge.Detour === 0
-          : bridge.Detour > selectedDetourRange[0] && bridge.Detour <= selectedDetourRange[1]);
-
-      return passesCounty && passesOverall && passesScour && passesDetour;
-    });
-  }, [bridges, selectedCounties, selectedOverallCondition, selectedScourCondition, selectedDetourRange]);
-
 
   // Overall condition chart
   useEffect(() => {
@@ -640,9 +1019,11 @@ const BridgeNeedsMap = () => {
 
     // D3 setup
     const container = d3.select("#condition-bar-chart");
-    const width = 400;
-    const height = 200;
-    const margin = { top: 20, right: 20, bottom: 40, left: 40 };
+    const { width, height } = container
+      .node()
+      .getBoundingClientRect();
+    if (width === 0 || height === 0) return;
+    const margin = { top: 20, right: 0, bottom: 20, left: 30 };
 
     let svg = container.select("svg");
     if (svg.empty()) {
@@ -667,20 +1048,8 @@ const BridgeNeedsMap = () => {
       .nice()
       .range([height - margin.bottom, margin.top]);
 
-    // AFTER (reuses if exists, otherwise creates once)
-    const tooltip = d3.select("body").select(".d3-tooltip").empty()
-      ? d3.select("body")
-          .append("div")
-          .attr("class", "d3-tooltip")
-          .style("position", "absolute")
-          .style("background", "#fff")
-          .style("padding", "5px 10px")
-          .style("border", "1px solid #ccc")
-          .style("border-radius", "4px")
-          .style("pointer-events", "none")
-          .style("opacity", 0)
-      : d3.select("body").select(".d3-tooltip");
-
+    const tooltip = tooltipRef.current;
+    if (!tooltip) return;
 
     const bars = svg.selectAll("rect")
       .data(orderedData, d => d.label)
@@ -708,48 +1077,106 @@ const BridgeNeedsMap = () => {
           .remove()
       );
 
+    const map = mapInstance.current;
+    
     bars
       .on("click", (_, d) => {
         setSelectedOverallCondition(prev =>
           prev === d.label ? "All" : d.label
         );
-      })
-      .on("mouseover", function (event, d) {
+      });
 
-        tooltip
-          .style("opacity", 1)
-          .html(`<strong>${d.label} (${d.percentage}%)</strong><br/>${d.count} bridges<br/>
-            <small style="color: grey;">
-              ${selectedOverallCondition === d.label ? "Click to reset" : "Click to filter"}
-            </small>`);
-        svg.selectAll("rect")
-          //.transition().duration(50)
-          .style("opacity", bar => bar.label === d.label ? 1 : 0.3);        
+    bars.on("mouseover", null)
+      .on("mousemove", null)
+      .on("mouseout", null);
 
-        d3.selectAll<HTMLDivElement, unknown>(".map-dot")
-          .classed("highlighted", function() {
-            return (this as HTMLDivElement).dataset.condition === d.label;
-          })
-          .classed("dimmed", function() {
-            return (this as HTMLDivElement).dataset.condition !== d.label;
-          });
+
+    if (!isMobile) {
+      bars
+        .on("mouseover", function (event, d) {
+          tooltip
+            .style("opacity", 1)
+            .html(
+              `<strong>${d.label} (${d.percentage}%)</strong><br/>${d.count} bridges<br/>
+              <small style="color: grey;">
+                ${selectedOverallCondition === d.label ? "Click to reset" : "Click to filter"}
+              </small>`
+            );
+
+          svg.selectAll("rect")
+            .style("opacity", bar => bar.label === d.label ? 1 : 0.3);
+
+          const map = mapInstance.current;
+          if (map && map.getLayer("bridges-circle")) {
+            const matchExpr = ["==", ["get", "condition"], d.label];
+
+            const haloColorExpression =
+              viewMode === "condition"
+                ? [
+                    "match",
+                    ["get", "condition"],
+                    "Good", "rgba(22, 163, 74, 1)",
+                    "Fair", "rgba(234, 88, 12, 1)",
+                    "Poor", "rgba(185, 28, 28, 1)",
+                    "#ffffff",
+                  ]
+                : [
+                    "match",
+                    ["get", "detourBucket"],
+                    "Over 50 mi", "rgba(8, 48, 107, 1)",
+                    "21–50 mi",   "rgba(30, 64, 175, 1)",
+                    "6–20 mi",    "rgba(37, 99, 235, 0.7)",
+                    "0–5 mi",     "rgba(59, 130, 246, 0.7)",
+                    "No Detour",  "rgba(55, 55, 55, 1)",
+                    "#ffffff",
+                  ];
+
+            map.setPaintProperty("bridges-circle", "circle-stroke-color", [
+              "case",
+              matchExpr,
+              haloColorExpression,
+              "#ffffff",
+            ]);
+
+            map.setPaintProperty("bridges-circle", "circle-stroke-width", [
+              "case",
+              matchExpr,
+              2.5,
+              0.8,
+            ]);
+
+            map.setPaintProperty("bridges-circle", "circle-opacity", [
+              "case",
+              matchExpr,
+              1,
+              0.2,
+            ]);
+
+        
+          }
+
         })
+
         .on("mousemove", event => {
-          tooltip.style("left", (event.pageX + 10) + "px")
-                 .style("top", (event.pageY - 28) + "px");
+          tooltip
+            .style("left", (event.pageX + 10) + "px")
+            .style("top", (event.pageY - 28) + "px");
         })
+
         .on("mouseout", function () {
           svg.selectAll("rect")
-            //.transition().duration(50)
             .style("opacity", 1);
 
           tooltip.style("opacity", 0);
+          const map = mapInstance.current;
+          if (map && map.getLayer("bridges-circle")) {
+            map.setPaintProperty("bridges-circle", "circle-opacity", 0.95);
+            map.setPaintProperty("bridges-circle", "circle-stroke-color", "#fff");
+            map.setPaintProperty("bridges-circle", "circle-stroke-width", 0.8);
+          }
 
-          d3.selectAll(".map-dot")
-            .classed("highlighted", false)
-            .classed("dimmed", false);
-
-      });
+        });
+    }
 
     // Animate bar height and y
     bars.transition().duration(500)
@@ -801,7 +1228,7 @@ const BridgeNeedsMap = () => {
       tooltip.style("opacity", 0);
     };
 
-  }, [filteredBridges, selectedOverallCondition]);
+  }, [filteredBridges, selectedOverallCondition, isMobile, viewMode]);
 
 
   // Detour distribution chart
@@ -824,14 +1251,37 @@ const BridgeNeedsMap = () => {
       "Over 50 mi": [50.00001, Infinity],
     };
 
+    const detourRangeToExpression = (range: [number, number]) => {
+      const [min, max] = range;
+
+      const detourValue = ["to-number", ["get", "Detour"], -1];
+
+      if (min === 0 && max === 0) {
+        return ["==", detourValue, 0];
+      }
+
+      if (max === Infinity) {
+        return [">", detourValue, min];
+      }
+
+      return [
+        "all",
+        [">", detourValue, min],
+        ["<=", detourValue, max],
+      ];
+    };
+
+
     filteredBridges.forEach(d => {
       const bucket = getDetourBucket(d.Detour);
       bucketCounts[bucket] = (bucketCounts[bucket] || 0) + 1;
     });
 
-    const width = 400;
-    const height = 200;
-    const margin = { top: 20, right: 20, bottom: 40, left: 40 };
+    const { width, height } = container
+      .node()
+      .getBoundingClientRect();
+    if (width === 0 || height === 0) return;
+    const margin = { top: 20, right: 0, bottom: 40, left: 30 };
 
     const buckets = ["No Detour","0–5 mi","6–20 mi","21–50 mi", "Over 50 mi"];
 
@@ -870,18 +1320,9 @@ const BridgeNeedsMap = () => {
     .range(["#7a7a7a","#c6dbef","#6baed6","#2171b5","#08306b"]);
 
 
-    const tooltip = d3.select("body").select(".d3-tooltip").empty()
-      ? d3.select("body")
-        .append("div")
-        .attr("class", "d3-tooltip")
-        .style("position", "absolute")
-        .style("background", "#fff")
-        .style("padding", "5px 10px")
-        .style("border", "1px solid #ccc")
-        .style("border-radius", "4px")
-        .style("pointer-events", "none")
-        .style("opacity", 0)
-      : d3.select("body").select(".d3-tooltip");
+    const tooltip = tooltipRef.current;
+    if (!tooltip) return;
+
 
     const bars = svg.selectAll("rect")
       .data(bucketData, d => d.label);
@@ -924,50 +1365,100 @@ const BridgeNeedsMap = () => {
         //debouncedSetSelectedDetourRange(isSame ? null : range);
       })
 
-      .on("mouseover", function (event, d) {
-        
-        const range = rangeMap[d.label];
-        const isActive =
-          !!selectedDetourRange &&
-          selectedDetourRange[0] === range[0] &&
-          selectedDetourRange[1] === range[1];
+    if (!isMobile) {
+      bars
+        .on("mouseover", function (event, d) {
+          
+          const range = rangeMap[d.label];
+          const isActive =
+            !!selectedDetourRange &&
+            selectedDetourRange[0] === range[0] &&
+            selectedDetourRange[1] === range[1];
 
-        tooltip
-          .style("opacity", 1)
-          .html(`<strong>${d.label}</strong><br/>${d.count} bridges<br/>
-            <small style="color: grey;">${isActive ? "Click to reset" : "Click to filter"}</small>`);
+          tooltip
+            .style("opacity", 1)
+            .html(`<strong>${d.label}</strong><br/>${d.count} bridges<br/>
+              <small style="color: grey;">${isActive ? "Click to reset" : "Click to filter"}</small>`);
 
-        // Dim all bars except hovered one
-        svg.selectAll("rect").style("opacity", b => b === d ? 1 : 0.3);
+          // Dim all bars except hovered one
+          svg.selectAll("rect").style("opacity", b => b === d ? 1 : 0.3);
 
-        d3.selectAll<HTMLDivElement, unknown>(".map-dot")
-        .classed("highlighted", function () {
-          return (this as HTMLDivElement).dataset.detourBucket === d.label;
+          const map = mapInstance.current;
+          if (map && map.getLayer("bridges-circle")) {
+            const range = rangeMap[d.label];
+            const matchExpr = detourRangeToExpression(range);
+
+            // opacity stays the same
+            map.setPaintProperty("bridges-circle", "circle-opacity", [
+              "case",
+              matchExpr,
+              1,
+              0.2,
+            ]);
+
+            const haloColorExpression =
+              viewMode === "condition"
+                ? [
+                    "match",
+                    ["get", "condition"],
+                    "Good", "rgba(22, 163, 74, 1)",
+                    "Fair", "rgba(234, 88, 12, 1)",
+                    "Poor", "rgba(185, 28, 28, 1)",
+                    "#ffffff",
+                  ]
+                : [
+                    "match",
+                    ["get", "detourBucket"],
+                    "Over 50 mi", "rgba(8, 48, 107, 1)",
+                    "21–50 mi",   "rgba(30, 64, 175, 1)",
+                    "6–20 mi",    "rgba(37, 99, 235, 0.7)",
+                    "0–5 mi",     "rgba(59, 130, 246, 0.7)",
+                    "No Detour",  "rgba(55, 55, 55, 1)",
+                    "#ffffff",
+                  ];
+
+            map.setPaintProperty("bridges-circle", "circle-stroke-color", [
+              "case",
+              matchExpr,
+              haloColorExpression,
+              "#ffffff",
+            ]);
+
+            map.setPaintProperty("bridges-circle", "circle-stroke-width", [
+              "case",
+              matchExpr,
+              2.5,
+              0.8,
+            ]);
+          }
+
+
         })
-        .classed("dimmed", function () {
-          return (this as HTMLDivElement).dataset.detourBucket !== d.label;
+        .on("mousemove", event => {
+          tooltip
+            .style("left", (event.pageX + 10) + "px")
+            .style("top", (event.pageY - 28) + "px");
+        })
+        .on("mouseout", () => {
+          // Restore bar opacities
+          svg.selectAll("rect")
+            //.transition()
+            //.duration(150)
+            .style("opacity", 1);
+
+          tooltip.style("opacity", 0);
+
+          // Reset all markers
+          const map = mapInstance.current;
+          if (map && map.getLayer("bridges-circle")) {
+            map.setPaintProperty("bridges-circle", "circle-opacity", 0.95);
+            map.setPaintProperty("bridges-circle", "circle-stroke-color", "#fff");
+            map.setPaintProperty("bridges-circle", "circle-stroke-width", 0.8);
+          }
+
+
         });
-
-      })
-      .on("mousemove", event => {
-        tooltip
-          .style("left", (event.pageX + 10) + "px")
-          .style("top", (event.pageY - 28) + "px");
-      })
-      .on("mouseout", () => {
-        // Restore bar opacities
-        svg.selectAll("rect")
-          //.transition()
-          //.duration(150)
-          .style("opacity", 1);
-
-        tooltip.style("opacity", 0);
-
-        // Reset all markers
-        d3.selectAll(".map-dot")
-        .classed("highlighted", false)
-        .classed("dimmed", false);
-      });
+      }
 
     const labels = svg.selectAll("text.label")
       .data(bucketData, d => d.label);
@@ -1014,7 +1505,7 @@ const BridgeNeedsMap = () => {
       .attr("class", "y-axis")
       .attr("transform", `translate(${margin.left},0)`)
       .call(d3.axisLeft(y).ticks(4));
-  }, [filteredBridges]);
+  }, [filteredBridges, isMobile, viewMode]);
 
   const totalBridges = filteredBridges.length;
   const totalImprovementCost = filteredBridges.reduce((sum, bridge) => {
@@ -1092,285 +1583,340 @@ const BridgeNeedsMap = () => {
   }, []);
 
   return (
-    <div className="flex flex-col lg:flex-row  md:gap-4 gap-2 w-full h-100 md:h-[80vh] lg:h-[75vh] m-0">
-      <div   className="border shadow-md w-full lg:w-3/5 relative rounded-lg h-80 lg:h-auto">
+    <div className="flex flex-col lg:flex-row  md:gap-4 gap-2 w-full h-full m-0">
 
-        {/* County filter */}     
-        <div
-          style={{
-            position: "absolute",
-            top: "6px",
-            left: "6px",
-            zIndex: 10,
-            background: "rgba(255, 255, 255, 0.95)",
-            borderRadius: "8px",
-            boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-            width: "clamp(140px, 40vw, 220px)",
-            fontSize: "clamp(10px, 2vw, 12px)",
-            padding: "clamp(6px, 1vw, 10px)",
-            fontFamily: "Encode Sans Compressed, sans-serif"
 
-          }}
-        >
+      {/* Map portion - left column*/}
+      <div   className="border shadow-md w-full lg:w-3/5 relative rounded-lg h-[40svh] lg:h-full">
+        {/* County filter */}
+        {!isMobile && (     
           <div
+            className="bg-white/90 backdrop-blur rounded-lg border border-gray-300 shadow top-1 md:top-2 left-1 md:left-2 text-sm md:text-base p-2 md:p-3"
             style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              fontSize: "11pt",
-              fontWeight: "bold",
-              marginBottom: "8px"
+              position: "absolute",
+              zIndex: 10,
+              width: "clamp(140px, 40vw, 220px)"
             }}
           >
-            <span>Filter by County</span>
-            {selectedCounties.length > 0 && (
-              <button
-                onClick={() => setSelectedCounties([])}
-                style={{
-                  border: "none",
-                  background: "transparent",
-                  color: "#007bff",
-                  cursor: "pointer",
-                  padding: 0,
-                  fontSize: "10pt",
-                  fontWeight: "normal"
+            <div
+              className="flex text-sm md:text-base font-semibold md:mb-2 items-center"
+              style={{
+                justifyContent: "space-between"
+              }}
+            >
+              <span>Filter by County</span>
+              {selectedCounties.length > 0 && (
+                <button
+                  onClick={() => setSelectedCounties([])}
+                  style={{
+                    border: "none",
+                    background: "transparent",
+                    color: "#007bff",
+                    cursor: "pointer",
+                    padding: 0,
+                    fontSize: "10pt",
+                    fontWeight: "normal"
+                  }}
+                >
+                  Clear All
+                </button>
+              )}
+            </div>
+
+            <ClientOnly>
+
+              <Select
+                ref={countySelectRef}
+                isMulti
+                closeMenuOnSelect={false}
+                hideSelectedOptions={false}
+                options={countyOptions}
+                value={countyOptions.filter(opt => selectedCounties.includes(opt.value))}
+                onChange={(selected) => {
+                    const values = selected.map((opt) => opt.value);
+                    debouncedSetSelectedCounties(values);
                 }}
-              >
-                Clear All
-              </button>
-            )}
+
+                menuIsOpen={isCountyMenuOpen}
+                onMenuOpen={() => setIsCountyMenuOpen(true)}
+                onMenuClose={() => setIsCountyMenuOpen(false)}
+
+                menuPortalTarget={typeof document !== "undefined" ? document.body : undefined}
+                components={{
+                  ClearIndicator: null,
+                  Control: ({ children, ...props }) => {
+                    const selectedLabel =
+                      selectedCounties.length > 0 ? `${selectedCounties.length} selected` : "";
+                    return (
+                      <components.Control {...props}>
+                        <div style={{ marginLeft: 8 }}>{selectedLabel}</div>
+                        {children}
+                      </components.Control>
+                    );
+                  },
+                  Option: (props) => (
+                    <components.Option {...props}>
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "8px",        // space between checkbox & text
+                        }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={props.isSelected}
+                          readOnly
+                        />
+                        <span>{props.label}</span>
+                      </div>
+                    </components.Option>
+                  )
+
+                }}
+                styles={{
+                  menuPortal: (base) => ({ ...base, zIndex: 9999 }),
+                  control: (base) => ({ ...base, fontSize: "10pt", minHeight: "35px" }),
+                  multiValue: () => ({ display: "none" }),
+                  menu: (base) => ({ ...base, fontSize: "10pt" }),
+                }}
+              />
+            </ClientOnly>
           </div>
+        )}
 
-          <ClientOnly>
 
-            <Select
-              ref={countySelectRef}
-              isMulti
-              closeMenuOnSelect={false}
-              hideSelectedOptions={false}
-              options={countyOptions}
-              value={countyOptions.filter(opt => selectedCounties.includes(opt.value))}
-              onChange={(selected) => {
-                  const values = selected.map((opt) => opt.value);
-                  debouncedSetSelectedCounties(values);
-              }}
 
-              menuIsOpen={isCountyMenuOpen}
-              onMenuOpen={() => setIsCountyMenuOpen(true)}
-              onMenuClose={() => setIsCountyMenuOpen(false)}
-
-              menuPortalTarget={typeof document !== "undefined" ? document.body : undefined}
-              components={{
-                Control: ({ children, ...props }) => {
-                  const selectedLabel =
-                    selectedCounties.length > 0 ? `${selectedCounties.length} selected` : "";
-                  return (
-                    <components.Control {...props}>
-                      <div style={{ marginLeft: 8 }}>{selectedLabel}</div>
-                      {children}
-                    </components.Control>
-                  );
-                },
-                Option: (props) => (
-                  <components.Option {...props}>
-                    <input
-                      type="checkbox"
-                      checked={props.isSelected}
-                      onChange={() => {}}
-                      style={{ marginRight: 8 }}
-                    />
-                    {props.label}
-                  </components.Option>
-                )
-              }}
-              styles={{
-                menuPortal: (base) => ({ ...base, zIndex: 9999 }),
-                control: (base) => ({ ...base, fontSize: "10pt", minHeight: "35px" }),
-                multiValue: () => ({ display: "none" }),
-                menu: (base) => ({ ...base, fontSize: "10pt" }),
-              }}
-            />
-          </ClientOnly>
-        </div>
-
-        {/* Display mode filter */}
-
-        <div
-          style={{
-            position: "absolute",
-            bottom: "6px",
-            left: "6px",
-            zIndex: 10,
-            background: "rgba(255, 255, 255, 0.95)",
-            borderRadius: "8px",
-            width: "clamp(160px, 40vw, 220px)",
-            fontSize: "clamp(10px, 2vw, 12px)",
-            padding: "clamp(6px, 1vw, 10px)",
-            boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-            display: "flex",
-            alignItems: "center",
-            gap: "15px",
-          }}
-        >
-          <strong 
-            style={{
-              fontSize: "11pt", 
-              fontFamily: "Encode Sans Compressed, sans-serif"
-            }}
-          >
-            Display Mode:
-          </strong>
-          <label style={{fontSize: "11pt", marginBottom: "0"}}>
-            <input
-              type="radio"
-              value="condition"
-              checked={viewMode === "condition"}
-              onChange={() => setViewMode("condition")}
-            />{" "}
-            Condition
-          </label>
-          <label style={{fontSize: "11pt", marginBottom: "0"}}>
-            <input
-              type="radio"
-              value="detour"
-              checked={viewMode === "detour"}
-              onChange={() => setViewMode("detour")}
-            />{" "}
-            Detour
-          </label>
-        </div>
 
         {/* Map Container */}
 
-        <div ref={mapContainerRef} style={{ height: "100%", borderRadius: 8 }}></div>
-        <div
-          style={{
-            position: "absolute",
-            bottom: "6px",
-            right: "6px",
-            background: "rgba(255, 255, 255, 0.9)",
-            fontSize: "clamp(10px, 2vw, 12px)",
-            padding: "clamp(6px, 1vw, 10px)",
-            borderRadius: "8px",
-            boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
-          }}
-        >
-            {viewMode === "detour" ? (
-              <div style={{ minWidth: "100px", fontSize: "10pt" }}>
-                {[
-                  { label: "No Detour", color: "#7a7a7a" },
-                  { label: "0–5 mi", color: "#c6dbef" },
-                  { label: "6–20 mi", color: "#6baed6" },
-                  { label: "21–50 mi", color: "#2171b5" },
-                  { label: "Over 50 mi", color: "#08306b" },
-                  
-                ].map(({ label, color }) => (
-                  <div key={label} style={{ display: "flex", alignItems: "center", marginBottom: "4px" }}>
-                    <div
-                      style={{
-                        width: "16px",
-                        height: "16px",
-                        backgroundColor: color,
-                        marginRight: "6px",
-                        border: "1px solid #888",
-                        borderRadius: "2px"
-                      }}
-                    />
-                    <span>{label}</span>
+        <div className="relative h-full rounded-lg">
+          <div ref={mapContainerRef} className="h-full w-full rounded-lg" />
+        </div>
+
+
+        {isMobile && (
+          <button
+            onClick={() => setCountySheetOpen(true)}
+            className="
+              absolute top-1 left-1 z-10
+              bg-white/90 backdrop-blur
+              rounded-lg border border-gray-300 shadow
+              h-7 px-2 text-xs font-semibold
+            "
+          >
+            Filter Counties
+            {selectedCounties.length > 0 && ` (${selectedCounties.length})`}
+          </button>
+        )}
+
+        {isMobile && countySheetOpen && (
+          <div className="fixed inset-0 z-[1000]">
+
+            <div
+              className="absolute inset-0 bg-black/30"
+              onClick={() => setCountySheetOpen(false)}
+            />
+
+            {/* Sheet */}
+            <div
+              className="
+                absolute top-2 left-2 right-2
+                bg-white rounded-lg
+                shadow-lg
+                max-h-[85svh]
+                flex flex-col
+              "
+            >
+              {/* Sticky header */}
+              <div
+                className="
+                  sticky top-0 z-10
+                  bg-white rounded-lg
+                  border-b border-gray-200
+                  px-4 py-3
+                "
+              >
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-base">
+                    Filter by County
+                  </h3>
+
+                  <div className="justify-right">
+
+                    {selectedCounties.length > 0 && (
+                      <button
+                        onClick={() => setSelectedCounties([])}
+                        className="text-sm text-red-600 font-medium mr-4"
+                      >
+                        Clear all {` (${selectedCounties.length})`}
+                      </button>
+                    )}
+
+                    <button
+                      onClick={() => setCountySheetOpen(false)}
+                      className="text-sm text-blue-600 font-medium"
+                    >
+                      Done
+                    </button>
                   </div>
-                ))}
-              </div>
-            ) : (
+                </div>
 
-            legendItems.map((item) => (
-              <div key={item.label} style={{ display: "flex", alignItems: "center", marginBottom: "5px" }}>
+              </div>
+
+              {/* Scrollable list */}
+              <div className="flex-1 overflow-y-auto px-4">
+                <div className="space-y-2">
+                  {countyOptions.map(opt => {
+                    const checked = selectedCounties.includes(opt.value);
+
+                    return (
+                      <label
+                        key={opt.value}
+                        className="
+                          flex items-center gap-3
+                          py-2
+                          text-sm
+                          border-b border-gray-100
+                        "
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={() =>
+                            setSelectedCounties(prev =>
+                              checked
+                                ? prev.filter(c => c !== opt.value)
+                                : [...prev, opt.value]
+                            )
+                          }
+                          className="h-4 w-4"
+                        />
+                        <span>{opt.label}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="absolute bottom-1 md:bottom-2 right-1 md:right-2 z-10">
+          <div className="bg-white/90 backdrop-blur rounded-lg border border-gray-300 shadow p-2 gap-0.5 text-xs md:text-sm">
+            {legendItems.map(item => (
+              <div
+                key={item.label}
+                className="flex items-center gap-1.5 leading-tight"
+              >
                 <div
-                  style={{
-                    width: "15px",
-                    height: "15px",
-                    backgroundColor: item.color,
-                    marginRight: "8px",
-                    borderRadius: "50%",
-                  }}
-                ></div>
-                <span style={{ fontSize: "0.9em" }}>{item.label}</span>
+                  className={[
+                    "w-2.5 h-2.5 border border-gray-400",
+                    viewMode === "condition" ? "rounded-full" : "rounded-sm",
+                  ].join(" ")}
+                  style={{ backgroundColor: item.color }}
+                />
+                <span className="text-gray-800">{item.label}</span>
               </div>
-            ))
-          )}
+            ))}
+          </div>
+        </div>
 
+
+        <div className="absolute top-1 md:top-2 right-1 md:right-2 z-10">
+          <div className="flex items-center bg-white/90 backdrop-blur rounded-full border border-gray-300 shadow overflow-hidden">
+            {(["condition", "detour"] as const).map((mode, i) => (
+              <button
+                key={mode}
+                onClick={() => setViewMode(mode)}
+                aria-label={mode}
+                title={mode === "condition" ? "Condition" : "Detour"}
+                className={[
+                  "h-7 px-2 text-xs font-semibold transition border-l border-gray-300",
+                  viewMode === mode
+                    ? "bg-black text-white"
+                    : "bg-white text-gray-800 hover:bg-gray-50",
+                ].join(" ")}
+                style={{ lineHeight: 1 }}
+              >
+                {mode === "condition" ? "Condition" : "Detour"}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
 
       {/* right column */}
-      <div
-          className="w-full  md:gap-4 gap-2 lg:w-2/5 flex flex-col min-h-[600px] lg:h-[75vh] lg:mt-0"
-        >
+      <div className="w-full gap-2 md:gap-4 lg:w-2/5 flex flex-col h-[60svh] lg:h-full lg:mt-0">
 
-        <div className=" md:gap-4 gap-2" style={{ display: "flex", flex: "0 0 20%" }}>
-          <div className="border" style={{ ...cardStyle, flex: 1, textAlign: "center", backgroundColor: "#f4f4f4" }}>
-            <div style={{ fontSize: "11pt", marginBottom: "10px", fontFamily: "Encode Sans Compressed, sans-serif" }}>
+        <div className="flex md:gap-4 gap-2">
+          <div className="border p-1 md:p-3 rounded-lg shadow-md text-center" style={{ flex: 1, backgroundColor: "#f4f4f4" }}>
+            <div className="text-sm md:text-base md:mb-3">
               Total Bridges
             </div>
-            <div id="total-bridges" style={{ fontSize: "24pt", fontWeight: "bold", color: "#333", fontFamily: "Encode Sans Compressed, sans-serif" }}>
+            <div id="total-bridges" className="text-2xl md:text-3xl font-semibold">
               {totalBridges}
             </div>
           </div>
 
-          <div className="border" style={{ ...cardStyle, flex: 1, textAlign: "center", backgroundColor: "#f4f4f4" }}>
+          <div className="border px-2 py-1 md:p-3 rounded-lg shadow-md text-center" style={{ flex: 1, backgroundColor: "#f4f4f4" }}>
             
-            <div
+            <div className="md:mb-3"
             style={{
               display: "flex",
               alignItems: "center",
-              justifyContent: "space-between",
-              fontSize: "11pt",
-              marginBottom: "10px",
-              fontFamily: "Encode Sans Compressed, sans-serif",
+              justifyContent: "space-between"
             }}
           >
-            <span>Total Estimated Cost</span>
+            <div className="text-sm md:text-base">Total Estimated Cost</div>
             <span
               className={styles.tooltip}
               data-tooltip="This is a unit cost estimate provided by WSDOT and does not reflect a bridge replacement design, construction schedule, or current construction costs that are all market dependent."
               tabIndex={0}
               aria-label="More info"
-              style={{ marginLeft: 8, fontSize: 11 }}
             >
               <Info size={18} />
             </span>
+
+
           </div>
-            <div id="total-cost" data-cost="0" style={{ fontSize: "24pt", fontWeight: "bold", color: "#333", fontFamily: "Encode Sans Compressed, sans-serif" }}>
+            <div id="total-cost" className="text-2xl md:text-3xl font-semibold" data-cost="0">
               $0
             </div>
           </div>
         </div>
 
         
-        <div className="border" style={{
-          ...cardStyle, 
-          flex: "1 1 0", 
-          width: "100%", 
-          display:"flex", 
-          flexDirection: "column",
-          minHeight: 0, 
-          backgroundColor: "#f4f4f4",
-          maxHeight: "50vh"
-        }}>
+        <div className="flex flex-col border w-100 min-h-0 rounded-lg shadow-md px-2 py-1 md:p-3" style={{flex: "1 1 0", backgroundColor: "#f4f4f4"}}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             {/* Insert Condition Chart */}
-            <h4 style={{ fontSize: "13pt", marginBottom: "8px", fontWeight: "bold", fontFamily: "Encode Sans Compressed, sans-serif"}}>
+            <h4 className="text-sm  md:text-base font-semibold">
               Overall Condition Breakdown
             </h4>
-            <span
-              className={styles.tooltip}
-              data-tooltip={`• Good: Good condition\n• Fair: Some maintenance required\n• Poor: Advanced deficiencies, major maintenance required`}
-              tabIndex={0}
-              aria-label="More info"
-              style={{ marginLeft: 8, fontSize: 18 }}
-            >
-              <Info size={18} />
-            </span>
+            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              {selectedOverallCondition !== "All" && (
+                <button
+                  onClick={() => setSelectedOverallCondition("All")}
+                  aria-label="Reset condition filter"
+                  className="mr-1 md:mr-2"
+                  style={{ lineHeight: 0 }}
+                  aria-label="Reset"
+                >
+                  <RotateCcw size={18} />
+                </button>
+              )}
+              <span
+                className={styles.tooltip}
+                data-tooltip={`• Good: Good condition\n• Fair: Some maintenance required\n• Poor: Advanced deficiencies, major maintenance required`}
+                tabIndex={0}
+                aria-label="More info"
+              >
+                <Info size={18} />
+              </span>
+
+              
+            </div>
           </div>
           <div style={{ 
             flex: 1, 
@@ -1379,33 +1925,39 @@ const BridgeNeedsMap = () => {
             justifyContent: "center", 
             overflow: "hidden"
           }}>
-            <div id="condition-bar-chart" className="w-full h-full"/>
+            <div id="condition-bar-chart" className="w-full h-full p-1 md:p-2"/>
           </div>
         </div>
 
 
-        <div className="border" style={{
-          ...cardStyle, 
-          flex: "1 1 0", 
-          width: "100%", 
-          display:"flex", 
-          flexDirection: "column",
-          minHeight: 0 , 
-          backgroundColor: "#f4f4f4",
-          maxHeight: "50vh",
-        }}>
+        <div className="flex flex-col border w-100 min-h-0 rounded-lg shadow-md px-2 py-1 md:p-3" style={{flex: "1 1 0", backgroundColor: "#f4f4f4"}}>
           {/* Insert Detour Chart */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <h4 style={{ fontSize: "13pt", fontWeight: "bold", fontFamily: "Encode Sans Compressed, sans-serif"}}>Detour Distance </h4>
-            <span
-              className={styles.tooltip}
-              data-tooltip="No Detour: Ground level bypass is available at the structure site for the inventory route."
-              tabIndex={0}
-              aria-label="More info"
-              style={{ marginLeft: 8, fontSize: 18 }}
-            >
-              <Info size={18} />
-            </span>
+            <h4 className="text-sm md:text-base font-semibold">
+              Detour Distance 
+            </h4>
+            <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              {selectedDetourRange && (
+                <button
+                  onClick={() => setSelectedDetourRange(null)}
+                  aria-label="Reset detour filter"
+                  className="mr-1 md:mr-2"
+                  style={{ lineHeight: 0 }}
+                >
+                  <RotateCcw size={18} />
+                </button>
+              )}
+              <span
+                className={styles.tooltip}
+                data-tooltip="No Detour: Ground level bypass is available at the structure site for the inventory route."
+                tabIndex={0}
+                aria-label="More info"
+              >
+                <Info size={18} />
+              </span>
+
+              
+            </div>
           </div>
           <div style={{ 
             flex: 1, 
@@ -1414,7 +1966,7 @@ const BridgeNeedsMap = () => {
             justifyContent: "center", 
             overflow: "hidden"
           }}>
-            <div id="detour-distribution-chart" className="w-full h-full"/>
+            <div id="detour-distribution-chart" className="w-full h-full p-1 md:p-2"/>
             </div>
           </div>
         </div> 
@@ -1430,22 +1982,107 @@ const BridgeNeedsMap = () => {
             color: #444 !important;
           }
 
-          .map-dot.dimmed {
-            opacity: 0.2 !important;
-            transform: scale(0.8);
-          }
-
-          .mapboxgl-popup {
-            z-index: 9999 !important;
-          }
-
-          .map-dot.highlighted {
-            opacity: 1 !important;
-            transform: scale(1.1);
+          .mapboxgl-popup-content {
+            padding: 6px 6px 5px 6px;
+            margin: 0;
+            min-height: unset;
+            box-sizing: border-box;
           }
         `,
       }}
+
     />
+
+    {isMapReady && isMobile && mobilePopupData && (
+      <div className="fixed inset-0 z-[2000] pointer-events-none">
+
+
+        {/* Sheet */}
+        <div
+          className="
+            mt-1 absolute top-[38svh] left-2 right-2
+            bg-white rounded-lg
+            max-h-[56svh]
+            flex flex-col
+            pointer-events-auto border border-gray-200
+          "
+        >
+          {/* Sticky header */}
+          <div
+            className="
+              sticky top-0 z-10
+              bg-white
+              border border-gray-200
+              px-4 py-3 rounded-lg
+              flex justify-between items-center
+            "
+          >
+            <h3 className="font-semibold text-base">
+              {mobilePopupData.BridgeName || "Unknown Bridge"}
+            </h3>
+            <button
+              onClick={() => setMobilePopupData(null)}
+              className="text-sm text-blue-600"
+            >
+              Close
+            </button>
+          </div>
+
+          {/* Scrollable content */}
+          <div className="flex-1 overflow-y-auto px-4 py-3 text-sm space-y-4">
+            {/* General info */}
+            <section>
+              <div><b>Bridge Number:</b> {mobilePopupData.BridgeNumber || "N/A"}</div>
+              <div><b>County:</b> {mobilePopupData.CountyName || "N/A"}</div>
+              <div><b>Length (ft):</b> {mobilePopupData.PrpsedImprvStructureLgthByFT || "N/A"}</div>
+              <div><b>Width (ft):</b> {mobilePopupData.PrpsedImprvRoadwayWdthByFT || "N/A"}</div>
+              <div><b>Year Built:</b> {mobilePopupData.YearBuilt || "N/A"}</div>     
+                            
+              {mobilePopupData.YearRebuilt != null && mobilePopupData.YearRebuilt > 0 && (
+                <div>
+                  <b>Year Rebuilt:</b> {mobilePopupData.YearRebuilt}
+                </div>
+              )}
+
+            </section>
+
+            <hr />
+
+            {/* Condition */}
+            <section>
+              <div className="font-semibold mb-1">Condition</div>
+              <div><b>Overall:</b> {mobilePopupData.BridgeOverallConditionState || "N/A"}</div>
+              <div><b>Scour:</b> {scourShortDescriptions[mobilePopupData.ScourCondition] || "N/A"}</div>
+              <div><b>Culvert:</b> {culvertShortDescriptions[mobilePopupData.CulvertCondition] || "N/A"}</div>
+            </section>
+
+            <hr />
+
+            {/* Work & cost */}
+            <section>
+              <div className="font-semibold mb-1">Work & Cost</div>
+              <div><b>Type:</b> {workTypeDescriptions[mobilePopupData.PrpsedImprvTypeOfWork] || "N/A"}</div>
+              <div><b>Method:</b> {workMethodDescriptions[mobilePopupData.PrpsedImprvWorkMethod] || "N/A"}</div>
+              <div><b>Total:</b> ${formatNumberAbbreviation(mobilePopupData.PrpsedImprvTotalCost * 1000)}</div>
+            </section>
+
+            <hr />
+
+            {/* Detour */}
+            <section>
+              <div className="font-semibold mb-1">Detour</div>
+              <div>
+                <b>Distance:</b>{" "}
+                {mobilePopupData.Detour != null
+                  ? `${mobilePopupData.Detour} miles`
+                  : "N/A"}
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+    )}
+
 
     </div>
   );
