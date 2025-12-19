@@ -764,7 +764,7 @@ const Page = () => {
             </p>
 
             
-            <ViewportGate name="Bridges">
+            <ViewportGate name="Bridges" className="h-[95svh] md:h-[75svh] overflow-hidden">
               <BridgeNeedsMap />
             </ViewportGate>
 
