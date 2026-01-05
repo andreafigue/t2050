@@ -62,6 +62,7 @@ type Props = {
     format: (val: number) => string;
   }[];
 
+
   colorScale?: (val: number) => string;
   transformValue?: (value: number) => number;
 
@@ -132,6 +133,27 @@ const MapboxChoroplethMap: React.FC<Props> = ({
   }, [countyData, dataField]);
 
   const tooltipDataRef = useRef({ year, countyData, tooltipFields });
+
+  const selectedRef = useRef(selectedCounties);
+
+  useEffect(() => {
+    selectedRef.current = selectedCounties;
+  }, [selectedCounties]);
+
+  const isSelectedNow = (name?: string | null) => {
+    const sel = selectedRef.current;
+    if (!name || !sel) return false;
+    return Array.isArray(sel) ? sel.includes(name) : sel.has(name);
+  };
+
+  const getSelectionKey = (featureProps: any) =>
+    getCountyKey?.(featureProps) ?? featureProps?.NAME;
+
+  const getDisplayName = (featureProps: any) =>
+    featureProps?.NAME ?? getSelectionKey(featureProps);
+
+
+
 
   useEffect(() => {
     tooltipDataRef.current = { year, countyData, tooltipFields };
@@ -272,6 +294,17 @@ const MapboxChoroplethMap: React.FC<Props> = ({
           lines.push(`${valueLabel}: ${fallback}`);
         }
 
+        const selectedNow = isSelectedNow(key);
+
+        if (!isSmall) {
+          lines.push(
+            `<div style="color: grey; font-size: 11px; margin-top: 2px">
+              ${selectedNow ? "Click to unselect" : "Click to select"}
+            </div>`
+          );
+        }
+
+
         popupRef.current
           .setLngLat(e.lngLat)
           .setHTML(lines.join("<br/>"))
@@ -292,13 +325,42 @@ const MapboxChoroplethMap: React.FC<Props> = ({
       });
 
       mapRef.current.on("click", "counties-layer", (e) => {
-        if (e.features && e.features.length > 0) {
-          const feature = e.features[0];
-          const name = feature.properties?.NAME;
-          const key = feature.properties?.GEOID;
-          if (name) onCountyClick(name);
+        if (!mapRef.current || !e.features?.[0] || isSmall) return;
+
+        const feature = e.features[0];
+        const key = feature.properties?.GEOID ?? feature.properties?.NAME;
+        const name = feature.properties?.NAME ?? key;
+
+        if (name) onCountyClick(name);
+
+        const willBeSelected = !isSelectedNow(key);
+
+        
+        const lines = [`<strong>${name}</strong>`];
+        const { year, countyData, tooltipFields } = tooltipDataRef.current;
+
+        lines.push(`Year: ${year}`);
+
+        if (tooltipFields?.length) {
+          for (const { label, field, format } of tooltipFields) {
+            const raw = countyData[name]?.[field]?.[year] ?? countyData[key]?.[field]?.[year];
+            const formatted = raw != null ? format(raw) : "N/A";
+            lines.push(`${label}: ${formatted}`);
+          }
         }
+
+        lines.push(
+          `<div style="color: grey; font-size: 11px; margin-top: 2px">
+            ${willBeSelected ? "Click to unselect" : "Click to select"}
+          </div>`
+        );
+
+        popupRef.current
+          .setLngLat(e.lngLat)
+          .setHTML(lines.join("<br/>"))
+          .addTo(mapRef.current);
       });
+
 
     });
 
@@ -347,12 +409,6 @@ const MapboxChoroplethMap: React.FC<Props> = ({
         };
       });
 
-    // if (!geojsonData?.features?.length) return;
-    // const allValues = geojsonData.features.map((feature: any) => {
-    //   const countyKey = getCountyKey(feature.properties);
-    //   const entry = countyData[name];
-    //   return entry?.[dataField]?.[year] ?? null;
-    // }).filter((v) => v !== null);  
 
     return {
       ...geojsonData,
@@ -447,6 +503,7 @@ const MapboxChoroplethMap: React.FC<Props> = ({
   }, []);
 
   const [isSmall, setIsSmall] = useState(false);
+  
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 768px)");
     const apply = () => setIsSmall(mq.matches);
@@ -455,11 +512,131 @@ const MapboxChoroplethMap: React.FC<Props> = ({
     return () => mq.removeEventListener?.("change", apply);
   }, []);
 
+  const [countySheetOpen, setCountySheetOpen] = useState(false);
+
+  const selectedList = useMemo(
+    () => (Array.isArray(selectedCounties) ? selectedCounties : Array.from(selectedCounties ?? [])),
+    [selectedCounties]
+  );
+
+  // For display in the mobile list we use NAME (human readable).
+  const countyOptions = useMemo(() => {
+    const names = (geojsonData?.features ?? [])
+      .filter((f: any) => f.properties?.STATEFP === "53")
+      .map((f: any) => String(f.properties?.NAME ?? "").trim())
+      .filter(Boolean);
+
+    return Array.from(new Set(names)).sort((a, b) => a.localeCompare(b));
+  }, [geojsonData]);
+
+
 
 
   return (
     <div style={{ position: "relative", width: "100%", height: "100%" }}>
       <div className = "rounded-lg" ref={mapContainerRef} style={{ width: "100%", height: "100%" }} />
+        {isSmall && onCountyClick && (
+        <>
+          {/* Mobile filter button */}
+          <button
+            onClick={() => setCountySheetOpen(true)}
+            className="
+              absolute top-1 right-1 z-10
+              bg-white/90 backdrop-blur
+              rounded-lg border border-gray-300 shadow
+              h-8 px-3 text-xs font-semibold
+            "
+          >
+            Filter Counties{selectedList.length > 0 ? ` (${selectedList.length})` : ""}
+          </button>
+
+          {/* Mobile sheet */}
+          {countySheetOpen && (
+            <div className="fixed inset-0 z-[1000]">
+              {/* Backdrop */}
+              <div
+                className="absolute inset-0 bg-black/30"
+                onClick={() => setCountySheetOpen(false)}
+              />
+
+              {/* Sheet */}
+              <div
+                className="
+                  absolute top-2 left-2 right-2
+                  bg-white rounded-lg shadow-lg
+                  max-h-[85svh]
+                  flex flex-col
+                "
+              >
+                {/* Header */}
+                <div className="sticky top-0 z-10 bg-white rounded-lg border-b border-gray-200 px-4 py-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-semibold text-base">Filter by County</h3>
+
+                    <div className="flex items-center">
+                      {selectedList.length > 0 && (
+                        <button
+                          className="text-sm text-red-600 font-medium mr-4"
+                          onClick={() => {
+                            // Clear all: toggle off everything currently selected
+                            for (const c of selectedList) onCountyClick(c);
+                          }}
+                        >
+                          Clear all ({selectedList.length})
+                        </button>
+                      )}
+
+                      <button
+                        className="text-sm text-blue-600 font-medium"
+                        onClick={() => setCountySheetOpen(false)}
+                      >
+                        Done
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* List */}
+                <div className="flex-1 overflow-y-auto px-4">
+                  <div className="space-y-2">
+                    {countyOptions.map((name) => {
+                      const checked =
+                        selectedList.includes(name) ||
+                        // fallback: if this map instance stores GEOIDs, the UI can still reflect selection
+                        // when selection contains the county's GEOID
+                        (() => {
+                          const f = (geojsonData?.features ?? []).find(
+                            (ff: any) =>
+                              ff.properties?.STATEFP === "53" &&
+                              String(ff.properties?.NAME ?? "").trim() === name
+                          );
+                          const geoid = f?.properties?.GEOID ? String(f.properties.GEOID) : null;
+                          return geoid ? selectedList.includes(geoid) : false;
+                        })();
+
+                      return (
+                        <label
+                          key={name}
+                          className="flex items-center gap-3 py-2 text-sm border-b border-gray-100"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() => onCountyClick(name)}
+                            className="h-4 w-4"
+                          />
+                          <span>{name}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
       <Legend 
         colorScale={colorScale ?? defaultColorScale} 
         valueLabel={valueLabel} 

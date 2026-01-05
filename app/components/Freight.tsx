@@ -46,6 +46,55 @@ const WashingtonMapWithLineGraphs: React.FC<FreightProps> = ({
 
   // const modeBarChartRef = useRef<SVGSVGElement>(null);
 
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 640px)");
+
+    const update = () => setIsMobile(mq.matches);
+    update(); // run once on mount
+
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
+
+const positionTooltip = (event: any) => {
+  const tooltip = d3.select("#tooltip");
+  const node = tooltip.node() as HTMLDivElement | null;
+  if (!node) return;
+
+  // Use viewport coords (works for touch + mouse)
+  const x = event.clientX ?? event.touches?.[0]?.clientX;
+  const y = event.clientY ?? event.touches?.[0]?.clientY;
+  if (x == null || y == null) return;
+
+  tooltip.style("display", "block");
+
+  const pad = 5;
+  const offset = 5;
+
+  const rect = node.getBoundingClientRect();
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+
+  let left = x + offset;
+  let top = y - rect.height - offset;
+
+  // flip below if needed
+  if (top < pad) top = y + offset;
+
+  // clamp
+  left = Math.max(pad, Math.min(left, vw - rect.width - pad));
+  top = Math.max(pad, Math.min(top, vh - rect.height - pad));
+
+  // IMPORTANT: use fixed when positioning by clientX/clientY
+  tooltip
+    .style("position", "fixed")
+    .style("left", `${left}px`)
+    .style("top", `${top}px`);
+};
+
+
 
   useEffect(() => {
     if (externalSelectedCounties) {
@@ -360,9 +409,7 @@ const WashingtonMapWithLineGraphs: React.FC<FreightProps> = ({
             .html(`Year: ${d.x}<br/>${yLabel.includes("Value") ? "Value" : yLabel}: ${tickFmt(d.y)}`);
         })
         .on("mousemove", (event) => {
-          d3.select("#tooltip")
-            .style("left", `${event.pageX + 10}px`)
-            .style("top", `${event.pageY - 20}px`);
+          positionTooltip(event);
         })
         .on("mouseout", () => {
           d3.select("#tooltip").style("display", "none");
@@ -505,7 +552,7 @@ const WashingtonMapWithLineGraphs: React.FC<FreightProps> = ({
       <div className="
           lg:col-span-3 col-span-1
           border rounded-lg shadow-md relative
-          h-[40vh] md:h-[40vh] lg:h-full
+          h-[30vh] md:h-[40vh] lg:h-full
           min-h-[300px]
         ">
 
@@ -520,14 +567,12 @@ const WashingtonMapWithLineGraphs: React.FC<FreightProps> = ({
           background: "rgba(255, 255, 255, 0.95)",
           boxShadow: "0 2px 4px rgba(0,0,0,0.1)", 
           padding: "clamp(4px, 1vw, 8px)",
-          gap: "clamp(2px, 1vw, 2px)",
           width: "clamp(140px, 30vw, 160px)",
           fontSize: "clamp(10px, 2vw, 14px)", 
           alignItems: "center",
           zIndex: 2 }}
         >
-          <label htmlFor="yearSlider">Year: {choroplethYear}</label>
-          <br />   
+          <div className="text-base">Year: {choroplethYear}</div>
           <input
             id="yearSlider"
             type="range"
@@ -588,6 +633,7 @@ const WashingtonMapWithLineGraphs: React.FC<FreightProps> = ({
           )}
 
         {/* Floating Sidebar */}
+        {!isMobile && ( 
         <div
           style={{
             position: "absolute",
@@ -721,15 +767,16 @@ const WashingtonMapWithLineGraphs: React.FC<FreightProps> = ({
             )}
           </div>
         </div>
+        )}
       </div>
 
       {/* Right Column for Charts */}
-      <div className="lg:col-span-2 md:gap-4 gap-2 col-span-1 flex flex-col lg:h-full">
+      <div className="lg:col-span-2 gap-2 md:gap-4 col-span-1 flex flex-col lg:h-full">
         
         {/* Filters */}
-        <div className="p-3 border rounded-lg shadow-md bg-white items-center flex flex-col ">
-          <h4 className="text-lg md:text-xl font-bold">Filters</h4>
-          <div className="flex flex-wrap gap-4 w-full">
+        <div className="p-2 md:p-3 border rounded-lg shadow-md bg-white items-center flex flex-col ">
+          <div className="text-lg md:text-xl font-bold">Filters</div>
+          <div className="flex flex-wrap gap-2 md:gap-4 w-full">
             {Object.keys(selectedFilters).map(key => (
               <div key={key} className="flex-1">
                 <label className="block text-sm font-medium capitalize mb-1">{startCase(key)}</label>
@@ -752,10 +799,10 @@ const WashingtonMapWithLineGraphs: React.FC<FreightProps> = ({
         </div>
         
         {/* Tons Chart */}
-        <div className="border items-center shadow-md rounded-lg flex-1 flex flex-col p-3 bg-white min-h-0">
-          <h4 className="text-lg md:text-xl font-bold">
+        <div className="border items-center shadow-md rounded-lg flex-1 flex flex-col p-2 md:p-3 bg-white min-h-0">
+          <div className="text-lg md:text-xl font-bold">
             Tons over Years {selectedCounties.size > 0 && "(selected counties)"}
-          </h4>
+          </div>
           <div className="w-full h-full flex-1 relative min-h-0" style={{ overflow: "visible" }}>
             <svg
               ref={lineGraph1Ref}
@@ -764,10 +811,10 @@ const WashingtonMapWithLineGraphs: React.FC<FreightProps> = ({
         </div>
 
         {/* Value Chart */}
-        <div className="border items-center shadow-md rounded-lg flex-1 flex flex-col p-3 bg-white min-h-0">
-          <h4 className="text-lg md:text-xl font-bold">
+        <div className="border items-center shadow-md rounded-lg flex-1 flex flex-col p-2 md:p-3 bg-white min-h-0">
+          <div className="text-lg md:text-xl font-bold">
             Value over Years {selectedCounties.size > 0 && "(selected counties)"}
-          </h4>
+          </div>
           <div className="w-full h-full inset-0 flex-1 relative min-h-0" >
             <svg
               ref={lineGraph2Ref}

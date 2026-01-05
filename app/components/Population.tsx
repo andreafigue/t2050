@@ -52,6 +52,18 @@ const Population: React.FC = () => {
 
   const [showScroll, setShowScroll] = useState(false);
 
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 640px)");
+
+    const update = () => setIsMobile(mq.matches);
+    update(); // run once on mount
+
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
+
   useEffect(() => {
     if (!isSidebarHovered || !chipContainerRef.current) {
       setShowScroll(false);
@@ -344,9 +356,7 @@ const Population: React.FC = () => {
             .html(`<strong>${year}</strong>: ${population}`);
         }) 
         .on("mousemove", (event) => {
-          d3.select("#tooltip")
-            .style("left", `${event.pageX + 10}px`)
-            .style("top", `${event.pageY - 28}px`);
+          positionTooltip(event);
         })
         .on("mouseout", () => {
           d3.select("#tooltip").style("display", "none");
@@ -393,6 +403,42 @@ const Population: React.FC = () => {
 
 
   }, [stateData, choroplethYear]);
+
+const positionTooltip = (event: any) => {
+  const tooltip = d3.select("#tooltip");
+  const node = tooltip.node() as HTMLDivElement | null;
+  if (!node) return;
+
+  // Use viewport coords (works for touch + mouse)
+  const x = event.clientX ?? event.touches?.[0]?.clientX;
+  const y = event.clientY ?? event.touches?.[0]?.clientY;
+  if (x == null || y == null) return;
+
+  tooltip.style("display", "block");
+
+  const pad = 5;
+  const offset = 5;
+
+  const rect = node.getBoundingClientRect();
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+
+  let left = x + offset;
+  let top = y - rect.height - offset;
+
+  // flip below if needed
+  if (top < pad) top = y + offset;
+
+  // clamp
+  left = Math.max(pad, Math.min(left, vw - rect.width - pad));
+  top = Math.max(pad, Math.min(top, vh - rect.height - pad));
+
+  // IMPORTANT: use fixed when positioning by clientX/clientY
+  tooltip
+    .style("position", "fixed")
+    .style("left", `${left}px`)
+    .style("top", `${top}px`);
+};
 
 
   // Growth rate viz
@@ -540,20 +586,48 @@ const Population: React.FC = () => {
           const growthRate = (d.y * 100).toLocaleString() + "%"?? "Unknown";
           const year = d.x ?? "N/A";
 
-          const arrow = d.y > 0
-            ? `<span style="color:green;">🠉</span>`
-            : d.y < 0
-              ? `<span style="color:red;">🠋</span>`
-              : "";
+          const arrow =
+            d.y > 0
+              ? `
+                <span style="display:inline-flex;align-items:center;color:green;font-size:1em;">
+                  <svg xmlns="http://www.w3.org/2000/svg"
+                       viewBox="0 0 16 16"
+                       width="1em"
+                       height="0.8em"
+                       fill="none"
+                       stroke="currentColor"
+                       stroke-width="3"
+                       stroke-linecap="round"
+                       stroke-linejoin="round">
+                    <path d="M8 15V3 M8 3l-4 4 M8 3l4 4"/>
+                  </svg>
+                </span>
+              `
+              : d.y < 0
+                ? `
+                <span style="display:inline-flex;align-items:center;color:red;font-size:1em;">
+                  <svg xmlns="http://www.w3.org/2000/svg"
+                       viewBox="0 0 16 16"
+                       width="1em"
+                       height="0.8em"
+                       fill="none"
+                       stroke="currentColor"
+                       stroke-width="3"
+                       stroke-linecap="round"
+                       stroke-linejoin="round">
+                    <path d="M8 1v12 M8 13l-4-4 M8 13l4-4"/>
+                  </svg>
+                </span>
+              `
+                : "";
+
 
           d3.select("#tooltip")
             .style("display", "block")
             .html(`<strong>${year}</strong>: ${growthRate} <strong>${arrow}</strong>`);
         }) 
         .on("mousemove", (event) => {
-          d3.select("#tooltip")
-            .style("left", `${event.pageX + 10}px`)
-            .style("top", `${event.pageY - 28}px`);
+          positionTooltip(event);
         })
         .on("mouseout", () => {
           d3.select("#tooltip").style("display", "none");
@@ -708,7 +782,10 @@ const Population: React.FC = () => {
           transformValue={(v) => Math.sign(v) * Math.sqrt(Math.abs(v))}
         />
 
+
+
         {/* Floating Sidebar */}
+        {!isMobile && ( 
         <div
           style={{
             position: "absolute",
@@ -843,6 +920,7 @@ const Population: React.FC = () => {
             )}
           </div>
         </div>
+        )}
       </div>
 
       {/* Right Column for Charts */}
@@ -850,7 +928,7 @@ const Population: React.FC = () => {
        >
         
         {/* Population Chart */}
-        <div className="border items-center shadow-md rounded-lg flex-1 flex flex-col p-4 h-full min-h-[20vh] lg:h-full"
+        <div className="border items-center shadow-md rounded-lg flex-1 flex flex-col p-2 md:p-4 h-full min-h-[20vh] lg:h-full"
         style={{background: "#f4f4f4"}}>
           <h4 className="text-lg md:text-xl font-bold">
             Population Over Time {selectedCounties.size > 0 && "(selected counties)"}
@@ -862,7 +940,7 @@ const Population: React.FC = () => {
         </div>
 
         {/* Growth Rate Chart */}
-        <div className="border items-center shadow-md rounded-lg flex-1 flex flex-col p-4 h-full min-h-[20vh] lg:h-full bg-gray " 
+        <div className="border items-center shadow-md rounded-lg flex-1 flex flex-col p-2 md:p-4 h-full min-h-[20vh] lg:h-full bg-gray " 
         style={{background: "#f4f4f4"}}>
           <h4 className="text-lg md:text-xl font-bold">
             Population Growth Rate {selectedCounties.size > 0 && "(selected counties)"}
