@@ -530,7 +530,7 @@ const Page = () => {
               />
               <strong>Explore:</strong> Just 10 minutes of added travel time each day adds up to more than 40 hours a year. See how much trips will change in the years ahead.
             </p>
-            <ViewportGate className="h-[95svh] md:h-[75svh] overflow-hidden" name="Traffic">
+            <ViewportGate className="h-[95svh] md:h-[56svh] overflow-hidden" name="Traffic">
               <DynamicMapRoute />
             </ViewportGate>
             <br/>

@@ -39,6 +39,26 @@ const MapRoute: React.FC = () => {
   const [destinationCoords, setDestinationCoords] = useState<[number, number] | null>(null);
   const [departAtTime, setDepartAtTime] = useState<string | null>(null);
 
+  const getNextWeeksThursday = (): string => {
+    const d = new Date();
+    const day = d.getDay();
+    const THU = 4;
+    // Days until THIS week’s Thursday:
+    const daysUntilThisThursday = (THU - day + 7) % 7;
+    // Force "next week" by adding an extra 7 days:
+    const daysToNextWeeksThursday = daysUntilThisThursday + 7;
+    d.setDate(d.getDate() + daysToNextWeeksThursday);
+
+    // Return YYYY-MM-DD in local time
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${dd}`;
+  };
+
+  const [userDepartTime, setUserDepartTime] = useState<string>("17:00");
+
+
   // Travel time estimates
   const [travelTime, setTravelTime] = useState<number | null>(null);
   const [forecastTravelTime, setForecastTravelTime] = useState<number | null>(null);
@@ -164,22 +184,7 @@ const MapRoute: React.FC = () => {
     return `${h} hr${h > 1 ? "s" : ""} ${m} min`;
   };
 
-  const getNextWeeksThursday = (): string => {
-    const d = new Date();
-    const day = d.getDay();
-    const THU = 4;
-    // Days until THIS week’s Thursday:
-    const daysUntilThisThursday = (THU - day + 7) % 7;
-    // Force "next week" by adding an extra 7 days:
-    const daysToNextWeeksThursday = daysUntilThisThursday + 7;
-    d.setDate(d.getDate() + daysToNextWeeksThursday);
 
-    // Return YYYY-MM-DD in local time
-    const y = d.getFullYear();
-    const m = String(d.getMonth() + 1).padStart(2, "0");
-    const dd = String(d.getDate()).padStart(2, "0");
-    return `${y}-${m}-${dd}`;
-  };
 
   useEffect(() => {
     const mapF = mapForecastInstanceRef.current;
@@ -414,7 +419,7 @@ const MapRoute: React.FC = () => {
       setTravelTime(null);
       ensureBaselineForIndex(idx);
     }
-  }, [currentTrafficView, routes, selectedRouteIdx]);
+  }, [currentTrafficView, routes, selectedRouteIdx, userDepartTime]);
 
 
 
@@ -662,7 +667,7 @@ const MapRoute: React.FC = () => {
               bounds.extend([coords[i], coords[i + 1]]);
             }
           });
-          map.fitBounds(bounds, { padding: 50 });
+          map.fitBounds(bounds, { padding: 30 });
         };
 
         if (mapInstanceRef.current) updateLayer(mapInstanceRef.current, "county-outline");
@@ -726,14 +731,13 @@ const MapRoute: React.FC = () => {
       //console.log('Source Multiplier:', data.sourceMultiplier)
       if (region === "psrc" && data.sourceMultiplier) {
         setPeakTime(time_slots[data.sourceMultiplier]);
-        setDepartAtTime(depart_at[data.sourceMultiplier]);
+       
       } else if (region === "trpc" && data.sourceMultiplier) {
           setPeakTime(time_slots_trpc[data.sourceMultiplier]);
-          setDepartAtTime(depart_at_trpc[data.sourceMultiplier]);
+
       }  else {
         // fallback: default to 5 PM
           setPeakTime("Peak time: 5 PM to 6 PM");
-          setDepartAtTime("17:00");
       } 
       const m = data.multiplier ?? null;
       setMultiplier2050(m);
@@ -752,19 +756,25 @@ const MapRoute: React.FC = () => {
     const mapF = mapForecastInstanceRef.current;
     if (!map || !mapF) return;
 
+    // IMPORTANT: depart_at change invalidates all no-traffic baselines
+    baselineInflightRef.current.forEach((ac) => ac.abort());
+    baselineInflightRef.current.clear();
+    baselineCacheRef.current.clear();
+    setRoutesNoTraffic([]);
+    setBaselineLoadingIdx(null);
+
+
     setBaseTrafficTime(null);
     setMultiplier2050(null);
     setTravelTime(null);
     setForecastTravelTime(null);
-    setPeakTime(null);
+    //setPeakTime(null);
     setBaseTrafficTime(null);
-    setRoutesNoTraffic([]);        // <<< important
-    setBaselineLoadingIdx(null);
 
 
-    const timePart = departAtTime || "17:00";
     const datePart = getNextWeeksThursday();
-    const departAtParam = `&depart_at=${encodeURIComponent(`${datePart}T${timePart}`)}`;
+    const departAtDateTime = `${datePart}T${userDepartTime}`;
+    const departAtParam = `&depart_at=${encodeURIComponent(departAtDateTime)}`;
 
     const baseQS = `?geometries=geojson&overview=full&steps=false&alternatives=true&access_token=${mapboxgl.accessToken}`;
 
@@ -809,12 +819,12 @@ const MapRoute: React.FC = () => {
 
     mapInstanceRef.current?.fitBounds(
       turf.bbox(turf.lineString(trafficRoutes[0].geometry.coordinates)),
-      { padding: 80, maxZoom: 14, duration: 600 }
+      { padding: 50, maxZoom: 14, duration: 600 }
     );
 
     mapForecastInstanceRef.current?.fitBounds(
       turf.bbox(turf.lineString(trafficRoutes[0].geometry.coordinates)),
-      { padding: 80, maxZoom: 14, duration: 600 }
+      { padding: 50, maxZoom: 14, duration: 600 }
     );
 
 
@@ -994,21 +1004,21 @@ const MapRoute: React.FC = () => {
     const trafficMin = Math.round((routes[selectedRouteIdx]?.duration ?? 0) / 60);
     // projectTime should handle intermediate years + multipliers < 1
     setForecastTravelTime(projectTime(trafficMin, multiplier2050, forecastYear));
-  }, [routes, selectedRouteIdx, multiplier2050, forecastYear]);
+  }, [routes, selectedRouteIdx, multiplier2050, forecastYear, userDepartTime]);
 
 
-  // forecastTravelTime = CURRENT TRAFFIC minutes × multiplier_from_DB (can be < 1)
-  useEffect(() => {
-    if (!routes.length || selectedRouteIdx == null || forecastMultiplier == null) {
-      setForecastTravelTime(null);
-      return;
-    }
-    const trafficRoute = routes[selectedRouteIdx];     // driving-traffic route
-    if (!trafficRoute) { setForecastTravelTime(null); return; }
+  // // forecastTravelTime = CURRENT TRAFFIC minutes × multiplier_from_DB (can be < 1)
+  // useEffect(() => {
+  //   if (!routes.length || selectedRouteIdx == null || forecastMultiplier == null) {
+  //     setForecastTravelTime(null);
+  //     return;
+  //   }
+  //   const trafficRoute = routes[selectedRouteIdx];     // driving-traffic route
+  //   if (!trafficRoute) { setForecastTravelTime(null); return; }
 
-    const trafficMin = Math.round(trafficRoute.duration / 60);
-    setForecastTravelTime(Math.round(trafficMin * forecastMultiplier)); // <-- no clamp
-  }, [routes, selectedRouteIdx, forecastMultiplier]);
+  //   const trafficMin = Math.round(trafficRoute.duration / 60);
+  //   setForecastTravelTime(Math.round(trafficMin * forecastMultiplier)); // <-- no clamp
+  // }, [routes, selectedRouteIdx, forecastMultiplier]);
 
 
   function TinySpinner() {
@@ -1028,22 +1038,30 @@ const MapRoute: React.FC = () => {
   const isTrafficLoadingDisplay =
     currentTrafficView === "current" && trafficLoading;
 
+  useEffect(() => {
+    if (originCoords && destinationCoords) {
+      getRoutesCurrentOnly(originCoords, destinationCoords);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userDepartTime]);
+
+
 
   return (
-    <div className="flex flex-col lg:flex-row  md:gap-4 gap-2 w-full h-full p-0 m-0">
+    <div className="flex flex-col lg:flex-row gap-1 md:gap-2  w-full h-full p-0 m-0">
 
       {/* Top Controls Row: Search Inputs + Filters */}
-      <div className="w-full lg:w-3/12 flex flex-col  md:gap-4 gap-2 h-auto lg:h-full">
+      <div className="w-full lg:w-3/12 flex flex-col gap-1 md:gap-2 h-auto lg:h-full w-full">
 
         {/* Filters on the Right */}
-        <div className="p-3 bg-white border rounded-lg shadow-md w-full ">
-          <label htmlFor="county-select" className="block text-lg font-semibold">
-            Select Model
-          </label>
-          <div className="flex items-center gap-2">
+        <div className="p-2 bg-white border rounded-lg shadow-md w-full ">
+          <div className="flex items-center gap-1 md:flex-col md:items-start w-full">
+            <label htmlFor="county-select" className="mb-0 text-md md:text-lg font-semibold whitespace-nowrap">
+              Select Model
+            </label>
             <select
               id="county-select"
-              className="w-full rounded-sm p-2"
+              className="rounded-lg w-full p-1 md:p-2 shadow-md border text-sm md:text-md flex-1"
               value={selectedCountyOption}
               //defaultValue="psrc"
               onChange={(e) => setSelectedCountyOption(e.target.value)}
@@ -1054,15 +1072,17 @@ const MapRoute: React.FC = () => {
           </div>
         </div>
       {/* Search Box Container */}
-      <div className="p-3 bg-white border rounded-lg shadow-md w-full min-h-0">
+      <div className="p-2  bg-white border rounded-lg shadow-md w-full min-h-0">
         {mapLoaded ? (
           <>
-            <div className="mb-2">
-              <label className="block text-lg font-semibold mb-2">
+            <div className="mb-1 md:mb-2">
+              <label className="block text-base md:text-lg font-semibold mb-1 md:mb-2 ">
                 Origin & Destination
               </label>
               <form autoComplete="off">
+                <div className="sb">
                 <SearchBox
+
                   name = "origin"
                   // @ts-ignore
                   accessToken={mapboxgl.accessToken}
@@ -1116,7 +1136,7 @@ const MapRoute: React.FC = () => {
                     }
                   }}
                   value={origin}
-                />
+                /></div>
               </form>
             </div>
 
@@ -1184,32 +1204,39 @@ const MapRoute: React.FC = () => {
         )}
       </div>
 
+      <div className="p-2 bg-white border rounded-lg shadow-md w-full ">
+        <div className="flex items-center gap-2 md:flex-col md:items-start">
+          <label htmlFor="county-select" className="text-md md:text-lg font-semibold whitespace-nowrap mb-0">
+            Depart at
+          </label>
+          <input
+            type="time"
+            id="hour"
+            name="hour"
+            step="600"
+            className="text-sm md:text-md rounded-lg border shadow-md p-1 md:p-2 w-full"
+            value={userDepartTime}
+            onChange={(e) => setUserDepartTime(e.target.value)}
+          />
+        </div>
+      </div>
+
       
     </div>
 
     {/* Map Containers */}
-    <div className="w-full lg:w-9/12 flex flex-col lg:flex-row  md:gap-4 gap-2 h-[600px] lg:h-full">
+    <div className="w-full lg:w-9/12 flex flex-col lg:flex-row  gap-1 md:gap-2 h-[600px] lg:h-full">
 
       <div className="flex-1 relative rounded-lg shadow-md border h-[300px] lg:h-full">
 
-        <div className="absolute top-2 left-2 bg-white bg-opacity-90 p-2 rounded text-sm font-medium shadow z-10">
+        <div className="absolute top-1 md:top-2 left-1 md:left-2 bg-white bg-opacity-90 p-1 md:p-2 rounded-lg text-sm font-medium shadow z-10">
 
-          <div className={`flex items-center gap-3 ${routes.length > 1 ? "justify-between" : ""}`}>
-            <h4 className="text-lg font-semibold">
+          <div className={`flex items-center gap-2 md:gap-3 ${routes.length > 1 ? "justify-between" : ""}`}>
+            <div className="text-base md:text-lg font-semibold">
               <select
                 className="mr-1 rounded-lg"
                 value={currentTrafficView}
-                // onChange={(e) => {
-                //   const v = e.target.value as "current" | "none";
-                //   setCurrentTrafficView(v);
-                //   // update ETA shown on the left when switching
-                //   const rIdx = selectedRouteIdx;
-                //   if (v === "current" && routes[rIdx]) {
-                //     setTravelTime(Math.round(routes[rIdx].duration / 60));
-                //   } else if (v === "none" && routesNoTraffic[rIdx]) {
-                //     setTravelTime(Math.round(routesNoTraffic[rIdx].duration / 60));
-                //   }
-                // }}
+
                 onChange={async (e) => {
                   const v = e.target.value as "current" | "none";
                   setCurrentTrafficView(v);
@@ -1238,45 +1265,15 @@ const MapRoute: React.FC = () => {
                 <option value="none">No Traffic</option>
               </select>
               {(isBaselineLoading || isTrafficLoadingDisplay) && <TinySpinner />}
-            </h4>
+            </div>
 
-
-
-            {/* Route toggle */}
-            {/*{routes.length > 1 && (
-              <div className="ml-auto flex items-center rounded-full border border-gray-300 overflow-hidden">
-                {[...Array(routes.length)].map((_, i) => {
-                  const active = i === selectedRouteIdx;
-                  return (
-                    <button
-                      key={i}
-                      onClick={() => selectRoute(i)}
-                      disabled={active}
-                      className={[
-                        "px-2 h-6 text-[11px] font-semibold",
-                        "focus:outline-none transition",
-                        active
-                          ? "bg-white text-black"
-                          : "bg-gray-200/80 text-gray-700 hover:bg-gray-200",
-                      ].join(" ")}
-                      style={{ lineHeight: 1 }}
-                      aria-pressed={active}
-                      aria-label={`Show route ${i + 1} of ${routes.length}`}
-                      title={`Show route ${i + 1}`}
-                    >
-                      {`Route ${i + 1}`}
-                    </button>
-                  );
-                })}
-              </div>
-            )}*/}
           </div>
 
           <div className="text-sm font-normal text-gray-700">
             {/*{peakTime && <span className="mr-2">{peakTime}</span>}*/}
             {/*{routes.length > 0 && travelTime != null && <span><br/>Estimated time: {formatMinutes(travelTime)}</span>}*/}
             {routes.length > 0 && (
-              <div className="ml-1 text-sm text-neutral-700">
+              <div className="ml-1 md:mt-1 text-sm text-neutral-700">
                 <div>
                   Estimated time:{" "}
                   {(currentTrafficView === "none" && isBaselineLoading) ||
@@ -1284,11 +1281,7 @@ const MapRoute: React.FC = () => {
                     ? "…"
                     : (travelTime != null ? formatMinutes(travelTime) : "—")}
                 </div>
-                {peakTime != null && (
-                  <div>
-                    {peakTime}
-                  </div>
-                )}
+              
               </div>
             )}
 
@@ -1298,7 +1291,6 @@ const MapRoute: React.FC = () => {
           id="map-container"
           ref={mapContainerRef}
           className="absolute inset-0 h-full w-full rounded-lg border"
-          style={{ borderRadius: 8 }}
         />
 
 
@@ -1336,8 +1328,8 @@ const MapRoute: React.FC = () => {
       </div>
 
       <div className="flex-1 relative rounded-lg shadow-md border h-[300px] lg:h-full">
-        <div className="absolute top-2 left-2 bg-white bg-opacity-90 p-2 rounded text-sm font-medium shadow z-10">
-          <h2 className="text-lg font-semibold">
+        <div className="absolute top-1 md:top-2 left-1 md:left-2 bg-white bg-opacity-90 p-1 md:p-2 rounded text-sm font-medium shadow z-10">
+          <div className="text-base md:text-lg font-semibold">
             
             <select 
               className="mr-1 rounded-lg" 
@@ -1349,9 +1341,9 @@ const MapRoute: React.FC = () => {
               <option value="2050">2050</option>
             </select>
             Forecast
-          </h2>
+          </div>
           {routes.length > 0 && forecastTravelTime && travelTime && (
-            <span className="text-sm font-normal">
+            <div className="text-sm  md:mt-1 ml-1 text-neutral-700">
               {`Estimated time: ${formatMinutes(forecastTravelTime)} `} 
               {forecastTravelTime > travelTime && (
                 <span
@@ -1374,7 +1366,7 @@ const MapRoute: React.FC = () => {
                 </span>
 
               )}            
-            </span>
+            </div>
           )}
         </div>
         <div
@@ -1386,9 +1378,15 @@ const MapRoute: React.FC = () => {
       </div>
     </div>
   </div>
+
+
 );
 
 
 };
+
+
+
+
 
 export default MapRoute;

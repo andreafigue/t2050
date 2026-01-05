@@ -23,6 +23,9 @@
   z-index: 10000 !important; /* stay above any overlay boxes */
 }
 
+
+
+
 .mapboxgl-popup-content {
   font-size: 12px;
   line-height: 1.3;
