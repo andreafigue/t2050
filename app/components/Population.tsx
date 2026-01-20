@@ -726,13 +726,12 @@ const positionTooltip = (event: any) => {
           background: "rgba(255, 255, 255, 0.95)",
           boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
           padding: "clamp(4px, 1vw, 8px)",
-          gap: "clamp(2px, 1vw, 2px)",
+          //gap: "clamp(2px, 1vw, 2px)",
           width: "clamp(140px, 30vw, 160px)",
           fontSize: "clamp(10px, 2vw, 14px)",                  
           display: "grid",                  
           alignItems: "center",   
-          maxHeight: 110,                   
-          overflow: "hidden",               
+          overflow: "visible",               
           zIndex: 2,
         }}
         >
@@ -743,6 +742,9 @@ const positionTooltip = (event: any) => {
             type="range"
             min="1962"
             max="2050"
+            style={{
+              width: "100%",  
+            }}
             value={choroplethYear}
             onChange={(e) => {
               const raw = Number(e.target.value);
@@ -930,9 +932,9 @@ const positionTooltip = (event: any) => {
         {/* Population Chart */}
         <div className="border items-center shadow-md rounded-lg flex-1 flex flex-col p-2 md:p-4 h-full min-h-[20vh] lg:h-full"
         style={{background: "#f4f4f4"}}>
-          <h4 className="text-lg md:text-xl font-bold">
+          <div className="text-sm md:text-lg font-semibold">
             Population Over Time {selectedCounties.size > 0 && "(selected counties)"}
-          </h4>
+          </div>
 
           <div ref={popChartContainerRef} className="w-full flex-1 relative">
             <svg ref={svgRef} className = "absolute inset-0 w-full h-full" />
@@ -942,9 +944,9 @@ const positionTooltip = (event: any) => {
         {/* Growth Rate Chart */}
         <div className="border items-center shadow-md rounded-lg flex-1 flex flex-col p-2 md:p-4 h-full min-h-[20vh] lg:h-full bg-gray " 
         style={{background: "#f4f4f4"}}>
-          <h4 className="text-lg md:text-xl font-bold">
+          <div className="text-sm md:text-lg font-semibold">
             Population Growth Rate {selectedCounties.size > 0 && "(selected counties)"}
-          </h4>
+          </div>
 
           <div ref={growthChartContainerRef} className = "w-full flex-1 relative">
             <svg id="growthChart" className = "absolute inset-0 w-full h-full" />

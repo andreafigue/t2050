@@ -1869,7 +1869,7 @@ useEffect(() => {
               justifyContent: "space-between"
             }}
           >
-            <div className="text-sm md:text-base">Total Estimated Cost</div>
+            <div className="text-sm md:text-base" style={{ flex: 1, textAlign: "center" }}>Total Estimated Cost</div>
             <span
               className={styles.tooltip}
               data-tooltip="This is a unit cost estimate provided by WSDOT and does not reflect a bridge replacement design, construction schedule, or current construction costs that are all market dependent."
@@ -1891,9 +1891,9 @@ useEffect(() => {
         <div className="flex flex-col border w-100 min-h-0 rounded-lg shadow-md px-2 py-1 md:p-3" style={{flex: "1 1 0", backgroundColor: "#f4f4f4"}}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             {/* Insert Condition Chart */}
-            <h4 className="text-sm  md:text-base font-semibold">
+            <div className="text-sm md:text-lg font-semibold">
               Overall Condition Breakdown
-            </h4>
+            </div>
             <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
               {selectedOverallCondition !== "All" && (
                 <button
@@ -1933,9 +1933,9 @@ useEffect(() => {
         <div className="flex flex-col border w-100 min-h-0 rounded-lg shadow-md px-2 py-1 md:p-3" style={{flex: "1 1 0", backgroundColor: "#f4f4f4"}}>
           {/* Insert Detour Chart */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <h4 className="text-sm md:text-base font-semibold">
+            <div className="text-sm md:text-lg font-semibold">
               Detour Distance 
-            </h4>
+            </div>
             <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
               {selectedDetourRange && (
                 <button

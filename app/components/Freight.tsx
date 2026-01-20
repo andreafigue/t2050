@@ -572,7 +572,7 @@ const positionTooltip = (event: any) => {
           alignItems: "center",
           zIndex: 2 }}
         >
-          <div className="text-base">Year: {choroplethYear}</div>
+          <div className="text-xs md:text-base">Year: {choroplethYear}</div>
           <input
             id="yearSlider"
             type="range"
@@ -580,6 +580,9 @@ const positionTooltip = (event: any) => {
             max={allYears[allYears.length-1] ?? 0}
             step={1}
             list="tickmarks"
+            style={{
+              width: "100%",  
+            }}
             value={choroplethYear}
             onChange={(e) => {
               const raw = Number(e.target.value);
@@ -601,7 +604,7 @@ const positionTooltip = (event: any) => {
             ))}
           </datalist>
 
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+          <div className="text-xs md:text-sm" style={{ display: 'flex', justifyContent: 'space-between' }}>
             <span>{allYears[0] ?? 0}</span>
             <span>{allYears[allYears.length-1] ?? 0}</span>
           </div>
@@ -774,14 +777,16 @@ const positionTooltip = (event: any) => {
       <div className="lg:col-span-2 gap-2 md:gap-4 col-span-1 flex flex-col lg:h-full">
         
         {/* Filters */}
-        <div className="p-2 md:p-3 border rounded-lg shadow-md bg-white items-center flex flex-col ">
-          <div className="text-lg md:text-xl font-bold">Filters</div>
+        <div className="p-2 md:p-3 border rounded-lg shadow-md bg-white md:items-center flex flex-col ">
+          <div className="text-sm md:text-lg font-semibold">
+            Filters
+          </div>
           <div className="flex flex-wrap gap-2 md:gap-4 w-full">
             {Object.keys(selectedFilters).map(key => (
               <div key={key} className="flex-1">
-                <label className="block text-sm font-medium capitalize mb-1">{startCase(key)}</label>
+                <label className="block text-xs md:text-sm capitalize md:mb-1">{startCase(key)}</label>
                 <select
-                  className="w-full p-2 border rounded"
+                  className="w-full text-xs md:text-sm p-1 md:p-2 border rounded"
                   value={(selectedFilters as any)[key]}
                   onChange={e => setSelectedFilters(prev => ({
                     ...prev, [key]: e.target.value
@@ -797,10 +802,13 @@ const positionTooltip = (event: any) => {
             ))}
           </div>
         </div>
+
+
+
         
         {/* Tons Chart */}
         <div className="border items-center shadow-md rounded-lg flex-1 flex flex-col p-2 md:p-3 bg-white min-h-0">
-          <div className="text-lg md:text-xl font-bold">
+          <div className="text-sm md:text-lg font-semibold">
             Tons over Years {selectedCounties.size > 0 && "(selected counties)"}
           </div>
           <div className="w-full h-full flex-1 relative min-h-0" style={{ overflow: "visible" }}>
@@ -812,7 +820,7 @@ const positionTooltip = (event: any) => {
 
         {/* Value Chart */}
         <div className="border items-center shadow-md rounded-lg flex-1 flex flex-col p-2 md:p-3 bg-white min-h-0">
-          <div className="text-lg md:text-xl font-bold">
+          <div className="text-sm md:text-lg font-semibold">
             Value over Years {selectedCounties.size > 0 && "(selected counties)"}
           </div>
           <div className="w-full h-full inset-0 flex-1 relative min-h-0" >

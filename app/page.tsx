@@ -406,7 +406,7 @@ const Page = () => {
             style={{ opacity: arrowOpacity }}
             onClick={handleScrollMoreClick}
           >
-            <span className="text-sm md:text-md  tracking-wide opacity-90 font-[Encode_Sans_Compressed]">
+            <span className="text-sm md:text-lg  tracking-wide opacity-90 font-[Encode_Sans_Compressed]">
               Scroll for More
             </span>
 
