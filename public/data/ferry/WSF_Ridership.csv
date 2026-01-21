@@ -1,0 +1,55 @@
+route, o_id, d_id, vehicles, riders, walk-on Pass, walk-on Share, direction, year
+Point Defiance - Tahlequah,1333,1340,229,327,40,12%,WB,2017
+Southworth - Vashon,1329,1342,27,36,5,14%,WB,2017
+Fauntleroy - Vashon,1334,1341,505,821,126,15%,WB,2017
+Fauntleroy - Southworth,1327,1330,431,739,160,22%,WB,2017
+Seattle - Bremerton,1335,1343,423,1957,1379,70%,WB,2017
+Seattle - Bainbridge Island,1337,1344,1083,4298,2728,63%,WB,2017
+Edmonds - Kingston,1338,1345,967,1868,402,21%,WB,2017
+Mukilteo - Clinton,1339,1349,1134,2062,392,19%,WB,2017
+Port Townsend - Coupeville,1348,1346,145,310,39,13%,WB,2017
+Point Defiance - Tahlequah,1333,1340,228,387,49,13%,WB,2030
+Southworth - Vashon,1329,1342,29,40,5,14%,WB,2030
+Fauntleroy - Vashon,1334,1341,553,956,161,17%,WB,2030
+Fauntleroy - Southworth,1327,1330,476,892,208,23%,WB,2030
+Seattle - Bremerton,1335,1343,434,2216,1587,72%,WB,2030
+Seattle - Bainbridge Island,1337,1344,1128,4856,3188,66%,WB,2030
+Edmonds - Kingston,1338,1345,1037,2283,551,24%,WB,2030
+Mukilteo - Clinton,1339,1349,1233,2148,405,19%,WB,2030
+Port Townsend - Coupeville,1348,1346,181,397,50,13%,WB,2030
+Point Defiance - Tahlequah,1333,1340,234,456,59,13%,WB,2040
+Southworth - Vashon,1329,1342,33,50,7,15%,WB,2040
+Fauntleroy - Vashon,1334,1341,548,982,182,18%,WB,2040
+Fauntleroy - Southworth,1327,1330,500,1089,322,30%,WB,2040
+Seattle - Bremerton,1335,1343,471,2654,1899,72%,WB,2040
+Seattle - Bainbridge Island,1337,1344,1178,5725,3862,67%,WB,2040
+Edmonds - Kingston,1338,1345,1099,2727,683,25%,WB,2040
+Mukilteo - Clinton,1339,1349,1266,2266,445,20%,WB,2040
+Port Townsend - Coupeville,1348,1346,206,468,61,13%,WB,2040
+Point Defiance - Tahlequah,1333,1340,232,349,43,12%,EB,2017
+Southworth - Vashon,1329,1342,27,36,5,15%,EB,2017
+Fauntleroy - Vashon,1334,1341,501,803,126,16%,EB,2017
+Fauntleroy - Southworth,1327,1330,183,335,63,19%,EB,2017
+Seattle - Bremerton,1335,1343,255,1236,889,72%,EB,2017
+Seattle - Bainbridge Island,1337,1344,634,2432,1510,62%,EB,2017
+Edmonds - Kingston,1338,1345,697,1295,295,23%,EB,2017
+Mukilteo - Clinton,1339,1349,626,1139,217,19%,EB,2017
+Port Townsend - Coupeville,1348,1346,133,313,63,20%,EB,2017
+Point Defiance - Tahlequah,1333,1340,265,426,52,12%,EB,2030
+Southworth - Vashon,1329,1342,29,43,6,15%,EB,2030
+Fauntleroy - Vashon,1334,1341,540,849,123,14%,EB,2030
+Fauntleroy - Southworth,1327,1330,194,364,53,15%,EB,2030
+Seattle - Bremerton,1335,1343,283,1466,1043,71%,EB,2030
+Seattle - Bainbridge Island,1337,1344,668,2698,1685,62%,EB,2030
+Edmonds - Kingston,1338,1345,754,1553,347,22%,EB,2030
+Mukilteo - Clinton,1339,1349,639,1198,230,19%,EB,2030
+Port Townsend - Coupeville,1348,1346,167,389,79,20%,EB,2030
+Point Defiance - Tahlequah,1333,1340,281,485,59,12%,EB,2040
+Southworth - Vashon,1329,1342,31,52,8,16%,EB,2040
+Fauntleroy - Vashon,1334,1341,541,855,126,15%,EB,2040
+Fauntleroy - Southworth,1327,1330,207,426,72,17%,EB,2040
+Seattle - Bremerton,1335,1343,309,1727,1224,71%,EB,2040
+Seattle - Bainbridge Island,1337,1344,704,3118,1983,64%,EB,2040
+Edmonds - Kingston,1338,1345,816,1864,409,22%,EB,2040
+Mukilteo - Clinton,1339,1349,644,1227,238,19%,EB,2040
+Port Townsend - Coupeville,1348,1346,186,456,97,21%,EB,2040
