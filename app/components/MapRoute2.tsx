@@ -602,6 +602,7 @@ const MapRoute: React.FC = () => {
         style: "mapbox://styles/mapbox/streets-v11",
         center: [-122.3505, 47.6206],
         zoom: 12,
+        cooperativeGestures: true
       });
       mapInstanceRef.current.on("load", () => {
         setMapLoaded(true);
@@ -613,6 +614,7 @@ const MapRoute: React.FC = () => {
         style: "mapbox://styles/mapbox/streets-v11",
         center: [-122.3505, 47.6206],
         zoom: 12,
+        cooperativeGestures: true
       });
       mapForecastInstanceRef.current.on("load", () => {
         setMapForecastLoaded(true);

@@ -437,6 +437,7 @@ const BridgeNeedsMap = () => {
         center: [-120.7401, 47.4511],
         accessToken: mapboxToken,
         interactiveLayerIds: ["bridges-circle"],
+        cooperativeGestures: true
       });
 
       mapInstance.current.on("load", () => {

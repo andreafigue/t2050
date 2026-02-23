@@ -166,6 +166,7 @@ const MapboxChoroplethMap: React.FC<Props> = ({
       container: mapContainerRef.current,
       style: "mapbox://styles/mapbox/streets-v11",
       center: [-120.4472, 47.3826],
+      cooperativeGestures: true
     });
 
     mapRef.current.on("load", () => {
@@ -362,7 +363,6 @@ const MapboxChoroplethMap: React.FC<Props> = ({
           .addTo(mapRef.current);
       });
 
-      mapRef.current.scrollZoom.disable();
 
 
     });
