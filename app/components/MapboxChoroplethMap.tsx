@@ -178,6 +178,7 @@ const MapboxChoroplethMap: React.FC<Props> = ({
         { padding: 70}
       );
     });
+    
 
     mapRef.current.addControl(new mapboxgl.NavigationControl(), "right");
 
@@ -360,6 +361,8 @@ const MapboxChoroplethMap: React.FC<Props> = ({
           .setHTML(lines.join("<br/>"))
           .addTo(mapRef.current);
       });
+
+      mapRef.current.scrollZoom.disable();
 
 
     });

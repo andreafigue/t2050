@@ -14,6 +14,8 @@ export default {
       md: '768px',
       lg: '1024px',
       xl: '1280px',
+      'hub': { 'raw': '(min-width: 1024px) and (max-height: 650px)' },
+      'hub-max': { 'raw': '(min-width: 1280px) and (max-height: 850px)' },
     },
     extend: {
       colors: {

@@ -1,12 +1,11 @@
-// @ts-nocheck
 'use client';
 
 import React from 'react';
 import Image from 'next/image';
 import dynamic from 'next/dynamic';
 import { useScroll, useTransform, motion, useMotionValue } from 'framer-motion';
-import { useRef, useEffect } from 'react';
-import { useReducedMotion } from 'framer-motion';
+import { useRef, useEffect, useState } from 'react';
+import { useReducedMotion, useMotionValueEvent } from 'framer-motion';
 import "./globals2.css";
 import Population from './components/Population';
 import BridgeNeedsMap from './components/BridgeMap2';
@@ -26,7 +25,7 @@ const DynamicChartComponent = dynamic(() => import('./components/hsr2'), {
   loading: () => <p className="text-center py-6">Loading HSR chart…</p>,
 });
 
-function ViewportGate({ children, className }: { children: React.ReactNode, className?: string }) {
+function ViewportGate({ children, className, name }: { children: React.ReactNode, className?: string, name?: string }) {
   const ref = React.useRef<HTMLDivElement | null>(null);
   const [visible, setVisible] = React.useState(false);
 
@@ -46,50 +45,9 @@ function ViewportGate({ children, className }: { children: React.ReactNode, clas
   return <div ref={ref} className={className}>{visible ? children : null}</div>;
 }
 
-
-// // Function with memory measurement
-// function ViewportGate({ children, name }) {
-//   const ref = React.useRef(null);
-//   const [visible, setVisible] = React.useState(false);
-
-//   React.useEffect(() => {
-//     const el = ref.current;
-//     if (!el) return;
-
-//     const io = new IntersectionObserver(([entry]) => {
-//       if (entry.isIntersecting && !visible) setVisible(true);
-//     });
-
-//     io.observe(el);
-//     return () => io.disconnect();
-//   }, [visible]);
-
-//   // Push samples when visible
-//   React.useEffect(() => {
-//     if (!visible) return;
-
-//     const id = setInterval(() => {
-//       const mem = (performance as any).memory;
-//       if (mem && (window as any).__pushVizSample) {
-//         (window as any).__pushVizSample(
-//           name,
-//           mem.usedJSHeapSize / 1024 / 1024
-//         );
-//       }
-//     }, 1000);
-
-//     return () => clearInterval(id);
-//   }, [visible]);
-
-//   return <div ref={ref}>{visible ? children : null}</div>;
-// }
-
-
-
-
 const Page = () => {
 
-  const containerRef = useRef(null);
+  const containerRef = useRef<HTMLElement | null>(null);
 
   const nextSectionRef = useRef<HTMLElement | null>(null);
 
@@ -99,14 +57,8 @@ const Page = () => {
     offset: ['start start', 'end start'],
   });
 
-  const { scrollYProgress: heroProgress } = useScroll({
-    target: containerRef,
-    // starts when Section 1 enters the viewport, ends when its bottom reaches the top
-    offset: ["start start", "end start"],
-  });
 
   const textDesktopRef = React.useRef<HTMLDivElement | null>(null);
-  const textMobileRef  = React.useRef<HTMLDivElement | null>(null);
   const [introRevealed, setIntroRevealed] = React.useState(false);
 
   function handleScrollMoreClick() {
@@ -132,119 +84,34 @@ const Page = () => {
   }
 
   // Auto-reset state when user scrolls back up
-  React.useEffect(() => {
-    function handleScroll() {
-      const section = containerRef.current;
-      if (!section) return;
-
-      const viewportH = window.innerHeight;
-      const sectionRect = section.getBoundingClientRect();
-
-      const sectionTop = window.scrollY + sectionRect.top;
-      const totalScrollable = section.offsetHeight - viewportH;
-
-      const scrollInSection = window.scrollY - sectionTop;
-      const progress = scrollInSection / totalScrollable;
-
-      // If user scrolls back up above 0.3 of hero, reset state
-      if (progress < 0.8 && introRevealed) {
-        console.log("NOW")
-        setIntroRevealed(false);
-      }
+  useMotionValueEvent(scrollYProgress, "change", (latest) => {
+    // 'latest' is a perfectly optimized number between 0 and 1 representing the scroll progress
+    if (latest < 0.8 && introRevealed) {
+      setIntroRevealed(false);
     }
-
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, [introRevealed]);
-
-  function getViewportHeight() {
-    // iOS/iPadOS Safari reports innerHeight inconsistently when toolbars collapse
-    return (window.visualViewport?.height ?? window.innerHeight);
-  }
+  });
 
   const reduceMotion = useReducedMotion();
   
   const arrowOpacity = reduceMotion ? 1 : useTransform(scrollYProgress, [0, 0.1, 0.9], [1, 1, 0]);
-  //const titleScale  = reduceMotion ? 1 : useTransform(scrollYProgress, [0, 0.5, 0.7], [1.4, 1, 1]);
   const overlayOpacity = useTransform(scrollYProgress, [0, 0.5, 0.7], [0.5, 0.7, 0.7]);
 
   const textOpacity = useTransform(scrollYProgress, [0.25, 0.5, 0.7], [0, 1, 1]);
   const textY = useTransform(scrollYProgress, [0, 0.5, 0.7], ['25rem', '5rem', '5rem']);
 
-  // Desktop/tablet title: center -> top-left
-  const dtTitleTop = reduceMotion
-    ? '6rem'
-    : useTransform(scrollYProgress, [0, 0.45], ['28%', '6rem']);
-
-  const dtTitleLeft = reduceMotion
-    ? '7.5rem'
-    : useTransform(scrollYProgress, [0, 0.45, 0.6], ['60%', '7.5rem', '7.5rem']);
-
-  const dtTitleX = reduceMotion
-    ? '0%'
-    : useTransform(scrollYProgress, [0, 0.45, 0.6], ['-50%', '0%', '0%']);
-
-  const dtTitleY = reduceMotion
-    ? '0%'
-    : useTransform(scrollYProgress, [0, 0.45, 0.6], ['-50%', '0%', '0%']);
-
-  const dtTitleScale = reduceMotion
-    ? 1
-    : useTransform(scrollYProgress, [0, 0.45], [1.5, 1]);
-
-  // Mobile: center → top-left, drop the centering offsets as you scroll
-  const mbTitleTop = reduceMotion
-    ? '1svh'
-    : useTransform(scrollYProgress, [0, 0.5], ['50svh', '12svh']);
-
-  const mbTitleLeft = reduceMotion
-    ? '4vw'
-    : useTransform(scrollYProgress, [0, 0.5], ['50vw', '8vw']);
-
-  const mbTranslateY = reduceMotion
-    ? '0%'
-    : useTransform(scrollYProgress, [0, 0.5], ['-50%', '0%']);
-
-  const mbTranslateX = reduceMotion
-    ? '0%'
-    : useTransform(scrollYProgress, [0, 0.5], ['-50%', '0%']);
-
-  const mbTitleScale = reduceMotion
-    ? 0.9
-    : useTransform(scrollYProgress, [0, 0.6], [1.5, 0.9]);
-
-  
-  const mbTransform = reduceMotion
-    ? 'translate(0, -50%) scale(1)'
-    : useTransform(
-        scrollYProgress,
-        [0, 1],
-        ['translate(-50%, -50%) scale(1.05)', 'translate(0, -50%) scale(0.9)']
-      );
-
-  const mbTitleX = reduceMotion ? '0%' : useTransform(scrollYProgress, [0, 1], ['-50%', '0%']);
-
-
-
-// useScroll with a unique name
-  const { scrollYProgress: heroScrollProgress } = useScroll({
-    target: containerRef,
-    offset: ['start start', 'end start'],
-  });
-
   // numeric MotionValue for the animation progress
   const progress = useMotionValue(0);
 
   useEffect(() => {
-    if (!heroScrollProgress) return; // prevents .on() undefined error
+    if (!scrollYProgress) return; // prevents .on() undefined error
 
-    const unsubscribe = heroScrollProgress.on('change', (v) => {
+    const unsubscribe = scrollYProgress.on('change', (v) => {
       const t = Math.max(0, Math.min(1, v / 0.5)); // map 0–0.8 → 0–1
       progress.set(t);
     });
 
     return () => unsubscribe?.();
-  }, [heroScrollProgress, progress]);
+  }, [scrollYProgress, progress]);
 
   // optional scale animation (safe numeric transform)
   const titleScale = useTransform(progress, [0, 1], [1.5, 1]);
@@ -257,149 +124,130 @@ const Page = () => {
   function Footnote({ id, noteId }: FootnoteProps) {
     return (
       <sup id={id}>
-        {id}
+        <a href={`#${noteId}`} className="hover:underline">{id}</a>
       </sup>
     );
   }
 
   return (
-    <main className="min-w-[320px]" style={{ fontFamily: 'Encode Sans Compressed, sans-serif' }}>
+    <main className="relative min-w-[320px]" style={{ fontFamily: 'Encode Sans Compressed, sans-serif' }}>
+
 
       {/* Pinned Scroll Transition */}
-      <section ref={containerRef} className="relative h-[200vh] sm:h-[240vh] md:h-[300vh] bg-black">
-        {/* Sticky wrapper */}
-         <div className="sticky top-0 h-screen md:h-screen w-full overflow-hidden ">
-          {/* Background image */}
-          <Image
-            src="/img/background.jpg"
-            alt="Background"
-            fill
-            style={{ objectFit: "cover" }}
-            className="z-0"
-          />
-          <motion.div
-            className="absolute inset-0 bg-black z-10"
-            style={{ opacity: overlayOpacity }}
-          />
-         <motion.div
-            className="
-              absolute z-30 text-white text-left
-              [--hero-top-end:6rem]   [--hero-left-end:8rem]
-              short:[--hero-top-end:6rem]   short:[--hero-left-end:7rem]
-              sm:[--hero-top-end:13rem] sm:[--hero-left-end:11rem]
-              md:[--hero-top-end:14rem] md:[--hero-left-end:14.5rem]
-              lg:[--hero-top-end:10rem] lg:[--hero-left-end:19rem]
-            "
-            style={{
-              // expose numeric progress to CSS
-              ['--p' as any]: progress,
+      <section ref={containerRef} className="relative h-[200vh] sm:h-[240vh] md:h-[300vh] bg-black" style={{ position: "relative" }}>
+        {/* Sticky wrapper - We define the shared variables here! */}
+        <div 
+          className="sticky top-0 h-screen md:h-screen w-full overflow-hidden"
+          style={{
+            // 1. Logo 
+            '--logo-left': 'clamp(1rem, 8vw, 4rem)',
+            '--logo-top': 'clamp(1.5rem, 3.5vw, 10rem)',
+            '--logo-width': 'clamp(9rem, 38vw, 22rem)',
+            // 2. Title
+            '--title-top': 'clamp(1.8rem, 4.5vw, 4.5rem)',
+            '--title-gap': 'clamp(0.5rem, 3.5vw, 3rem)',
+            '--title-size' : 'clamp(0.5rem,7.35vw,4rem)',
+            '--subtitle-size' : 'clamp(0.75rem,1.8vw,2rem)',
+            // 3. Text
+            '--text-block-top': 'clamp(2rem, calc(20vw - 3.5rem), 12rem)',
+            '--text-block-left': 'clamp(1rem, 8vw, 4rem)',
+            '--text-block-width': 'min(85vw, 50rem)',
+            '--text-block-size': 'clamp(0.65rem, min(3.8vw, 2.3dvh), 1.6rem)',
+          } as React.CSSProperties}
+        >
+          
+          {/* Background image & Overlay */}
+          <div className="absolute inset-0 z-0">
+            <Image src="/img/background.jpg" alt="Background" fill style={{ objectFit: "cover" }} className="z-0" priority />
+          </div>
+          <motion.div className="absolute inset-0 bg-black z-10" style={{ opacity: overlayOpacity }} />
 
-              // CSS does interpolation from 50% → responsive vars
-              top:  'calc((1 - var(--p)) * 50% + var(--p) * var(--hero-top-end))',
-              left: 'calc((1 - var(--p)) * 50% + var(--p) * var(--hero-left-end))',
-
-              translateX: '-50%',
-              translateY: '-50%',
-              scale: titleScale,
-              willChange: 'top,left,transform',
-              position: "absolute"
+          {/* 1. Static Logo */}
+          <div 
+            className="absolute z-40" 
+            style={{ 
+              top: 'var(--logo-top)', 
+              left: 'var(--logo-left)', 
+              width: 'var(--logo-width)' 
             }}
           >
-            <h2 className="font-bold drop-shadow-lg text-3xl short:text-2xl sm:text-4xl md:text-5xl lg:text-6xl mb-1 lg:mb-2">
+            <a href="https://mic.comotion.uw.edu/" target="_blank" rel="noopener noreferrer">
+              <Image
+                src="/logos/MIC_whiteANDgrey-horiz logo.png"
+                alt="MIC"
+                width={4020}
+                height={1900}
+                className="w-full h-auto" 
+                priority
+              />
+            </a>
+          </div>
+
+          {/* 2. Animated Title - Animates to sit EXACTLY beside the Logo */}
+          <motion.div
+            className="absolute z-30 text-white text-center w-auto"
+            style={{
+              ['--p' as any]: progress,
+
+              // VERTICAL: 50% (Center) -> Uses the new independent --title-top
+              top: 'calc((1 - var(--p)) * 50% + var(--p) * var(--title-top))',
+              
+              // HORIZONTAL: 50% (Center) -> Stays flawlessly locked to the right of the Logo
+              left: 'calc((1 - var(--p)) * 50% + var(--p) * (var(--logo-left) + var(--logo-width) + var(--title-gap)))',
+
+              // TRANSFORM: 
+              // Starts centered (-50%). Ends at exactly 0% so the top/left variables do 100% of the work.
+              translateX: 'calc((1 - var(--p)) * -50%)',
+              translateY: 'calc((1 - var(--p)) * -50%)', 
+              
+              scale: titleScale,
+              willChange: 'top, left, transform',
+            }}
+          >
+            {/* Kept text-left and whitespace-nowrap so it forms a clean block next to the logo */}
+            <div 
+              style={{ fontSize: 'var(--title-size)' }}
+              className="font-bold drop-shadow-lg whitespace-nowrap  leading-none mb-1">
               Challenge 2050
-            </h2>
-            <p className="drop-shadow text-base sm:text-lg md:text-xl lg:text-2xl">
+            </div>
+            <p
+              style={{ fontSize: 'var(--subtitle-size)' }} 
+              className="drop-shadow whitespace-nowrap  opacity-90">
               The Future in Motion
             </p>
           </motion.div>
 
-          {/* Section 1 Text Desktop*/}
+          {/* 3. Section 1 Text */}
           <motion.div
-            className="
-              absolute z-20 text-white px-4 block sm:px-8 text-left
-              [--text-top:5rem] [--text-left:1.2rem]        /* base */
-              short:[--text-top:4rem] short:[--text-left:1.2rem]  /* mobile */
-              sm:[--text-top:13rem] sm:[--text-left:2rem]  /* mobile */
-              md:[--text-top:15rem] md:[--text-left:3rem]  /* tablet */
-              lg:[--text-top:10rem] lg:[--text-left:5rem]  /* desktop */
-            "
+            className="absolute z-20 text-white block text-left"
             ref={textDesktopRef}
             style={{
-              top: 'var(--text-top)',
-              left: 'var(--text-left)',
+              // Fluid positioning that naturally pushes down as the screen gets taller
+              top: 'var(--text-block-top)', 
+              left: 'var(--text-block-left)',
               opacity: textOpacity,
               translateX: '0%',
               y: textY,
             }}
           >
-            <div className="w-[85vw] mx-auto sm:w-auto sm:mx-0 sm:max-w-xl">
-
-              <p className="text-base short:text-sm sm:text-lg md:text-xl mb-4">
-                By the year 2050, Washington State will be home to 10 million people—a population surge of 1.8 million,
-                with the vast majority settling in the already-bustling central Puget Sound region.
-              </p>
-
-              <p className="text-base short:text-sm sm:text-lg md:text-xl  mb-4">
-                Washington’s future hinges on one critical question: <strong>How will 10 million people move safely and efficiently across our state?</strong>
-              </p>
-              <p className="text-base short:text-sm sm:text-lg md:text-xl  mb-4">
-                As roads, bridges, ferries, railways, and airports strain under increased demand, state and regional leaders
-                face a stark choice—invest boldly and strategically now, or face the rising costs of inaction: clogged highways,
-                delayed flights, and a quality of life diminished by congestion.
-              </p>
-              <p className="text-base short:text-sm sm:text-lg md:text-xl  mb-4">
-                Challenge 2050 is a data-driven initiative to help Washingtonians understand and prepare for the transportation 
-                challenges of a rapidly growing state. Explore the trends, impacts, and choices we face—and discover how informed 
-                decisions today can shape a better tomorrow. 
-              </p>
-            </div>
+            <div 
+              style={{
+                // Hooked up to the new variables
+                width: 'var(--text-block-width)',
+                fontSize: 'var(--text-block-size)',
+              }}
+              className="leading-relaxed space-y-4">
+              <p>By the year 2050, Washington State will be home to 10 million people—a population surge of 1.8 million, with the vast majority settling in the already-bustling central Puget Sound region.</p>
+              <p>Washington’s future hinges on one critical question: <strong>How will 10 million people move safely and efficiently across our state?</strong></p>
+              <p>As roads, bridges, ferries, railways, and airports strain under increased demand, state and regional leaders face a stark choice—invest boldly and strategically now, or face the rising costs of inaction: clogged highways, delayed flights, and a quality of life diminished by congestion.</p>
+              <p>Challenge 2050 is a data-driven initiative to help Washingtonians understand and prepare for the transportation challenges of a rapidly growing state. Explore the trends, impacts, and choices we face—and discover how informed decisions today can shape a better tomorrow.</p>
+            </div>  
           </motion.div>
 
-          {/* Logos — padded and spaced like before */}
-          <motion.div
-            className="
-              absolute z-20 text-white
-              px-2 sm:px-14 
-              top-6 right-4 sm:top-16  sm:right-8
-              flex flex-col items-end gap-4 sm:gap-12
-            "
-          >
-            <a
-              href="https://www.washington.edu/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block"
-            >
-              <Image
-                src="/logos/Signature_Stacked_White.png"
-                alt="UW"
-                width={250}
-                height={67}
-                className="w-24 sm:w-36 md:w-[180px] lg:w-[250px] h-auto"
-                sizes="(max-width: 480px) 96px, (max-width: 640px) 144px, 250px"
-                priority
-              />
-            </a>
+          {
+            // Bouncing arrow
+          }
 
-            <a
-              href="https://www.washington.edu/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="block"
-            >
-              <Image
-                src="/logos/mic.png"
-                alt="MIC"
-                width={250}
-                height={67}
-                className="w-24 sm:w-36 md:w-[180px] lg:w-[250px] h-auto"
-                sizes="(max-width: 480px) 96px, (max-width: 640px) 144px, 250px"
-              />
-            </a>
-          </motion.div>
-
-
-          {/* Bouncing arrow */}
           <motion.button
             aria-label="Scroll to content"
             className="absolute z-30 left-1/2 -translate-x-1/2 bottom-3 md:bottom-4 flex flex-col items-center text-white focus:outline-none"
@@ -426,12 +274,8 @@ const Page = () => {
               <path d="M6 9l6 6 6-6" />
             </motion.svg>
           </motion.button>
-
         </div>
       </section>
-
-
-
 
       {/* Section 2 */}
       <motion.section
@@ -473,7 +317,9 @@ const Page = () => {
               <strong>Explore:</strong> See how our state’s population has changed since 1961 and is predicted to continue to grow over the next 25 years.
             </p>
             <ViewportGate className="h-[90svh] md:h-[75svh] overflow-hidden" name="Population">
-              <Population className="h-full"/>
+              <div className="h-full">
+                <Population />
+              </div>
             </ViewportGate>
 
             <div className="pl-3" style={{ marginTop: "0.5rem", fontSize: "0.9rem", color: "#4b5563" }}>
@@ -551,21 +397,6 @@ const Page = () => {
               </ol>
             </div>
           </div>
-          {/*Commenting on Aug 20*/}
-          {/*<div className="mt-12 p-6 bg-gray-100 border" style={{borderRadius: 8}}>
-            <p className="text-2xl mb-4">
-              <Image
-                src="/img/search2.png" 
-                alt="Explore icon"
-                width={35}
-                height={35} 
-                className="inline-block opacity-90 mr-2"
-              />
-              <strong>Explore:</strong> See how much longer travel on I-5 and I-205 in Clark County could take by 2045 if no improvements are made.
-            </p>
-            <DynamicMapComponent/>
-          </div>*/}
-
 
         </div>
 
@@ -634,24 +465,6 @@ const Page = () => {
               </ol>
             </div>
           </div>
-
-          {/*Commenting on Aug 20*/}
-          {/*<div className="mt-12 bg-white p-6 border" style={{borderRadius: 8}}>
-            <p className="text-2xl mb-4">
-              <Image
-                src="/img/search2.png" 
-                alt="Explore icon"
-                width={35}
-                height={35} 
-                className="inline-block opacity-90 mr-2"
-              />
-              <strong>Explore:</strong> See how TSA wait times – including for TSA PreCheck users – could grow without more investment in our state’s airports.
-            </p>
-
-            <div style={{width: "80%"}}>
-              <AirportQueue />
-            </div>
-          </div>*/}
 
 
         </div>
@@ -772,7 +585,7 @@ const Page = () => {
               <ol style={{ margin: "0.25rem 0 0 1rem", padding: 0, listStyleType: "circle" }}>
                 <li>
                   Washington State Department of Transportation (WSDOT), 
-                  <em> Bridge Needs</em>. Accessed Oct 31, 2024. 
+                  <em> Bridge Needs</em>. Retrieved Jan 15, 2026. 
                 </li>
               </ol>
             </div>
@@ -795,7 +608,7 @@ const Page = () => {
               alt="A High-Speed Vision"
               width={450}
               height={300}
-              className="rounded-xl shadow-lg"
+              className="rounded-xl shadow-lg w-full md:w-auto h-auto"
             />
             <div>
               <h2 className="text-3xl md:text-4xl font-semibold md:mb-4 text-center md:text-left">
@@ -832,13 +645,13 @@ const Page = () => {
             </div>
 
             <div style={{ marginTop: "0rem", marginLeft: "1rem", fontSize: "0.9rem", color: "#4b5563" }}>
-              <ol style={{ margin: "2rem 0 0 0.5rem", padding: 0, listStyleType: "circle" }}>
+              <ol className="mt-4 p-0 list-disc">
                 <li>
                   Washington State Department of Transportation (WSDOT),
                   <em>Ultra-High-Speed Ground Transportation Study — Business Case Analysis(2019)</em>.
                 </li>            
               </ol>
-              <p style={{fontStyle: 'italic', fontSize: "0.9rem", color: "#4b5563", paddingRight: "5px", textAlign: "left", marginTop: "5px"}}>
+              <p className="italic text-[0.9rem] text-gray-600 pr-1 text-left mt-1">
             Note: High-speed rail is defined as speeds between 160 to 250 miles per hour. Travel time is based on seat time and does not include airport security screening. High-speed rail times are based on projections from feasibility studies and are subject to change as the project develops.
             </p>
             </div>
@@ -846,43 +659,6 @@ const Page = () => {
           </div>
         </div>
       </motion.section>
-
-      {/* Section 8  - Commenting on Aug 20*/}
-      {/*<motion.section
-        className="px-4 md:px-16 py-16 bg-gray-100"
-        initial={{ opacity: 0, y: 30 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.6 }}
-      >
-        <div className="max-w-6xl mx-auto">
-          <div className="md:flex-row-reverse items-start">
-            <div>
-              <h2 className="text-3xl md:text-4xl font-semibold mb-4">
-                An Invitation to Explore and Shape the Future
-              </h2>
-              <p className="text-lg">
-                The future is in your hands.
-              </p>              
-            </div>
-          </div>
-          <div className="mt-12 bg-white p-6 border" style={{borderRadius: 8}}>
-            <p className="text-2xl mb-4">
-              <Image
-                src="/img/search2.png" 
-                alt="Explore icon"
-                width={35}
-                height={35} 
-                className="inline-block opacity-90 mr-2"
-              />
-              <strong>Explore:</strong> Use this interactive tool to watch in real time how each decision affects congestion.
-              It’s an engaging—and sobering—look at how transportation planning decisions ripple outward.
-            </p>
-            <InteractiveGame  />
-          </div>
-
-        </div>
-      </motion.section>*/}
 
       <motion.section
         className="relative px-2 md:px-8 py-2 md:py-8 bg-gray-100"
@@ -910,31 +686,28 @@ const Page = () => {
         </div>
       </motion.section>
 
-      {/*Memory asessment*/}
-      {/*<MemoryMonitor />*/}
-
 
       {/* Footer */}
       <footer className="bg-gray-50 text-sm text-gray-600 pt-16 pb-12 text-center">
         <h2 className="text-2xl font-semibold mb-4">Partners</h2>
         <div className="flex flex-wrap justify-center items-center gap-8 px-4 mb-10">
           <a href="https://wsdot.wa.gov/" target="_blank" rel="noopener noreferrer">
-            <Image src="/logos/wsdot.png" alt="WSDOT" width={150} height={40} />
+            <Image src="/logos/wsdot.png" alt="WSDOT" width={150} height={40} className="w-auto h-auto"/>
           </a>
           <a href="https://kingcounty.gov/" target="_blank" rel="noopener noreferrer">
-            <Image src="/logos/king-county.png" alt="King County" width={150} height={40} />
+            <Image src="/logos/king-county.png" alt="King County" width={150} height={40} className="w-auto h-auto"/>
           </a>
           <a href="https://www.challengeseattle.com/" target="_blank" rel="noopener noreferrer">
-            <Image src="/logos/challenge-seattle.png" alt="Challenge Seattle" width={150} height={40} />
+            <Image src="/logos/challenge-seattle.png" alt="Challenge Seattle" width={150} height={40} className="w-auto h-auto"/>
           </a>
           <a href="https://www.alaskaair.com/" target="_blank" rel="noopener noreferrer">
-            <Image src="/logos/alaska-airlines.png" alt="Alaska Airlines" width={150} height={40} />
+            <Image src="/logos/alaska-airlines.png" alt="Alaska Airlines" width={150} height={40} className="w-auto h-auto"/>
           </a>
           <a href="https://www.microsoft.com/" target="_blank" rel="noopener noreferrer">
-            <Image src="/logos/microsoft.png" alt="Microsoft" width={150} height={40} />
+            <Image src="/logos/microsoft.png" alt="Microsoft" width={150} height={40} className="w-auto h-auto"/>
           </a>
           <a href="https://www.boeing.com/" target="_blank" rel="noopener noreferrer">
-            <Image src="/logos/boeing.png" alt="Boeing" width={150} height={40} />
+            <Image src="/logos/boeing.png" alt="Boeing" width={150} height={40} className="w-auto h-auto"/>
           </a>
         </div>
         <p className="text-s text-gray-500">
