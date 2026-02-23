@@ -1587,7 +1587,7 @@ useEffect(() => {
 
 
       {/* Map portion - left column*/}
-      <div   className="border shadow-md w-full lg:w-3/5 relative rounded-lg h-[40svh] lg:h-full">
+      <div   className="border shadow-md w-full lg:w-3/5 relative rounded-lg h-[40%] lg:h-full shrink-0">
         {/* County filter */}
         {!isMobile && (     
           <div
@@ -1848,7 +1848,7 @@ useEffect(() => {
 
 
       {/* right column */}
-      <div className="w-full gap-2 md:gap-4 lg:w-2/5 flex flex-col h-[60svh] lg:h-full lg:mt-0">
+      <div className="w-full gap-2 md:gap-4 lg:w-2/5 flex flex-col flex-1 min-h-0 lg:h-full lg:mt-0">
 
         <div className="flex md:gap-4 gap-2">
           <div className="border p-1 md:p-3 rounded-lg shadow-md text-center" style={{ flex: 1, backgroundColor: "#f4f4f4" }}>

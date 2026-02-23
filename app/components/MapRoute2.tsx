@@ -1051,7 +1051,7 @@ const MapRoute: React.FC = () => {
     <div className="flex flex-col lg:flex-row gap-1 md:gap-2  w-full h-full p-0 m-0">
 
       {/* Top Controls Row: Search Inputs + Filters */}
-      <div className="w-full lg:w-3/12 flex flex-col gap-1 md:gap-2 h-auto lg:h-full w-full">
+      <div className="w-full lg:w-3/12 flex flex-col gap-1 md:gap-2 h-auto lg:h-full shrink-0">
 
         {/* Filters on the Right */}
         <div className="p-2 bg-white border rounded-lg shadow-md w-full ">
@@ -1225,9 +1225,9 @@ const MapRoute: React.FC = () => {
     </div>
 
     {/* Map Containers */}
-    <div className="w-full lg:w-9/12 flex flex-col lg:flex-row  gap-1 md:gap-2 h-[600px] lg:h-full">
+    <div className="w-full lg:w-9/12 flex flex-col lg:flex-row  gap-1 md:gap-2 flex-1 min-h-0">
 
-      <div className="flex-1 relative rounded-lg shadow-md border h-[300px] lg:h-full">
+      <div className="flex-1 relative rounded-lg shadow-md border min-h-0 lg:h-full">
 
         <div className="absolute top-1 md:top-2 left-1 md:left-2 bg-white bg-opacity-90 p-1 md:p-2 rounded-lg text-sm font-medium shadow z-10">
 
@@ -1327,7 +1327,7 @@ const MapRoute: React.FC = () => {
 
       </div>
 
-      <div className="flex-1 relative rounded-lg shadow-md border h-[300px] lg:h-full">
+      <div className="flex-1 relative rounded-lg shadow-md border min-h-0 lg:h-full">
         <div className="absolute top-1 md:top-2 left-1 md:left-2 bg-white bg-opacity-90 p-1 md:p-2 rounded text-sm font-medium shadow z-10">
           <div className="text-base md:text-lg font-semibold">
             

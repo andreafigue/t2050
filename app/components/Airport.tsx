@@ -630,14 +630,14 @@ export default function Airport() {
   return (
     <div className="h-full flex flex-col gap-2 md:gap-4" >
       {/* Top Container */}
-      <div className="border shadow-md rounded-lg bg-gray-100 p-3 md:p-5">
+      <div className="border shadow-md rounded-lg p-2 md:p-5" style={{ background: "#f4f4f4" }}>
         {/* Title */}
-        <h2 className="text-lg md:text-xl font-semibold text-center mb-3">
+        <h2 className="text-lg md:text-xl font-semibold text-center mb-2">
           Airport Passenger Forecast vs Capacity
         </h2>
 
         {/* Stats Row — ALWAYS SIDE BY SIDE */}
-        <div className="flex items-center justify-between gap-2 md:gap-6 text-center mb-3">
+        <div className="flex items-center justify-between gap-2 md:gap-6 text-center mb-2">
           <div className="flex-1 min-w-0">
             <div className="text-xs md:text-sm font-semibold">Forecast</div>
             <div className="text-sm md:text-base truncate">
@@ -677,16 +677,12 @@ export default function Airport() {
         </div>
       </div>
 
-
-
-      {/* Bottom Section Automatically Expands */}
-      {/* Bottom Section (single height authority) */}
-      <div className="flex-1 overflow-hidden">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-5 h-full">
+      {/* Bottom Section */}
+      <div className="flex-1 overflow-hidden min-h-0">
+        <div className="flex flex-col md:flex-row gap-2 md:gap-5 h-full">
 
           {/* Column 1 */}
-          <div className="border shadow-md rounded-lg flex flex-col p-2 md:p-6  h-full bg-gray"
-               style={{ background: "#f4f4f4" }}>
+          <div className="border shadow-md rounded-lg flex flex-col p-1 md:p-6 flex-1 min-h-0" style={{ background: "#f4f4f4" }}>
             <h4 className="text-lg text-center md:text-xl font-bold mb-1 md:mb-2">Passenger Enplanements vs Capacity</h4>
 
             {/* This container grows to fill leftover space */}
@@ -696,8 +692,7 @@ export default function Airport() {
           </div>
 
           {/* Column 2 */}
-          <div className="border shadow-md rounded-lg flex flex-col py-2 md:py-6 h-full bg-gray"
-               style={{ background: "#f4f4f4" }}>
+          <div className="border shadow-md rounded-lg flex flex-col py-1 md:py-6 flex-1 min-h-0" style={{ background: "#f4f4f4" }}>
 
             <div className="flex justify-between w-full px-4 mb-1 md:mb-2">
               <div className="text-center text-lg md:text-xl flex-1">
