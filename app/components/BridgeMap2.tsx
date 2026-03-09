@@ -1584,11 +1584,11 @@ useEffect(() => {
   }, []);
 
   return (
-    <div className="flex flex-col lg:flex-row  md:gap-4 gap-2 w-full h-full m-0">
+    <div className="flex flex-col md:flex-row  md:gap-4 gap-2 w-full h-full m-0">
 
 
       {/* Map portion - left column*/}
-      <div   className="border shadow-md w-full lg:w-3/5 relative rounded-lg h-[40%] lg:h-full shrink-0">
+      <div   className="border shadow-md w-full md:w-3/5 relative rounded-lg h-[40%] md:h-full shrink-0">
         {/* County filter */}
         {!isMobile && (     
           <div
@@ -1849,19 +1849,19 @@ useEffect(() => {
 
 
       {/* right column */}
-      <div className="w-full gap-2 md:gap-4 lg:w-2/5 flex flex-col flex-1 min-h-0 lg:h-full lg:mt-0">
+      <div className="w-full gap-2 md:gap-4 md:w-2/5 flex flex-col flex-1 min-h-0 md:h-full md:mt-0">
 
         <div className="flex md:gap-4 gap-2">
           <div className="border p-1 md:p-3 rounded-lg shadow-md text-center" style={{ flex: 1, backgroundColor: "#f4f4f4" }}>
             <div className="text-sm md:text-base md:mb-3">
               Total Bridges
             </div>
-            <div id="total-bridges" className="text-2xl md:text-3xl font-semibold">
+            <div id="total-bridges" className="text-xl md:text-3xl font-semibold">
               {totalBridges}
             </div>
           </div>
 
-          <div className="border px-2 py-1 md:p-3 rounded-lg shadow-md text-center" style={{ flex: 1, backgroundColor: "#f4f4f4" }}>
+          <div className="border px-2 py-1 md:p-1 rounded-lg shadow-md text-center" style={{ flex: 1, backgroundColor: "#f4f4f4" }}>
             
             <div className="md:mb-3"
             style={{

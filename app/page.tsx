@@ -316,8 +316,8 @@ const Page = () => {
               />
               <strong>Explore:</strong> See how our state’s population has changed since 1961 and is predicted to continue to grow over the next 25 years.
             </p>
-            <ViewportGate className="h-[90svh] md:h-[75svh] overflow-hidden" name="Population">
-              <div className="h-full">
+            <ViewportGate className="h-[90svh] md:h-[75svh] min-h-[600px] overflow-hidden" name="Population">
+              <div className="h-full w-full">
                 <Population />
               </div>
             </ViewportGate>
@@ -376,7 +376,7 @@ const Page = () => {
               />
               <strong>Explore:</strong> Just 10 minutes of added travel time each day adds up to more than 40 hours a year. See how much trips will change in the years ahead.
             </p>
-            <ViewportGate className="h-[95svh] md:h-[65svh] overflow-hidden" name="Traffic">
+            <ViewportGate className="h-[95svh] md:h-[65svh] overflow-hidden min-h-[600px] md:min-h-[400px]" name="Traffic">
               <DynamicMapRoute />
             </ViewportGate>
             <br/>
@@ -446,7 +446,7 @@ const Page = () => {
             </p>
 
             <div style={{width: "100%", height: "100%" }}>
-              <ViewportGate className="h-[90svh] md:h-[75svh]" name="Airport">
+              <ViewportGate className="h-[80svh] md:h-[65svh] min-h-[600px] md:min-h-[500px]" name="Airport">
                <Airport />
               </ViewportGate>
             </div>
@@ -575,9 +575,8 @@ const Page = () => {
               />
               <strong>Explore:</strong> Inspect the condition of spans across the state and see what detours would be required if bridges were closed before they could be repaired or replaced.
             </p>
-
             
-            <ViewportGate name="Bridges" className="h-[95svh] md:h-[75svh] overflow-hidden">
+            <ViewportGate name="Bridges" className="h-[90svh] md:h-[75svh] min-h-[500px]">
               <BridgeNeedsMap />
             </ViewportGate>
 
@@ -675,10 +674,10 @@ const Page = () => {
           </div>
           <div className="pl-3" style={{ marginTop: "0.5rem", fontSize: "0.9rem", color: "#4b5563" }}>
               <ol style={{ margin: "1rem 0 0 0rem", padding: 0, listStyleType: "decimal" }}>
-                <li>
+                <li id="note1">
                   Texas Transportation Institute, Urban Mobility Report 2023.
                 </li>
-                <li>
+                <li id="note2">
                   Washington State Freight System Plan (2022).
                 </li>
               </ol>
@@ -690,31 +689,50 @@ const Page = () => {
       {/* Footer */}
       <footer className="bg-gray-50 text-sm text-gray-600 pt-16 pb-12 text-center">
         <h2 className="text-2xl font-semibold mb-4">Partners</h2>
-        <div className="flex flex-wrap justify-center items-center gap-8 px-4 mb-10">
-          <a href="https://wsdot.wa.gov/" target="_blank" rel="noopener noreferrer">
-            <Image src="/logos/wsdot.png" alt="WSDOT" width={150} height={40} className="w-auto h-auto"/>
+        <div className="flex flex-wrap justify-center items-center gap-x-8 gap-y-6 px-6 mb-10 w-full">
+          <a href="https://wsdot.wa.gov/" target="_blank" rel="noopener noreferrer"
+            className="flex items-center justify-center flex-1 min-w-[120px] max-w-[180px]">
+            <Image src="/logos/wsdot.png" alt="WSDOT" width={150} height={40}
+              className="w-full h-auto max-h-48 object-contain" />
           </a>
-          <a href="https://kingcounty.gov/" target="_blank" rel="noopener noreferrer">
-            <Image src="/logos/king-county.png" alt="King County" width={150} height={40} className="w-auto h-auto"/>
+          <a href="https://kingcounty.gov/" target="_blank" rel="noopener noreferrer"
+            className="flex items-center justify-center flex-1 min-w-[120px] max-w-[180px]">
+            <Image src="/logos/king-county.png" alt="King County" width={150} height={40}
+              className="w-full h-auto max-h-48 object-contain" />
           </a>
-          <a href="https://www.challengeseattle.com/" target="_blank" rel="noopener noreferrer">
-            <Image src="/logos/challenge-seattle.png" alt="Challenge Seattle" width={150} height={40} className="w-auto h-auto"/>
+          <a href="https://www.challengeseattle.com/" target="_blank" rel="noopener noreferrer"
+            className="flex items-center justify-center flex-1 min-w-[120px] max-w-[180px]">
+            <Image src="/logos/challenge-seattle.png" alt="Challenge Seattle" width={150} height={40}
+              className="w-full h-auto max-h-48 object-contain" />
           </a>
-          <a href="https://www.alaskaair.com/" target="_blank" rel="noopener noreferrer">
-            <Image src="/logos/alaska-airlines.png" alt="Alaska Airlines" width={150} height={40} className="w-auto h-auto"/>
+          <a href="https://www.alaskaair.com/" target="_blank" rel="noopener noreferrer"
+            className="flex items-center justify-center flex-1 min-w-[120px] max-w-[180px]">
+            <Image src="/logos/alaska-airlines.png" alt="Alaska Airlines" width={150} height={40}
+              className="w-full h-auto max-h-48 object-contain" />
           </a>
-          <a href="https://www.microsoft.com/" target="_blank" rel="noopener noreferrer">
-            <Image src="/logos/microsoft.png" alt="Microsoft" width={150} height={40} className="w-auto h-auto"/>
+          <a href="https://www.microsoft.com/" target="_blank" rel="noopener noreferrer"
+            className="flex items-center justify-center flex-1 min-w-[120px] max-w-[180px]">
+            <Image src="/logos/microsoft.png" alt="Microsoft" width={150} height={40}
+              className="w-full h-auto max-h-48 object-contain" />
           </a>
-          <a href="https://www.boeing.com/" target="_blank" rel="noopener noreferrer">
-            <Image src="/logos/boeing.png" alt="Boeing" width={150} height={40} className="w-auto h-auto"/>
+          <a href="https://www.boeing.com/" target="_blank" rel="noopener noreferrer"
+            className="flex items-center justify-center flex-1 min-w-[120px] max-w-[180px]">
+            <Image src="/logos/boeing.png" alt="Boeing" width={150} height={40}
+              className="w-full h-auto max-h-48 object-contain" />
           </a>
+
+          <a href="https://www.hcde.washington.edu/" target="_blank" rel="noopener noreferrer"
+            className="flex items-center justify-center flex-1 min-w-[120px] max-w-[180px]">
+            <Image src="/logos/hcde.png" alt="HCDE" width={150} height={40}
+              className="w-full h-auto max-h-48 object-contain" />
+          </a>
+
         </div>
         <p className="text-s text-gray-500">
-          © {new Date().getFullYear()} Challenge 2050 • The Future in Motion • <a href="mailto:mobility@uw.edu">Contact us</a>
+          © {new Date().getFullYear()} Challenge 2050 • The Future in Motion •{" "}
+          <a href="mailto:mobility@uw.edu">Contact us</a>
         </p>
       </footer>
-
     </main>
   );
 };

@@ -542,17 +542,17 @@ const positionTooltip = (event: any) => {
     <div
       className="
         grid md:gap-4 gap-2 w-full
-        h-90svh md:h-[80vh] lg:h-[75vh]
-        grid-cols-1 lg:grid-cols-5 min-h-0
+        h-full
+        grid-cols-1 md:grid-cols-5 min-h-0
       "
       style={{ margin: 0 }}
     >
     
       {/*Mapbox section*/}
       <div className="
-          lg:col-span-3 col-span-1
+          md:col-span-3 col-span-1
           border rounded-lg shadow-md relative
-          h-[30vh] md:h-[40vh] lg:h-full
+          h-[30vh] md:h-[40vh] md:h-full
           min-h-[300px]
         ">
 
@@ -774,7 +774,7 @@ const positionTooltip = (event: any) => {
       </div>
 
       {/* Right Column for Charts */}
-      <div className="lg:col-span-2 gap-2 md:gap-4 col-span-1 flex flex-col lg:h-full">
+      <div className="md:col-span-2 gap-2 md:gap-4 col-span-1 flex flex-col md:h-full">
         
         {/* Filters */}
         <div className="p-2 md:p-3 border rounded-lg shadow-md bg-white md:items-center flex flex-col ">

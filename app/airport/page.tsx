@@ -5,7 +5,7 @@ import Airport from '../components/Airport';
 
 const Page: React.FC = () => {
   return (
-    <div style={{ padding: '1rem 1rem', width: "70%", height: "600px" }}>
+    <div className="h-100 md:h-70" style={{ padding: '1rem 1rem', height: "700px" }}>
      <Airport />
     </div>
   );

@@ -699,19 +699,18 @@ const positionTooltip = (event: any) => {
   return (
     <div
       className="
-        grid md:gap-4 gap-2 w-full
+        grid gap-2 md:gap-4 w-full
         h-full overflow-hidden
-        grid-cols-1 lg:grid-cols-5 
+        grid-cols-1 md:grid-cols-5 
       "
-      style={{ margin: 0 }}
     >
       
       {/* Map Section */}
       <div
         className="
-          lg:col-span-3 col-span-1
+          md:col-span-3 col-span-1
           border rounded-lg shadow-md relative
-          min-h-[30vh] md:min-h-[40vh] lg:h-full
+          min-h-[30vh] md:min-h-[40vh] md:h-full
         "
         //style={{ height: "45vh", /* mobile/tablet */ }}
       >
@@ -926,11 +925,11 @@ const positionTooltip = (event: any) => {
       </div>
 
       {/* Right Column for Charts */}
-      <div className="lg:col-span-2 md:gap-4 gap-2 col-span-1 flex flex-col lg:h-full"
+      <div className="md:col-span-2 md:gap-4 gap-2 col-span-1 flex flex-col md:h-full"
        >
         
         {/* Population Chart */}
-        <div className="border items-center shadow-md rounded-lg flex-1 flex flex-col p-2 md:p-4 h-full min-h-[20vh] lg:h-full"
+        <div className="border items-center shadow-md rounded-lg flex-1 flex flex-col p-2 md:p-4 h-full min-h-[20vh] md:h-full"
         style={{background: "#f4f4f4"}}>
           <div className="text-sm md:text-lg font-semibold">
             Population Over Time {selectedCounties.size > 0 && "(selected counties)"}
@@ -942,7 +941,7 @@ const positionTooltip = (event: any) => {
         </div>
 
         {/* Growth Rate Chart */}
-        <div className="border items-center shadow-md rounded-lg flex-1 flex flex-col p-2 md:p-4 h-full min-h-[20vh] lg:h-full bg-gray " 
+        <div className="border items-center shadow-md rounded-lg flex-1 flex flex-col p-2 md:p-4 h-full min-h-[20vh] md:h-full bg-gray " 
         style={{background: "#f4f4f4"}}>
           <div className="text-sm md:text-lg font-semibold">
             Population Growth Rate {selectedCounties.size > 0 && "(selected counties)"}

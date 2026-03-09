@@ -27,6 +27,7 @@ export default function Airport() {
   // State & refs
   // ---------------------------
   const [index, setIndex] = useState(0);
+  const titleRowRef = useRef<HTMLDivElement | null>(null);
   const svgRef = useRef<SVGSVGElement | null>(null);   // left graph
   const chartRef = useRef<SVGSVGElement | null>(null); // right buckets
   const leftSizeRef = useRef<{ w: number; h: number } | null>(null);
@@ -68,11 +69,15 @@ export default function Airport() {
     const leftParent = svgRef.current?.parentElement;
 
 
-    if (!leftSizeRef.current && leftParent) {
-      leftSizeRef.current = {
-        w: leftParent.clientWidth,
-        h: leftParent.clientHeight,
-      };
+    // if (!leftSizeRef.current && leftParent) {
+    //   leftSizeRef.current = {
+    //     w: leftParent.clientWidth,
+    //     h: leftParent.clientHeight,
+    //   };
+    // }
+
+    if (leftParent) {
+      leftSizeRef.current = { w: leftParent.clientWidth, h: leftParent.clientHeight };
     }
 
     const { w: leftW, h: leftH } = leftSizeRef.current!;
@@ -87,14 +92,15 @@ export default function Airport() {
 
     // ---- right chart: derive width from parent on each redraw (no resize listener)
     const parent = chartRef.current?.parentElement;
-    if (!rightSizeRef.current && parent) {
-      rightSizeRef.current = {
-        w: parent.clientWidth,
-        h: parent.clientHeight,
-      };
-    }
+    // if (!rightSizeRef.current && parent) {
+    //   rightSizeRef.current = {
+    //     w: parent.clientWidth,
+    //     h: parent.clientHeight,
+    //   };
+    // }
 
-    const { w: chartW, h: chartH } = rightSizeRef.current!;
+    const chartW = chartRef.current?.clientWidth  || 300;
+    const chartH = chartRef.current?.clientHeight || 300;
     chart.attr("viewBox", `0 0 ${chartW} ${chartH}`);
 
 
@@ -123,15 +129,13 @@ export default function Airport() {
     // Clear previous line-chart elements
     svg.selectAll(".axis, .line, .highlight, .y-label, .title").remove();
 
-
-
     // Y-axis label
     svg
       .append("text")
       .attr("class", "y-label")
       .attr(
         "transform",
-        `translate(${margin.left - 30}, ${margin.top + innerHeight / 2}) rotate(-90)`
+        `translate(${margin.left/2}, ${margin.top + innerHeight / 2}) rotate(-90)`
       )
       .attr("text-anchor", "middle")
       .attr("font-size", "14px")
@@ -167,8 +171,9 @@ export default function Airport() {
       .datum(passengerData)
       .attr("class", "line forecast")
       .attr("fill", "none")
-      .attr("stroke", "#1e40af")
+      .attr("stroke", "#d97706")
       .attr("stroke-width", 2.5)
+      .attr("stroke-dasharray", "4 2")
       .attr("transform", `translate(${margin.left}, ${margin.top})`)
       .attr("d", lineForecast);
 
@@ -176,12 +181,36 @@ export default function Airport() {
       .append("path")
       .datum(passengerData)
       .attr("class", "line capacity")
-      .attr("fill", "none")
-      .attr("stroke", "#94a3b8")
-      .attr("stroke-dasharray", "4 2")
+      .attr("fill", "none")   
+      .attr("stroke", "#3b82f6")
       .attr("stroke-width", 2)
       .attr("transform", `translate(${margin.left}, ${margin.top})`)
       .attr("d", lineCapacity);
+
+    if (svg.select(".legend").empty()) {
+
+      const legendItems = [
+        { label: "Forecast", color: "#d97706", dash: "4 2" },
+        { label: "Capacity", color: "#3b82f6", dash: null },
+      ];
+
+      const legendG = svg.append("g").attr("class", "legend")
+        .attr("transform", `translate(${margin.left + 10}, ${margin.top + 10})`);
+
+      legendItems.forEach((item, i) => {
+        const row = legendG.append("g").attr("transform", `translate(0, ${i * 20})`);
+        row.append("line")
+          .attr("x1", 0).attr("x2", 24).attr("y1", 6).attr("y2", 6)
+          .attr("stroke", item.color)
+          .attr("stroke-width", 2)
+          .attr("stroke-dasharray", item.dash ?? "none");
+        row.append("text")
+          .attr("x", 30).attr("y", 10)
+          .attr("font-size", "11px")
+          .attr("fill", "#334155")
+          .text(item.label);
+      });
+    }
 
     // ------- Tooltip/hover group (cleans old on redraw)
     svg.selectAll(".hover-layer, .focus-group").remove();
@@ -199,11 +228,11 @@ export default function Airport() {
 
     // focus dots (forecast + capacity)
     const fDot = focusG.append("circle")
-      .attr("r", 5).attr("fill", "#1e40af").attr("stroke", "#fff").attr("stroke-width", 1.5)
+      .attr("r", 5).attr("fill", "#d97706").attr("stroke", "#fff").attr("stroke-width", 1.5)
       .style("opacity", 0);
 
     const cDot = focusG.append("circle")
-      .attr("r", 5).attr("fill", "#94a3b8").attr("stroke", "#fff").attr("stroke-width", 1.5)
+      .attr("r", 5).attr("fill", "#3b82f6").attr("stroke", "#fff").attr("stroke-width", 1.5)
       .style("opacity", 0);
 
     // overlay for mouse capture
@@ -277,7 +306,7 @@ export default function Airport() {
       .attr("cx", margin.left + xScale(highlight.year))
       .attr("cy", margin.top + yScale(highlight.forecast))
       .attr("r", 6)
-      .attr("fill", "#ef4444")
+      .attr("fill", "#d97706")
       .attr("stroke", "#fff")
       .attr("stroke-width", 2);
 
@@ -287,7 +316,7 @@ export default function Airport() {
       .attr("cx", margin.left + xScale(highlight.year))
       .attr("cy", margin.top + yScale(highlight.capacity))
       .attr("r", 6)
-      .attr("fill", "#94a3b8")
+      .attr("fill", "#3b82f6")
       .attr("stroke", "#fff")
       .attr("stroke-width", 2);
 
@@ -305,7 +334,22 @@ export default function Airport() {
 
     // --- layout constants for buckets
     const iconPerRow = 5;
-    const cell = Math.min(chartW * 0.075, chartH/7.5);
+
+    // Find the tallest bucket across ALL years (capacity or forecast-capacity)
+    const maxCapacityRows = Math.ceil(d3.max(passengerData, d => Math.floor(d.capacity / iconsPerUnit))! / iconPerRow);
+    const maxUnmetRows    = Math.ceil(d3.max(passengerData, d => Math.max(0, Math.floor((d.forecast - d.capacity) / iconsPerUnit)))! / iconPerRow);
+    const maxRows = Math.max(maxCapacityRows, maxUnmetRows);
+
+    // Available vertical space for icons (between top labels and bottom)
+    const bucketTopY = 10;
+    const bucketBottomY = chartH -4;      // just clear the SVG edge
+    const bucketHMax    = bucketBottomY - bucketTopY;
+
+    // cell must fit maxRows within bucketHMax — also cap by width
+    const cellByHeight = bucketHMax / maxRows;
+    const cellByWidth  = (chartW * 0.45) / iconPerRow; // 45% of chartW split across 5 icons
+    const cell = Math.min(cellByWidth, cellByHeight);
+
     const icon = cell *.9 ;     // icon visual size
     const bucketPad = cell * 0.15; // inner padding
     //const bucketY = 60;  // top of bucket content area
@@ -330,12 +374,12 @@ export default function Airport() {
 
 
     // Bottom baseline stays fixed so growth is "up"
-    const bucketTopY = chartH * 0.12;    // space for labels
-    const bucketBottomY = chartH *0.99 ; // space above legend
-    const bucketHMax = bucketBottomY - bucketTopY;
+    //const bucketTopY = 8;    // space for labels
+    //const bucketBottomY = chartH - 4 ; // space above legend
+    //const bucketHMax = bucketBottomY - bucketTopY;
 
     const maxCapacityIcons = iconPerRow * Math.floor(bucketHMax / cell);
-    const bottomY = bucketBottomY;
+    const bottomY = bucketBottomY ;
 
     // Current year capacity -> rows -> current frame height
     const currentCapacityIcons = Math.floor(
@@ -344,36 +388,6 @@ export default function Airport() {
 
     const currentRows = Math.ceil(currentCapacityIcons / iconPerRow);
     const bucketHCurrent = Math.max(icon + bucketPad * 2, (currentRows - 1) * cell + icon + bucketPad * 2);
-
-    // ===== DEBUG: vertical guide lines at 25% and 75% =====
-    // const guides = chart.select(".center-guides").empty()
-    //   ? chart.append("g").attr("class", "center-guides")
-    //   : chart.select(".center-guides");
-
-    // guides.selectAll("*").remove();
-
-    // [0.25, 0.75].forEach((pct) => {
-    //   guides
-    //     .append("line")
-    //     .attr("x1", chartW * pct)
-    //     .attr("x2", chartW * pct)
-    //     .attr("y1", 0)
-    //     .attr("y2", chartH)
-    //     .attr("stroke", "#ef4444")
-    //     .attr("stroke-dasharray", "6 4")
-    //     .attr("stroke-width", 1.5)
-    //     .attr("pointer-events", "none");
-
-    //   guides
-    //     .append("text")
-    //     .attr("x", chartW * pct)
-    //     .attr("y", 14)
-    //     .attr("text-anchor", "middle")
-    //     .attr("font-size", 12)
-    //     .attr("fill", "#ef4444")
-    //     .text(`${pct * 100}%`);
-    // });
-
 
   
     // One path generator for both cases (full rounded rect + stepped top-right).
@@ -551,12 +565,12 @@ export default function Airport() {
           const iconIndex = currentCount + i;
           const row = Math.floor(iconIndex / iconPerRow);
           const col = iconIndex % iconPerRow;
-          const finalX = offsetX + col * cell - bucketPad;
+          const finalX = offsetX + col * cell;
           const finalY = bottomY  - icon - row * cell ;
 
           const group = iconGroup
             .append("g")
-            .attr("transform", `translate(${finalX}, -40)`)
+            .attr("transform", `translate(${finalX}, ${bucketTopY - icon})`)
             .style("opacity", 0)
             .attr("data-type", label.toLowerCase());
 
@@ -573,7 +587,7 @@ export default function Airport() {
             .attr("height", icon)
             .append("xhtml:div")
             .html(`
-              <svg width="100%" height="100%" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-user">
+              <svg  viewBox="0 0 24 24" style="padding: 1px; box-sizing: border-box;" width="100%" height="100%" fill="none" stroke="${color}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-user">
                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
                 <circle cx="12" cy="7" r="4"></circle>
               </svg>
@@ -604,7 +618,7 @@ export default function Airport() {
     updateIcons(
       Math.floor(Math.min(forecast, capacity) / iconsPerUnit),
       "#0072ce",
-      offsetCapacity + icon/2,
+      offsetCapacity + bucketPad,
       bucketTopY,
       capacityCountRef.current,
       (v) => (capacityCountRef.current = v),
@@ -614,7 +628,7 @@ export default function Airport() {
     updateIcons(
       Math.max(0, Math.floor((forecast - capacity) / iconsPerUnit)),
       "#f97316",
-      offsetUnmet + icon/2,
+      offsetUnmet + bucketPad,
       bucketTopY,
       unmetCountRef.current,
       (v) => (unmetCountRef.current = v),
@@ -628,7 +642,7 @@ export default function Airport() {
   // UI
   // ---------------------------
   return (
-    <div className="h-full flex flex-col gap-2 md:gap-4" >
+    <div className="h-full  flex flex-col gap-2 md:gap-4" >
       {/* Top Container */}
       <div className="border shadow-md rounded-lg p-2 md:p-5" style={{ background: "#f4f4f4" }}>
         {/* Title */}
@@ -682,8 +696,8 @@ export default function Airport() {
         <div className="flex flex-col md:flex-row gap-2 md:gap-5 h-full">
 
           {/* Column 1 */}
-          <div className="border shadow-md rounded-lg flex flex-col p-1 md:p-6 flex-1 min-h-0" style={{ background: "#f4f4f4" }}>
-            <h4 className="text-lg text-center md:text-xl font-bold mb-1 md:mb-2">Passenger Enplanements vs Capacity</h4>
+          <div className="border shadow-md rounded-lg flex flex-col p-1 md:p-4 flex-1 min-h-0" style={{ background: "#f4f4f4" }}>
+            <div className="text-md text-center md:text-lg font-bold mb-1 md:mb-2">Passenger Enplanements vs Capacity</div>
 
             {/* This container grows to fill leftover space */}
             <div  className="flex-1 w-full min-h-0">
@@ -692,61 +706,58 @@ export default function Airport() {
           </div>
 
           {/* Column 2 */}
-          <div className="border shadow-md rounded-lg flex flex-col py-1 md:py-6 flex-1 min-h-0" style={{ background: "#f4f4f4" }}>
+          <div className="border shadow-md rounded-lg flex flex-col p-2 md:p-4 flex-1 min-h-0" style={{ background: "#f4f4f4" }}>
 
-            <div className="flex justify-between w-full px-4 mb-1 md:mb-2">
-              <div className="text-center text-lg md:text-xl flex-1">
+            <div ref={titleRowRef} className="flex justify-between w-full background-red">
+              <div className="text-center text-md md:text-lg flex-1">
                 <strong>Capacity</strong>
                 {/*<div className="text-xs">SeaTac + Paine Field</div>*/}
               </div>
 
-              <div className="text-center text-lg md:text-xl flex-1">
+              <div className="text-center text-md md:text-lg flex-1">
                 <strong>Unmet Demand</strong>
               </div>
             </div>
 
-            <div  className="flex-1 w-full overflow-hidden mb-0">
+            <div  className="flex-1 w-full overflow-hidden mb-0" >
               <svg
                 ref={chartRef}
                 className="w-full h-full"
                 preserveAspectRatio="xMidYMid meet"
               />
-
             </div>
 
-            {/* BOTTOM LABEL AREA */}
-            <div className="w-full px-4 text-sm flex flex-col mt-0">
 
-              {/* Row 1 — Seatac aligned under Capacity */}
-              <div className="flex w-full">
-                <div className="flex-1 text-center text-gray-700">
-                  SeaTac + Paine Field
-                </div>
-                <div className="flex-1"></div>
+            {/* Row 1 — Seatac aligned under Capacity */}
+            <div className="flex w-full">
+              <div className="flex-1 text-center text-sm md:text-md text-gray-700">
+                SeaTac + Paine Field
               </div>
-
-              {/* Row 2 — Legend aligned under Unmet Demand, bottom-right */}
-              <div className="flex w-full mt-1">
-                <div className="flex-1"></div>
-                <div className="flex-1 flex justify-end items-center gap-1 text-gray-700">
-                  <svg
-                    width="22"
-                    height="22"
-                    fill="none"
-                    stroke="#334155"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    className="lucide lucide-user"
-                  >
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                    <circle cx="12" cy="7" r="4"></circle>
-                  </svg>
-                  <span>= 1M passengers</span>
-                </div>
-              </div>
-
+              <div className="flex-1"></div>
             </div>
+
+            {/* Row 2 — Legend aligned under Unmet Demand, bottom-right */}
+            <div className="flex w-full">
+              <div className="flex-1"></div>
+              <div className="flex-1 flex text-sm md:text-md justify-end items-center gap-1 text-gray-700">
+                <svg
+                  width="22"
+                  height="22"
+                  fill="none"
+                  stroke="#334155"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="lucide lucide-user"
+                  viewBox="0 0 24 24" 
+                >
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+                <span>= 1M passengers</span>
+              </div>
+            </div>
+
 
           </div>
         </div>

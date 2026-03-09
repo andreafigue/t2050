@@ -640,6 +640,33 @@ const MapboxChoroplethMap: React.FC<Props> = ({
         </>
       )}
 
+      {selectedList.length > 0 && (
+        <div style={{
+          position: "absolute",
+          bottom: 6,
+          left: 6,
+          background: "white",
+          borderRadius: 10,
+          boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+          padding: "clamp(5px, 0.5vw, 12px)",
+          fontSize: "clamp(9px, 1.8vw, 12px)",
+          display: "flex",
+          alignItems: "center",
+          gap: 6,
+          zIndex: 100
+        }}>
+          <svg width="20" height="14" style={{ flexShrink: 0 }}>
+            <defs>
+              <pattern id="legend-hatch" patternUnits="userSpaceOnUse" width="8" height="8">
+                <line x1="0" y1="8" x2="8" y2="0" stroke="rgba(0,0,0,0.4)" strokeWidth="2.5" />
+              </pattern>
+            </defs>
+            <rect width="20" height="14" fill="url(#legend-hatch)" rx="2" />
+          </svg>
+          <span >Selected Counties</span>
+        </div>
+      )}
+
       <Legend 
         colorScale={colorScale ?? defaultColorScale} 
         valueLabel={valueLabel} 
