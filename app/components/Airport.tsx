@@ -1,4 +1,3 @@
-// @ts-nocheck
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
@@ -20,7 +19,55 @@ const passengerData = [
   { year: 2050, forecast: 55.6, capacity: 33.6 },
 ];
 
+type DataPoint = { year: number; forecast: number; capacity: number };
+
+
 const iconsPerUnit = 1; // 1 icon = 1M passengers
+
+// ─────────────────────────────────────────────
+// RIGHT PANEL
+// ─────────────────────────────────────────────
+const BUCKET = {
+  // How many icons sit in each row
+  iconPerRow: 5,
+
+  // Cell size is computed from available space, then clamped to these px bounds.
+  // Raise cellMax to allow bigger icons on large screens.
+  // Lower cellMin to keep icons visible on tiny screens.
+  cellMin:  14,   // px — smallest a cell (and icon) can ever be
+  cellMax:  35,   // px — largest a cell can ever be
+
+  // Icon is this fraction of the cell. 1.0 = fills the cell, 0.8 = more gap.
+  iconRatio: 0.88,
+
+  // Padding inside each bucket frame, as a fraction of cell size.
+  // Higher = more breathing room around the icon grid.
+  padRatio: 0.15,
+
+  // Pixel gap between the top of the SVG and the top of the buckets.
+  topY: 10,
+
+  // Pixel gap between the bottom of the buckets and the SVG edge.
+  bottomClearance: 4,
+
+  // What fraction of chartW each bucket column can use (both buckets share the width).
+  // 0.45 means each bucket can use 45% of the panel width.
+  widthRatio: 0.45,
+
+  // Horizontal centre of each bucket, as a fraction of chartW.
+  leftCenterX:  0.25,
+  rightCenterX: 0.75,
+
+  // Bucket frame corner radius (px). Scales with cell but clamped to these bounds.
+  frameRadiusMin: 4,
+  frameRadiusMax: 14,
+
+  // Bucket frame stroke width (px).
+  frameStroke: 2,
+
+  // Frame transition duration (ms).
+  frameDuration: 500,
+};
 
 export default function Airport() {
   // ---------------------------
@@ -31,15 +78,13 @@ export default function Airport() {
   const svgRef = useRef<SVGSVGElement | null>(null);   // left graph
   const chartRef = useRef<SVGSVGElement | null>(null); // right buckets
   const leftSizeRef = useRef<{ w: number; h: number } | null>(null);
-  const rightSizeRef = useRef<{ w: number; h: number } | null>(null);
-
 
   // Counts to control animated icon adds/removals
   const capacityCountRef = useRef(0);
   const unmetCountRef = useRef(0);
 
   useEffect(() => {
-    let tip = d3.select("body").select("#tooltip");
+    let tip = d3.select("body").select<HTMLDivElement>("#tooltip");
     if (tip.empty()) {
       tip = d3.select("body")
         .append("div")
@@ -62,19 +107,10 @@ export default function Airport() {
   // Draw effect (runs on index change)
   // ---------------------------
   useEffect(() => {
-    // ---- selections
     const svg = d3.select(svgRef.current);
     const chart = d3.select(chartRef.current);
 
     const leftParent = svgRef.current?.parentElement;
-
-
-    // if (!leftSizeRef.current && leftParent) {
-    //   leftSizeRef.current = {
-    //     w: leftParent.clientWidth,
-    //     h: leftParent.clientHeight,
-    //   };
-    // }
 
     if (leftParent) {
       leftSizeRef.current = { w: leftParent.clientWidth, h: leftParent.clientHeight };
@@ -84,21 +120,8 @@ export default function Airport() {
     svg.attr("viewBox", `0 0 ${leftW} ${leftH}`);
 
 
-
-    // ---- left chart (fixed coordinate system)
-    // const LEFT_W = 400;
-    // const LEFT_H = 350;
-    // svg.attr("viewBox", `0 0 ${LEFT_W} ${LEFT_H}`);
-
     // ---- right chart: derive width from parent on each redraw (no resize listener)
     const parent = chartRef.current?.parentElement;
-    // if (!rightSizeRef.current && parent) {
-    //   rightSizeRef.current = {
-    //     w: parent.clientWidth,
-    //     h: parent.clientHeight,
-    //   };
-    // }
-
     const chartW = chartRef.current?.clientWidth  || 300;
     const chartH = chartRef.current?.clientHeight || 300;
     chart.attr("viewBox", `0 0 ${chartW} ${chartH}`);
@@ -107,7 +130,7 @@ export default function Airport() {
     // ===========================
     // LEFT: Line chart
     // ===========================
-    const margin = { top: 20, right: 20, bottom: 20, left: 55 };
+    const margin = { top: 20, right: 30, bottom: 30, left: 55 };
     const innerWidth = leftW - margin.left - margin.right;
     const innerHeight = leftH - margin.top - margin.bottom;
 
@@ -155,23 +178,21 @@ export default function Airport() {
       .attr("transform", `translate(${margin.left}, ${margin.top})`)
       .call(d3.axisLeft(yScale));
 
-    // Lines
-    const lineForecast = d3
-      .line()
-      .x((d: any) => xScale(d.year))
-      .y((d: any) => yScale(d.forecast));
 
-    const lineCapacity = d3
-      .line()
-      .x((d: any) => xScale(d.year))
-      .y((d: any) => yScale(d.capacity));
+    const lineForecast = d3.line<DataPoint>()
+      .x(d => xScale(d.year))
+      .y(d => yScale(d.forecast));
+
+    const lineCapacity = d3.line<DataPoint>()
+      .x(d => xScale(d.year))
+      .y(d => yScale(d.capacity));
 
     svg
       .append("path")
       .datum(passengerData)
       .attr("class", "line forecast")
       .attr("fill", "none")
-      .attr("stroke", "#d97706")
+      .attr("stroke", "#f97316")
       .attr("stroke-width", 2.5)
       .attr("stroke-dasharray", "4 2")
       .attr("transform", `translate(${margin.left}, ${margin.top})`)
@@ -190,7 +211,7 @@ export default function Airport() {
     if (svg.select(".legend").empty()) {
 
       const legendItems = [
-        { label: "Forecast", color: "#d97706", dash: "4 2" },
+        { label: "Forecast", color: "#f97316", dash: "4 2" },
         { label: "Capacity", color: "#3b82f6", dash: null },
       ];
 
@@ -198,7 +219,7 @@ export default function Airport() {
         .attr("transform", `translate(${margin.left + 10}, ${margin.top + 10})`);
 
       legendItems.forEach((item, i) => {
-        const row = legendG.append("g").attr("transform", `translate(0, ${i * 20})`);
+        const row = legendG.append("g").attr("transform", `translate(0, ${i * 15})`);
         row.append("line")
           .attr("x1", 0).attr("x2", 24).attr("y1", 6).attr("y2", 6)
           .attr("stroke", item.color)
@@ -206,7 +227,7 @@ export default function Airport() {
           .attr("stroke-dasharray", item.dash ?? "none");
         row.append("text")
           .attr("x", 30).attr("y", 10)
-          .attr("font-size", "11px")
+          .attr("font-size", `clamp(10px, ${leftW * 0.025}px, 13px)`)
           .attr("fill", "#334155")
           .text(item.label);
       });
@@ -228,7 +249,7 @@ export default function Airport() {
 
     // focus dots (forecast + capacity)
     const fDot = focusG.append("circle")
-      .attr("r", 5).attr("fill", "#d97706").attr("stroke", "#fff").attr("stroke-width", 1.5)
+      .attr("r", 5).attr("fill", "#f97316").attr("stroke", "#fff").attr("stroke-width", 1.5)
       .style("opacity", 0);
 
     const cDot = focusG.append("circle")
@@ -245,7 +266,7 @@ export default function Airport() {
       .style("fill", "transparent")
       .style("pointer-events", "all")
       .on("mousemove", (event) => {
-        const [mx, my] = d3.pointer(event);
+        const [mx] = d3.pointer(event);
         const year = xScale.invert(mx - margin.left);
 
         // nearest record by year (same pattern you used)
@@ -268,16 +289,24 @@ export default function Airport() {
         fDot.attr("cx", x).attr("cy", yF).style("opacity", 1);
         cDot.attr("cx", x).attr("cy", yC).style("opacity", 1);
 
-        // update tooltip (same global #tooltip as Population)
-        d3.select("#tooltip")
+        const tip = d3.select<HTMLDivElement, unknown>("#tooltip")
           .style("display", "block")
-          .html(
-            `<strong>${d.year}</strong><br/>
-             Forecast: ${d.forecast.toFixed(1)}M<br/>
-             Capacity: ${d.capacity.toFixed(3)}M`
-          )
-          .style("left", `${event.pageX + 10}px`)
-          .style("top", `${event.pageY - 28}px`);
+          .html(`<strong>${d.year}</strong><br/>
+                 Forecast: ${d.forecast.toFixed(1)}M<br/>
+                 Capacity: ${d.capacity.toFixed(3)}M`);
+
+        const tipNode = tip.node() as HTMLElement;
+        const tipW = tipNode.offsetWidth;
+        const tipH = tipNode.offsetHeight;
+
+        const left = (event.pageX + tipW > window.innerWidth)
+          ? event.pageX - tipW
+          : event.pageX;
+        const top = (event.pageY - tipH < 0)
+          ? event.pageY
+          : event.pageY - tipH;
+
+        tip.style("left", `${left}px`).style("top", `${top}px`);
       })
       .on("mouseout", () => {
         d3.select("#tooltip").style("display", "none");
@@ -306,7 +335,7 @@ export default function Airport() {
       .attr("cx", margin.left + xScale(highlight.year))
       .attr("cy", margin.top + yScale(highlight.forecast))
       .attr("r", 6)
-      .attr("fill", "#d97706")
+      .attr("fill", "#f97316")
       .attr("stroke", "#fff")
       .attr("stroke-width", 2);
 
@@ -324,8 +353,6 @@ export default function Airport() {
     // RIGHT: Buckets + icons
     // ===========================
     const { forecast, capacity } = passengerData[index];
-    const met = Math.floor(Math.min(forecast, capacity) / iconsPerUnit);
-    const unmet = Math.max(0, Math.floor((forecast - capacity) / iconsPerUnit));
 
     // Container for icons
     const iconGroup = chart.select(".icon-group").empty()
@@ -333,53 +360,46 @@ export default function Airport() {
       : chart.select(".icon-group");
 
     // --- layout constants for buckets
-    const iconPerRow = 5;
+    const iconPerRow = BUCKET.iconPerRow;
 
     // Find the tallest bucket across ALL years (capacity or forecast-capacity)
     const maxCapacityRows = Math.ceil(d3.max(passengerData, d => Math.floor(d.capacity / iconsPerUnit))! / iconPerRow);
     const maxUnmetRows    = Math.ceil(d3.max(passengerData, d => Math.max(0, Math.floor((d.forecast - d.capacity) / iconsPerUnit)))! / iconPerRow);
     const maxRows = Math.max(maxCapacityRows, maxUnmetRows);
 
-    // Available vertical space for icons (between top labels and bottom)
-    const bucketTopY = 10;
-    const bucketBottomY = chartH -4;      // just clear the SVG edge
+    // Available vertical space for icons
+    const bucketTopY    = BUCKET.topY;
+    const bucketBottomY = chartH - BUCKET.bottomClearance;
     const bucketHMax    = bucketBottomY - bucketTopY;
 
-    // cell must fit maxRows within bucketHMax — also cap by width
+    // Cell size: fit maxRows vertically AND fit iconPerRow horizontally,
+    // then clamp between cellMin and cellMax so icons never get absurdly big or tiny.
     const cellByHeight = bucketHMax / maxRows;
-    const cellByWidth  = (chartW * 0.45) / iconPerRow; // 45% of chartW split across 5 icons
-    const cell = Math.min(cellByWidth, cellByHeight);
+    const cellByWidth  = (chartW * BUCKET.widthRatio) / iconPerRow;
+    const cell = Math.min(
+      BUCKET.cellMax,
+      Math.max(BUCKET.cellMin, Math.min(cellByWidth, cellByHeight))
+    );
 
-    const icon = cell *.9 ;     // icon visual size
-    const bucketPad = cell * 0.15; // inner padding
-    //const bucketY = 60;  // top of bucket content area
+    const icon      = cell * BUCKET.iconRatio;
+    const bucketPad = cell * BUCKET.padRatio;
+
+    // Frame corner radius scales with cell, clamped to its own bounds
+    const frameRadius = Math.min(
+      BUCKET.frameRadiusMax,
+      Math.max(BUCKET.frameRadiusMin, cell * 0.25)
+    );
 
     // Width of one bucket frame
     const bucketW = (iconPerRow - 1) * cell + icon + bucketPad * 2;
 
-    // Gap + centering (computed per redraw from chartW)
-    //const gap = chartW * 0.12;
-    const contentW = bucketW * 2 ;
-    const startX = Math.max(0, (chartW - contentW) / 2);
-
-    // Final offsets (centered)
-    // const offsetCapacity = startX;                  // left bucket
-    // const offsetUnmet = startX + bucketW + gap + bucketPad;     // right bucket
-
-    const capacityCenterX = chartW * 0.25;
-    const unmetCenterX = chartW * 0.75;
+    const capacityCenterX = chartW * BUCKET.leftCenterX;
+    const unmetCenterX    = chartW * BUCKET.rightCenterX;
 
     const offsetCapacity = capacityCenterX - bucketW / 2;
-    const offsetUnmet = unmetCenterX - bucketW / 2;
+    const offsetUnmet    = unmetCenterX    - bucketW / 2;
 
-
-    // Bottom baseline stays fixed so growth is "up"
-    //const bucketTopY = 8;    // space for labels
-    //const bucketBottomY = chartH - 4 ; // space above legend
-    //const bucketHMax = bucketBottomY - bucketTopY;
-
-    const maxCapacityIcons = iconPerRow * Math.floor(bucketHMax / cell);
-    const bottomY = bucketBottomY ;
+    const bottomY = bucketBottomY;
 
     // Current year capacity -> rows -> current frame height
     const currentCapacityIcons = Math.floor(
@@ -390,8 +410,6 @@ export default function Airport() {
     const bucketHCurrent = Math.max(icon + bucketPad * 2, (currentRows - 1) * cell + icon + bucketPad * 2);
 
   
-    // One path generator for both cases (full rounded rect + stepped top-right).
-    // Keeping the same command sequence eliminates weird morphing during transitions.
     function roundedRectWithOptionalTopRightStep(
       x: number, y: number, w: number, h: number, rOuter: number,
       stepStartX: number, stepDepth: number, rStep: number
@@ -403,9 +421,8 @@ export default function Airport() {
       const maxStepX = xR - rOuter - 2 - rStep;
       const L = Math.max(minStepX, Math.min(stepStartX, maxStepX));
 
-      const yTop = y;                                 // original top
-      const yStep = y + Math.max(0, stepDepth);       // lowered top after step
-
+      const yTop = y;                               
+      const yStep = y + Math.max(0, stepDepth);   
       return [
         // left edge -> TL corner
         `M ${x} ${yTop + rOuter}`,
@@ -512,7 +529,6 @@ export default function Airport() {
         stepStart, stepDepth, rStep
       );
 
-      // Smooth morphing: interrupt queued tweens and tween with constant command list
       frame.interrupt()
         .transition()
         .duration(duration)
@@ -522,13 +538,15 @@ export default function Airport() {
         .attr("fill", "none");
     }
 
-    // ---------- USAGE (exactly like this where you update/redraw) ----------
     drawCapacityFrame({
       chart,
       passengerData, index,
       offsetCapacity, bottomY, bucketW, bucketHCurrent,
       iconsPerUnit, iconPerRow,
-      bucketPad, cell, icon
+      bucketPad, cell, icon,
+      radius: frameRadius,
+      strokeWidth: BUCKET.frameStroke,
+      duration: BUCKET.frameDuration,
     });
 
     // --- labels: re-draw each time so they move with centering
@@ -539,10 +557,7 @@ export default function Airport() {
     const legendGroup = chart.select(".legend-group").empty()
       ? chart.append("g").attr("class", "legend-group")
       : chart.select(".legend-group");
-    legendGroup.selectAll("*").remove();
-
-    const legendX = offsetCapacity - 30;
-    const legendY = chartH - 34;
+    (legendGroup as unknown as d3.Selection<SVGGElement, unknown, HTMLElement, unknown>).selectAll("*").remove();
 
 
 
@@ -686,7 +701,7 @@ export default function Airport() {
             max={passengerData.length - 1}
             value={index}
             onChange={(e) => setIndex(+e.target.value)}
-            className="flex-1 max-w-[420px]"
+            className="flex-1 max-w-[520px]"
           />
         </div>
       </div>

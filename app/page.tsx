@@ -316,7 +316,7 @@ const Page = () => {
               />
               <strong>Explore:</strong> See how our state’s population has changed since 1961 and is predicted to continue to grow over the next 25 years.
             </p>
-            <ViewportGate className="h-[90svh] md:h-[75svh] min-h-[600px] overflow-hidden" name="Population">
+            <ViewportGate className="h-[90svh] md:h-[75svh] min-h-[600px] md:max-h-[700px] overflow-hidden" name="Population">
               <div className="h-full w-full">
                 <Population />
               </div>
@@ -376,7 +376,7 @@ const Page = () => {
               />
               <strong>Explore:</strong> Just 10 minutes of added travel time each day adds up to more than 40 hours a year. See how much trips will change in the years ahead.
             </p>
-            <ViewportGate className="h-[95svh] md:h-[65svh] overflow-hidden min-h-[600px] md:min-h-[400px]" name="Traffic">
+            <ViewportGate className="h-[95svh] md:h-[65svh] overflow-hidden min-h-[600px] md:min-h-[400px] md:max-h-[600px]" name="Traffic">
               <DynamicMapRoute />
             </ViewportGate>
             <br/>
@@ -446,7 +446,7 @@ const Page = () => {
             </p>
 
             <div style={{width: "100%", height: "100%" }}>
-              <ViewportGate className="h-[80svh] md:h-[65svh] min-h-[600px] md:min-h-[500px]" name="Airport">
+              <ViewportGate className="h-[70svh] md:h-[55svh] min-h-[500px] md:min-h-[300px]" name="Airport">
                <Airport />
               </ViewportGate>
             </div>
