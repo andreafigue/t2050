@@ -314,13 +314,13 @@ export default function Airport() {
       .attr("id", "tooltip")
       .style("position",   "absolute")
       .style("background", "white")
-      .style("padding",    "5px 8px")
+      .style("padding",    "2px 4px")
       .style("border",     "1px solid #ccc")
       .style("border-radius", "5px")
       .style("display",       "none")
       .style("pointer-events","none")
       .style("box-shadow", "0 2px 6px rgba(0,0,0,0.15)")
-      .style("font-size",  "12px")
+      .style("font-size",  "clamp(8px, 2.5vw, 12px)")
       .style("color",      "#1e293b");
 
     return () => { tip.remove(); };
@@ -373,7 +373,7 @@ export default function Airport() {
       // Rotated 90° and centred along the left margin.
       .attr("transform", `translate(${margin.left / 2}, ${margin.top + innerHeight / 2}) rotate(-90)`)
       .attr("text-anchor", "middle")
-      .attr("font-size", "14px")
+      .attr("font-size", `clamp(12px, ${leftW * 0.025}px, 14px)`)
       .attr("fill", "#334155")
       .text("Millions of Passengers");
 
@@ -381,11 +381,13 @@ export default function Airport() {
     // tickFormat("d") removes the decimal point from year numbers.
     svg.append("g").attr("class", "axis")
       .attr("transform", `translate(${margin.left}, ${leftH - margin.bottom})`)
-      .call(d3.axisBottom(xScale).tickFormat(d3.format("d")));
+      .call(d3.axisBottom(xScale).tickFormat(d3.format("d")))
+      .style("font-size", `clamp(9px, ${leftW * 0.02}px, 12px)`);
 
     svg.append("g").attr("class", "axis")
       .attr("transform", `translate(${margin.left}, ${margin.top})`)
-      .call(d3.axisLeft(yScale));
+      .call(d3.axisLeft(yScale))
+      .style("font-size", `clamp(9px, ${leftW * 0.02}px, 12px)`);
 
     // ── Lines ─────────────────────────────────────────────────────────────────
     // Two line generators — one for forecast (dashed orange) and one for
@@ -423,15 +425,15 @@ export default function Airport() {
       const row = legendG.append("g").attr("transform", `translate(0, ${i * 15})`);
 
       row.append("line")
-        .attr("x1", 0).attr("x2", 24).attr("y1", 6).attr("y2", 6)
+        .attr("x1", 0).attr("x2", 18).attr("y1", 0).attr("y2", 0)
         .attr("stroke", item.color)
         .attr("stroke-width", 2)
         .attr("stroke-dasharray", item.dash ?? "none");
 
       // Font size scales with SVG width so the legend stays proportional.
       row.append("text")
-        .attr("x", 30).attr("y", 10)
-        .attr("font-size", `clamp(10px, ${leftW * 0.025}px, 13px)`)
+        .attr("x", 25).attr("y", 5)
+        .attr("font-size", `clamp(12px, ${leftW * 0.025}px, 14px)`)
         .attr("fill", "#334155")
         .text(item.label);
     });
@@ -500,12 +502,12 @@ export default function Airport() {
           .style("display", "block")
           .html(`<strong>${d.year}</strong><br/>
                  Forecast: ${d.forecast.toFixed(1)}M<br/>
-                 Capacity: ${d.capacity.toFixed(3)}M`);
+                 Capacity: ${d.capacity.toFixed(1)}M`);
 
         const tipNode = tip.node()!;
         const tipW = tipNode.offsetWidth;
         const tipH = tipNode.offsetHeight;
-        const pad  = 10;
+        const pad  = 0;
 
         const left = (event.pageX + pad + tipW > window.innerWidth)
           ? event.pageX - tipW - pad  // flip left when near right edge
