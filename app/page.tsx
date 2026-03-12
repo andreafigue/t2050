@@ -446,7 +446,7 @@ const Page = () => {
             </p>
 
             <div style={{width: "100%", height: "100%" }}>
-              <ViewportGate className="h-[70svh] md:h-[55svh] min-h-[500px] md:min-h-[300px]" name="Airport">
+              <ViewportGate className="h-[70svh] md:h-[60svh] min-h-[600px] md:min-h-[500px]" name="Airport">
                <Airport />
               </ViewportGate>
             </div>

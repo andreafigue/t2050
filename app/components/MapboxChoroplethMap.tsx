@@ -496,11 +496,12 @@ const MapboxChoroplethMap: React.FC<Props> = ({
   useEffect(() => {
     if (!mapRef.current || !mapContainerRef.current) return;
 
-    const map = mapRef.current;
     const ro = new ResizeObserver(() => {
-      map.resize();
+      mapRef.current?.resize();
     });
-    ro.observe(mapContainerRef.current);
+    if (mapContainerRef.current) {
+      ro.observe(mapContainerRef.current);
+    }
 
     return () => ro.disconnect();
   }, []);
