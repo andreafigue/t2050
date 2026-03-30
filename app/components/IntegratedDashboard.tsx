@@ -72,12 +72,27 @@ const MapRoute: React.FC = () => {
   const [forecastYear, setForecastYear] = useState<2030 | 2040 | 2050 | 'current' | 'none'>(2050);
   const [multiplier2050, setMultiplier2050] = useState<number | null>(null);
 
+  const forecastYearRef = useRef(forecastYear);
+  const compareYearRef = useRef(compareYear);
+
+
+
   const [baseTrafficTime, setBaseTrafficTime] = useState<number | null>(null);
 
   // Bridge layer
   const [showBridgesLayer, setShowBridgesLayer] = useState(false);
   const [bridgesData, setBridgesData] = useState<any[]>([]);
   const [bridgesLoading, setBridgesLoading] = useState(false);
+  const [bridgeConditionFilters, setBridgeConditionFilters] = useState({
+    fair: true,
+    poor: true,
+    good: false,
+  });
+  const [bridgeColorMode, setBridgeColorMode] = useState<'condition' | 'detour'>('condition');
+  const [bridgeDetourFilters, setBridgeDetourFilters] = useState({
+    noDetour: true, short: true, medium: true, long: true, veryLong: true,
+  });
+  const [showBridgeInfoTooltip, setShowBridgeInfoTooltip] = useState(false);
 
   const yearSensitivity: Record<2030 | 2040 | 2050, number> = {
     2030: 1.8,  // a little more sensitive
@@ -199,6 +214,7 @@ const MapRoute: React.FC = () => {
   useEffect(() => {
     const mapF = mapForecastInstanceRef.current;
     if (!mapF || !routes.length || forecastTravelTime == null) return;
+    if (forecastYear === 'none') return;
 
     routes.forEach((route, i) => {
       const annotation = route.legs?.[0]?.annotation || {};
@@ -215,9 +231,22 @@ const MapRoute: React.FC = () => {
 
       if (mapF.getLayer(`route-forecast-line-${i}`)) {
         mapF.setPaintProperty(`route-forecast-line-${i}`, "line-gradient", gradient);
+        mapF.setLayoutProperty(                                          
+          `route-forecast-line-${i}`,                                   
+          "visibility",                                                  
+          i === selectedRouteIdx && forecastYear !== 'none' ? "visible" : "none"  
+        ); 
       }
     });
-  }, [routes, forecastTravelTime]);
+  }, [routes, forecastTravelTime, forecastYear, selectedRouteIdx]);
+
+  useEffect(() => {
+    forecastYearRef.current = forecastYear;
+  }, [forecastYear]);
+
+  useEffect(() => {
+    compareYearRef.current = compareYear;
+  }, [compareYear]);
 
   // Update forecast gradient on compare map when compareTravelTime changes
   useEffect(() => {
@@ -388,7 +417,7 @@ const MapRoute: React.FC = () => {
   // build gradient for "current" (original palette)
   function gradientFromAnnotation(annotation: any) {
     const levels: string[] = annotation?.congestion || [];
-    if (!levels.length) return ["literal", CONGESTION_COLORS.unknown];
+    if (!levels.length) return ["interpolate", ["linear"], ["line-progress"], 0, CONGESTION_COLORS.unknown, 1, CONGESTION_COLORS.unknown];
 
     let stops: [string, ...any[]] = ["interpolate", ["linear"], ["line-progress"]];
     const n = levels.length;
@@ -401,7 +430,7 @@ const MapRoute: React.FC = () => {
   }
 
   function gradientFromAdjusted(adjusted: string[]) {
-    if (!adjusted.length) return ["literal", CONGESTION_COLORS.unknown];
+    if (!adjusted.length) return ["interpolate", ["linear"], ["line-progress"], 0, CONGESTION_COLORS.unknown, 1, CONGESTION_COLORS.unknown];
     let stops: [string, ...any[]] = ["interpolate", ["linear"], ["line-progress"]];
     const n = adjusted.length;
     for (let i = 0; i < n; i++) {
@@ -735,6 +764,23 @@ const MapRoute: React.FC = () => {
     Poor: "#e34a33",
   };
 
+  const BRIDGE_DETOUR_COLORS: Record<string, string> = {
+    noDetour: "#7a7a7a",
+    short: "#c6dbef",
+    medium: "#6baed6",
+    long: "#2171b5",
+    veryLong: "#08306b",
+  };
+
+  const getDetourBucket = (detour: any): keyof typeof BRIDGE_DETOUR_COLORS => {
+    const d = Number(detour);
+    if (!detour || isNaN(d) || d === 0) return 'noDetour';
+    if (d <= 5) return 'short';
+    if (d <= 20) return 'medium';
+    if (d <= 50) return 'long';
+    return 'veryLong';
+  };
+
   const CULVERT_DESC: Record<string, string> = {
     "9": "Not applicable", "8": "No deficiencies", "7": "Minor damage",
     "6": "Slight deterioration", "5": "Moderate deterioration", "4": "Major deterioration",
@@ -791,7 +837,7 @@ const MapRoute: React.FC = () => {
       </div>
     </div>`;
 
-  const addBridgeLayerToMap = (map: mapboxgl.Map, bridges: any[]) => {
+  const addBridgeLayerToMap = (map: mapboxgl.Map, bridges: any[], colorMode: 'condition' | 'detour') => {
     const geojson: any = {
       type: "FeatureCollection",
       features: bridges
@@ -804,10 +850,27 @@ const MapRoute: React.FC = () => {
         })),
     };
 
+    const colorExpr = colorMode === 'condition'
+      ? [
+          "match", ["get", "BridgeOverallConditionState"],
+          "Good", BRIDGE_CONDITION_COLORS.Good,
+          "Fair", BRIDGE_CONDITION_COLORS.Fair,
+          BRIDGE_CONDITION_COLORS.Poor,
+        ]
+      : [
+          "case",
+          ["<=", ["coalesce", ["to-number", ["get", "Detour"]], 0], 0], BRIDGE_DETOUR_COLORS.noDetour,
+          ["<=", ["to-number", ["get", "Detour"]], 5], BRIDGE_DETOUR_COLORS.short,
+          ["<=", ["to-number", ["get", "Detour"]], 20], BRIDGE_DETOUR_COLORS.medium,
+          ["<=", ["to-number", ["get", "Detour"]], 50], BRIDGE_DETOUR_COLORS.long,
+          BRIDGE_DETOUR_COLORS.veryLong,
+        ] as any;
+
     if (map.getSource("route-bridges")) {
       (map.getSource("route-bridges") as mapboxgl.GeoJSONSource).setData(geojson);
       if (map.getLayer("route-bridges-circle")) {
         map.setLayoutProperty("route-bridges-circle", "visibility", "visible");
+        map.setPaintProperty("route-bridges-circle", "circle-color", colorExpr);
       }
       return;
     }
@@ -825,12 +888,7 @@ const MapRoute: React.FC = () => {
           12, ["case", ["boolean", ["feature-state", "hover"], false], 14, 8],
           16, ["case", ["boolean", ["feature-state", "hover"], false], 18, 12],
         ],
-        "circle-color": [
-          "match", ["get", "BridgeOverallConditionState"],
-          "Good", BRIDGE_CONDITION_COLORS.Good,
-          "Fair", BRIDGE_CONDITION_COLORS.Fair,
-          BRIDGE_CONDITION_COLORS.Poor,
-        ],
+        "circle-color": colorExpr,
         "circle-stroke-color": "#fff",
         "circle-stroke-width": 0.8,
         "circle-opacity": 0.95,
@@ -940,6 +998,72 @@ const MapRoute: React.FC = () => {
     });
   }, [bridgesData, routes, selectedRouteIdx]);
 
+  // Count bridges by condition state
+  const bridgeConditionCounts = React.useMemo(() => {
+    const counts = { fair: 0, poor: 0, good: 0 };
+    for (const bridge of bridgesAlongRoute) {
+      const condition = bridge.BridgeOverallConditionState?.toLowerCase();
+      if (condition === 'fair') counts.fair++;
+      else if (condition === 'poor') counts.poor++;
+      else if (condition === 'good') counts.good++;
+    }
+    return counts;
+  }, [bridgesAlongRoute]);
+
+  // Count bridges by detour bucket
+  const bridgeDetourCounts = React.useMemo(() => {
+    const counts = { noDetour: 0, short: 0, medium: 0, long: 0, veryLong: 0 };
+    for (const bridge of bridgesAlongRoute) {
+      counts[getDetourBucket(bridge.Detour)]++;
+    }
+    return counts;
+  }, [bridgesAlongRoute]);
+
+  // Count filtered condition bridges (given current detour filters)
+  const filteredBridgeConditionCounts = React.useMemo(() => {
+    const counts = { fair: 0, poor: 0, good: 0 };
+    for (const bridge of bridgesAlongRoute) {
+      const detourBucket = getDetourBucket(bridge.Detour);
+      if (bridgeDetourFilters[detourBucket]) {
+        const condition = bridge.BridgeOverallConditionState?.toLowerCase();
+        if (condition === 'fair') counts.fair++;
+        else if (condition === 'poor') counts.poor++;
+        else if (condition === 'good') counts.good++;
+      }
+    }
+    return counts;
+  }, [bridgesAlongRoute, bridgeDetourFilters]);
+
+  // Count filtered detour bridges (given current condition filters)
+  const filteredBridgeDetourCounts = React.useMemo(() => {
+    const counts = { noDetour: 0, short: 0, medium: 0, long: 0, veryLong: 0 };
+    for (const bridge of bridgesAlongRoute) {
+      const condition = bridge.BridgeOverallConditionState?.toLowerCase();
+      const condPass = condition === 'fair' ? bridgeConditionFilters.fair
+                     : condition === 'poor' ? bridgeConditionFilters.poor
+                     : condition === 'good' ? bridgeConditionFilters.good
+                     : false;
+      if (condPass) {
+        counts[getDetourBucket(bridge.Detour)]++;
+      }
+    }
+    return counts;
+  }, [bridgesAlongRoute, bridgeConditionFilters]);
+
+  // Filter bridges by selected conditions and detours
+  const filteredBridgesAlongRoute = React.useMemo(() => {
+    return bridgesAlongRoute.filter(b => {
+      const condition = b.BridgeOverallConditionState?.toLowerCase();
+      const condPass = condition === 'fair' ? bridgeConditionFilters.fair
+                     : condition === 'poor' ? bridgeConditionFilters.poor
+                     : condition === 'good' ? bridgeConditionFilters.good
+                     : false;
+      const detourBucket = getDetourBucket(b.Detour);
+      const detourPass = bridgeDetourFilters[detourBucket];
+      return condPass && detourPass;
+    });
+  }, [bridgesAlongRoute, bridgeConditionFilters, bridgeDetourFilters]);
+
   // Add / remove / update bridge layers on both maps
   useEffect(() => {
     const mapF = mapForecastInstanceRef.current;
@@ -947,13 +1071,13 @@ const MapRoute: React.FC = () => {
     if (!mapF) return;
 
     if (showBridgesLayer) {
-      addBridgeLayerToMap(mapF, bridgesAlongRoute);
-      if (map) addBridgeLayerToMap(map, bridgesAlongRoute);
+      addBridgeLayerToMap(mapF, filteredBridgesAlongRoute, bridgeColorMode);
+      if (map) addBridgeLayerToMap(map, filteredBridgesAlongRoute, bridgeColorMode);
     } else {
       removeBridgeLayerFromMap(mapF);
       if (map) removeBridgeLayerFromMap(map);
     }
-  }, [showBridgesLayer, bridgesAlongRoute]);
+  }, [showBridgesLayer, filteredBridgesAlongRoute, bridgeColorMode]);
 
   // Load region outline whenever the main (forecast) map loads or county changes.
   useEffect(() => {
@@ -1012,8 +1136,8 @@ const MapRoute: React.FC = () => {
     }
 
     // Add bridge layer to compare map if enabled
-    if (showBridgesLayer && bridgesAlongRoute.length > 0) {
-      addBridgeLayerToMap(map, bridgesAlongRoute);
+    if (showBridgesLayer && filteredBridgesAlongRoute.length > 0) {
+      addBridgeLayerToMap(map, filteredBridgesAlongRoute, bridgeColorMode);
     }
 
     routes.forEach((route: any, i: number) => {
@@ -1277,7 +1401,7 @@ const MapRoute: React.FC = () => {
         });
         map.addLayer({
           id: `route-forecast-line-${i}`, type: "line", source: `route-forecast-src-${i}`,
-          layout: { "line-join": "round", "line-cap": "round", visibility: i === 0 && compareYear !== 'none' ? "visible" : "none" },
+          layout: { "line-join": "round", "line-cap": "round", visibility: i === 0 && compareYearRef.current !== 'none' ? "visible" : "none" },
           paint: { "line-gradient": forecastGradient, "line-width": 5, "line-opacity": 0.8 },
         }, map_layer);
 
@@ -1287,7 +1411,7 @@ const MapRoute: React.FC = () => {
         });
         map.addLayer({
           id: `route-forecast-none-line-${i}`, type: "line", source: `route-forecast-none-src-${i}`,
-          layout: { "line-join": "round", "line-cap": "round", visibility: i === 0 && compareYear === 'none' ? "visible" : "none" },
+          layout: { "line-join": "round", "line-cap": "round", visibility: i === 0 && compareYearRef.current === 'none' ? "visible" : "none" },
           paint: { "line-gradient": gradientNoTraffic(annotation), "line-width": 5, "line-opacity": 0.8 },
         }, map_layer);
       }
@@ -1315,7 +1439,7 @@ const MapRoute: React.FC = () => {
           layout: {
             "line-join": "round",
             "line-cap": "round",
-            visibility: i === 0 && forecastYear !== 'none' ? "visible" : "none",
+            visibility: i === 0 && forecastYearRef.current !== 'none' ? "visible" : "none",
           },
           paint: {
             "line-gradient": forecastGradient,
@@ -1336,7 +1460,7 @@ const MapRoute: React.FC = () => {
         id: `route-forecast-none-line-${i}`,
         type: "line",
         source: `route-forecast-none-src-${i}`,
-        layout: { "line-join": "round", "line-cap": "round", visibility: i === 0 && forecastYear === 'none' ? "visible" : "none" },
+        layout: { "line-join": "round", "line-cap": "round", visibility: i === 0 && forecastYearRef.current === 'none' ? "visible" : "none" },
         paint: { "line-gradient": gradientNoTraffic(annotation), "line-width": 5, "line-opacity": 0.8 },
       }, map_layer);
 
@@ -1617,24 +1741,170 @@ const MapRoute: React.FC = () => {
       <div className="p-2 bg-white border rounded-lg shadow-md w-full">
         <label className="text-md md:text-lg font-semibold">Layers</label>
         <div className="mt-1 flex flex-col gap-1">
-          <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
-            <input
-              type="checkbox"
-              checked={showBridgesLayer}
-              onChange={(e) => setShowBridgesLayer(e.target.checked)}
-              className="rounded"
-            />
-            <span>Bridges</span>
-            {bridgesLoading && (
-              <svg className="ml-2 animate-spin h-3 w-3 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
-              </svg>
+          <div className="flex items-center gap-2 text-sm">
+            <label className="flex items-center gap-2 cursor-pointer select-none flex-1">
+              <input
+                type="checkbox"
+                checked={showBridgesLayer}
+                onChange={(e) => setShowBridgesLayer(e.target.checked)}
+                className="rounded"
+              />
+              <span>Bridges</span>
+              {!bridgesLoading && showBridgesLayer && routes.length > 0 && (
+                <span className="text-xs text-gray-500">(Showing {filteredBridgesAlongRoute.length} out of {bridgesAlongRoute.length} bridges)</span>
+              )}
+              {bridgesLoading && (
+                <svg className="animate-spin h-3 w-3 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+                </svg>
+              )}
+            </label>
+            {showBridgesLayer && routes.length > 0 && (
+              <div className="flex items-center gap-2 relative">
+                <span className="text-xs font-semibold text-gray-600">Color by:</span>
+                <select
+                  value={bridgeColorMode}
+                  onChange={(e) => setBridgeColorMode(e.target.value as 'condition' | 'detour')}
+                  className="text-xs rounded border border-gray-300 px-2 py-1 bg-white"
+                >
+                  <option value="condition">Condition</option>
+                  <option value="detour">Detour</option>
+                </select>
+                <button
+                  onMouseEnter={() => setShowBridgeInfoTooltip(true)}
+                  onMouseLeave={() => setShowBridgeInfoTooltip(false)}
+                  className="text-gray-500 hover:text-gray-700 text-sm font-semibold w-5 h-5 rounded-full border border-gray-400 flex items-center justify-center hover:bg-gray-100"
+                  title="Bridge condition information"
+                >
+                  ?
+                </button>
+
+                {showBridgeInfoTooltip && (
+                  <div className="absolute top-full right-0 mt-1 bg-white border border-gray-300 rounded-lg shadow-lg p-4 w-96 z-50 text-xs text-gray-700">
+                    <div className="space-y-3">
+                      <div>
+                        <h3 className="font-semibold text-green-700 mb-1">Good</h3>
+                        <p>A range from no problems to some minor deterioration of structural elements.</p>
+                      </div>
+
+                      <div>
+                        <h3 className="font-semibold text-orange-600 mb-1">Fair</h3>
+                        <p>All primary structural elements are sound but may have deficiencies such as minor section loss, deterioration, cracking, spalling or scour.</p>
+                      </div>
+
+                      <div>
+                        <h3 className="font-semibold text-red-600 mb-1">Poor</h3>
+                        <p>Advanced deficiencies such as section loss, deterioration, cracking, spalling, scour, or seriously affected primary structural components. Bridges rated in poor condition may be posted with truck weight restrictions. Poor is the Federal Highway Administration's new rating term for bridges previously described as "structurally deficient."</p>
+                      </div>
+
+                      <hr className="my-2" />
+
+                      <div>
+                        <h3 className="font-semibold text-gray-700 mb-1">No Detour</h3>
+                        <p>Ground level bypass is available at the structure site for the inventory route.</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
-            {!bridgesLoading && showBridgesLayer && routes.length > 0 && (
-              <span className="ml-auto text-xs text-gray-400">{bridgesAlongRoute.length} found</span>
-            )}
-          </label>
+          </div>
+          {showBridgesLayer && routes.length > 0 && (
+            <div className="ml-6 flex flex-col gap-3">
+              <div className="flex flex-col gap-1">
+                <div className="text-xs font-semibold text-gray-500 uppercase">Condition</div>
+                <label className="flex items-center gap-2 text-xs cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={bridgeConditionFilters.fair}
+                    onChange={(e) => setBridgeConditionFilters({ ...bridgeConditionFilters, fair: e.target.checked })}
+                    className="rounded"
+                  />
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#fc8d59" }} />
+                  <span>Fair ({bridgeConditionCounts.fair})</span>
+                </label>
+                <label className="flex items-center gap-2 text-xs cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={bridgeConditionFilters.poor}
+                    onChange={(e) => setBridgeConditionFilters({ ...bridgeConditionFilters, poor: e.target.checked })}
+                    className="rounded"
+                  />
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#e34a33" }} />
+                  <span>Poor* ({bridgeConditionCounts.poor})</span>
+                </label>
+                <label className="flex items-center gap-2 text-xs cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={bridgeConditionFilters.good}
+                    onChange={(e) => setBridgeConditionFilters({ ...bridgeConditionFilters, good: e.target.checked })}
+                    className="rounded"
+                  />
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#2ca25f" }} />
+                  <span>Good ({bridgeConditionCounts.good})</span>
+                </label>
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <div className="text-xs font-semibold text-gray-500 uppercase">Detour</div>
+                <label className="flex items-center gap-2 text-xs cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={bridgeDetourFilters.noDetour}
+                    onChange={(e) => setBridgeDetourFilters({ ...bridgeDetourFilters, noDetour: e.target.checked })}
+                    className="rounded"
+                  />
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#7a7a7a" }} />
+                  <span>No Detour ({bridgeDetourCounts.noDetour})</span>
+                </label>
+                <label className="flex items-center gap-2 text-xs cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={bridgeDetourFilters.short}
+                    onChange={(e) => setBridgeDetourFilters({ ...bridgeDetourFilters, short: e.target.checked })}
+                    className="rounded"
+                  />
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#c6dbef" }} />
+                  <span>0–5 mi ({bridgeDetourCounts.short})</span>
+                </label>
+                <label className="flex items-center gap-2 text-xs cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={bridgeDetourFilters.medium}
+                    onChange={(e) => setBridgeDetourFilters({ ...bridgeDetourFilters, medium: e.target.checked })}
+                    className="rounded"
+                  />
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#6baed6" }} />
+                  <span>6–20 mi ({bridgeDetourCounts.medium})</span>
+                </label>
+                <label className="flex items-center gap-2 text-xs cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={bridgeDetourFilters.long}
+                    onChange={(e) => setBridgeDetourFilters({ ...bridgeDetourFilters, long: e.target.checked })}
+                    className="rounded"
+                  />
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#2171b5" }} />
+                  <span>21–50 mi ({bridgeDetourCounts.long})</span>
+                </label>
+                <label className="flex items-center gap-2 text-xs cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={bridgeDetourFilters.veryLong}
+                    onChange={(e) => setBridgeDetourFilters({ ...bridgeDetourFilters, veryLong: e.target.checked })}
+                    className="rounded"
+                  />
+                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#08306b" }} />
+                  <span>Over 50 mi ({bridgeDetourCounts.veryLong})</span>
+                </label>
+              </div>
+
+              <p className="text-xs text-gray-500 mt-2">
+                *A bridge in "Poor" condition does not mean the bridge is unsafe for travelers or in danger of collapse.
+              </p>
+            </div>
+          )}
         </div>
         {showBridgesLayer && routes.length === 0 && (
           <p className="text-xs text-gray-400 mt-1">Enter a route to see bridges along it.</p>
@@ -1793,6 +2063,7 @@ const MapRoute: React.FC = () => {
         </div>
       )}
     </div>
+
   </div>
 
 
