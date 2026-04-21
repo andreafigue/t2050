@@ -99,3 +99,15 @@ html, body, #__next, [data-overlay-root] {
   }
 }
 
+/* Slightly darken the common gray text utilities site-wide for readability */
+.text-gray-400 {
+  color: rgb(107 114 128) !important;
+}
+
+.text-gray-500 {
+  color: rgb(75 85 99) !important;
+}
+
+.text-gray-600 {
+  color: rgb(55 65 81) !important;
+}
